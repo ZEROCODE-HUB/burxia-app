@@ -1,0 +1,223 @@
+import { ZAPSIGN_CONFIG, isTestEnv, isProductionEnv } from '../config/environment';
+
+export interface ZapSignDocument {
+    token: string;
+    status: string;
+    original_file: string;
+    signed_file: string | null;
+    signers: Array<{
+        token: string;
+        sign_url: string;
+        status: string;
+        signed_at: string | null;
+    }>;
+}
+
+export interface CreateDocumentResult {
+    success: boolean;
+    signUrl?: string;
+    docToken?: string;
+    error?: string;
+}
+
+export interface GetSignedUrlResult {
+    success: boolean;
+    signedFileUrl?: string | null;
+    status?: string;
+    error?: string;
+}
+
+export interface GetSignerUrlResult {
+    success: boolean;
+    signUrl?: string;
+    error?: string;
+}
+
+/**
+ * Crea un documento en ZapSign para que el usuario lo firme durante el registro.
+ * En modo test sin API key → usa un mock local.
+ */
+export async function createZapSignDocument(
+    userName: string,
+    userEmail: string,
+): Promise<CreateDocumentResult> {
+    const name = (userName || '').trim();
+    const email = (userEmail || '').trim().toLowerCase();
+    // --- MODO MOCK (test sin API key) ---
+    if (isTestEnv && !ZAPSIGN_CONFIG.apiKey) {
+        console.log('[ZapSign] Modo MOCK activo (test sin API key)');
+        return {
+            success: true,
+            signUrl: 'https://mock-zapsign.local/mock-sign',
+            docToken: 'mock-doc-token-' + Date.now(),
+        };
+    }
+
+    console.log('[ZapSign] Enviando request a:', `${ZAPSIGN_CONFIG.baseUrl}/api/v1/models/create-doc/`);
+    console.log('[ZapSign] Token cargado por Expo:', `***${ZAPSIGN_CONFIG.apiKey.slice(-4)}`);
+    console.log('[ZapSign] Template ID:', ZAPSIGN_CONFIG.templateId);
+    
+    if (!ZAPSIGN_CONFIG.apiKey || !ZAPSIGN_CONFIG.templateId) {
+        console.error('[ZapSign] CRÍTICO: La API key o el Template ID están vacíos. Revisa el archivo .env');
+    }
+
+    try {
+        const payload = {
+            template_id: ZAPSIGN_CONFIG.templateId,
+            signer_name: name,
+            send_automatic_email: false,
+            signers: [
+                {
+                    name,
+                    email,
+                    auth_mode: 'assinaturaTela',
+                    send_automatic_email: true,
+                    // En sandbox y producción exigimos documento; selfie sólo en producción
+                    require_selfie_photo: isProductionEnv,
+                    require_document_photo: true,
+                }
+            ],
+            data: [
+                { de: '{{Nombre}}', para: name },
+                { de: '{{Email}}', para: email }
+            ]
+        };
+
+        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/models/create-doc/`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorData: any = {};
+            try { errorData = JSON.parse(errorText); } catch(e) {}
+            
+            console.error('[ZapSign] Payload enviado:', JSON.stringify(payload));
+            console.error('[ZapSign] Respuesta cruda (HTTP '+response.status+'):', errorText);
+            
+            const errMsg = errorData.detail || errorData.error || `Error HTTP ${response.status} al crear documento en ZapSign`;
+            return { success: false, error: errMsg };
+        }
+
+        const data: ZapSignDocument = await response.json();
+        const signer = data.signers?.[0];
+
+        const signUrl = signer?.sign_url || `https://app.zapsign.com.br/verificar/${signer?.token}`;
+
+        return {
+            success: true,
+            signUrl,
+            docToken: data.token,
+        };
+    } catch (error: any) {
+        console.error('[ZapSign] Error inesperado al crear documento:', error);
+        return { success: false, error: error.message || 'Error de red con ZapSign' };
+    }
+}
+
+/**
+ * Obtiene la URL de firma del primer firmante dado el token del documento.
+ */
+export async function getSignerUrl(docToken: string): Promise<GetSignerUrlResult> {
+    try {
+        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/docs/${docToken}/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            return { success: false, error: errorText || `HTTP ${response.status}` };
+        }
+
+        const data: ZapSignDocument = await response.json();
+        const signer = data.signers?.[0];
+        const signUrl = signer?.sign_url || (signer?.token ? `https://app.zapsign.com.br/verificar/${signer.token}` : undefined);
+
+        if (!signUrl) {
+            return { success: false, error: 'No se pudo obtener sign_url del documento' };
+        }
+        return { success: true, signUrl };
+    } catch (e: any) {
+        return { success: false, error: e.message || 'Error al consultar sign_url' };
+    }
+}
+
+/**
+ * Obtiene la URL del documento firmado dado el token del documento.
+ * `signed_file` es null mientras el usuario no haya completado la firma.
+ * Las URLs expiran en ~60 minutos.
+ */
+export async function getSignedDocumentUrl(
+    docToken: string,
+): Promise<GetSignedUrlResult> {
+    // --- MODO MOCK ---
+    if (isTestEnv && !ZAPSIGN_CONFIG.apiKey) {
+        return {
+            success: true,
+            signedFileUrl: 'https://mock-zapsign.local/mock-signed-document.pdf',
+            status: 'signed',
+        };
+    }
+
+    if (docToken.startsWith('mock-doc-token-')) {
+        return {
+            success: true,
+            signedFileUrl: 'https://mock-zapsign.local/mock-signed-document.pdf',
+            status: 'signed',
+        };
+    }
+
+    try {
+        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/docs/${docToken}/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}`,
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errMsg = (errorData as any).detail || `Error HTTP ${response.status} al consultar documento`;
+            return { success: false, error: errMsg };
+        }
+
+        const data: ZapSignDocument = await response.json();
+
+        return {
+            success: true,
+            signedFileUrl: data.signed_file || null,
+            status: data.status,
+        };
+    } catch (error: any) {
+        console.error('[ZapSign] Error al consultar documento:', error);
+        return { success: false, error: error.message || 'Error de red con ZapSign' };
+    }
+}
+
+/**
+ * Obtiene la URL del contrato firmado con reintentos.
+ * ZapSign Sandbox puede tardar unos segundos en generar el PDF después de la firma.
+ */
+export async function getSignedDocumentUrlWithRetry(
+    docToken: string,
+    maxRetries: number = 3,
+    delayMs: number = 2000,
+): Promise<string | null> {
+    for (let i = 0; i < maxRetries; i++) {
+        const result = await getSignedDocumentUrl(docToken);
+        if (result.success && result.signedFileUrl) {
+            return result.signedFileUrl;
+        }
+        if (i < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+    return null;
+}

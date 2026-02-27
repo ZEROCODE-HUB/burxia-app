@@ -1,0 +1,10 @@
+appId: com.magnate.mobile
+---
+- launchApp
+- scrollUntilVisible:
+    element:
+      text: "Nuevo usuario? Registrate aqui"
+    direction: DOWN
+- tapOn: "Nuevo usuario? Registrate aqui"
+- assertVisible: "Crear Cuenta"
+# Add steps to fill registration form

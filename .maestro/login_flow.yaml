@@ -1,0 +1,18 @@
+appId: com.magnate.mobile
+---
+# - launchApp
+- assertVisible: "Magnate"
+- assertVisible: "Usuario"
+- tapOn: "Usuario"
+- inputText: "test@magnate.com"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "Ingresar"
+    direction: DOWN
+- tapOn: "1"
+- tapOn: "2"
+- tapOn: "3"
+- tapOn: "4"
+- tapOn: "Ingresar"
+# Add assertion for success state or error message depending on mock
