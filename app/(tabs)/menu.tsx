@@ -184,7 +184,7 @@ export default function MenuScreen() {
                                 icon="phone-portrait-outline"
                                 label="Dispositivos"
                                 description="Dispositivos vinculados"
-                                path="/linked-devices"
+                                path="/profile/devices"
                                 colors={colors}
                             />
                         </View>

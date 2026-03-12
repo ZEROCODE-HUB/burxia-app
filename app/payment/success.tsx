@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import ViewShot from "react-native-view-shot";
-import * as MediaLibrary from "expo-media-library";
+import * as Sharing from "expo-sharing";
 import { Toast } from "../../components/ui";
 import {
   colors,
@@ -29,6 +29,7 @@ import { Button } from "../../components/ui";
 export default function SuccessScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const amount = typeof params.amount === "string" ? params.amount : "0";
   const recipientName =
@@ -87,13 +88,7 @@ export default function SuccessScreen() {
     };
   }, []);
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Comprobante de Pago Magnate.\nPago a: ${recipientName}\nMonto: $${amount}\nID: ${reference_number}`,
-      });
-    } catch (error) {}
-  };
+
 
   const handleHome = () => {
     router.dismissAll();
@@ -104,33 +99,21 @@ export default function SuccessScreen() {
     try {
       setIsDownloading(true);
 
-      // Request permissions
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        setToast({
-          visible: true,
-          message: "Se necesitan permisos para guardar la imagen",
-          type: "error",
-        });
-        setIsDownloading(false);
-        return;
-      }
-
-      // Capture view
+      // Captured URI
       const uri = await viewShotRef.current.capture();
 
-      // Save to library
-      await MediaLibrary.saveToLibraryAsync(uri);
-      setToast({
-        visible: true,
-        message: "Comprobante guardado en la galería",
-        type: "success",
+      // Comparte el comprobante como archivo imagen
+      // Esto abrirá el menú nativo para guardarlo, enviarlo o compartirlo.
+      await Sharing.shareAsync(uri, {
+        mimeType: "image/png",
+        dialogTitle: "Guardar Comprobante",
       });
+      
     } catch (error) {
       console.error("[SUCCESS] Error downloading receipt:", error);
       setToast({
         visible: true,
-        message: "No se pudo guardar el comprobante",
+        message: "Ocurrió un error al guardar o compartir",
         type: "error",
       });
     } finally {
@@ -160,7 +143,7 @@ export default function SuccessScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 24, 24) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Area to Capture */}
@@ -240,42 +223,24 @@ export default function SuccessScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
-          <View style={styles.horizontalActions}>
-            <Button
-              variant="outline"
-              onPress={handleShare}
-              style={styles.halfButton}
-            >
+          <Button
+            variant="outline"
+            onPress={handleDownload}
+            style={styles.homeButton}
+            loading={isDownloading}
+          >
+            {!isDownloading && (
               <Ionicons
                 name="share-social-outline"
                 size={20}
                 color={colors.accent}
                 style={{ marginRight: 8 }}
               />
-              <Text style={{ color: colors.accent, fontWeight: "600" }}>
-                Compartir
-              </Text>
-            </Button>
-
-            <Button
-              variant="outline"
-              onPress={handleDownload}
-              style={styles.halfButton}
-              loading={isDownloading}
-            >
-              {!isDownloading && (
-                <Ionicons
-                  name="download-outline"
-                  size={20}
-                  color={colors.accent}
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              <Text style={{ color: colors.accent, fontWeight: "600" }}>
-                Descargar
-              </Text>
-            </Button>
-          </View>
+            )}
+            <Text style={{ color: colors.accent, fontWeight: "600" }}>
+              Compartir
+            </Text>
+          </Button>
 
           <Button
             variant="primary"

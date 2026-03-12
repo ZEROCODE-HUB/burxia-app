@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
-import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -45,7 +45,7 @@ export default function ShareCvuScreen() {
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [qrValue, setQrValue] = React.useState<string | null>(null);
     const qrViewRef = useRef(null);
-    const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+
 
     React.useEffect(() => {
         const fetchQr = async () => {
@@ -94,24 +94,17 @@ export default function ShareCvuScreen() {
 
     const handleSaveQr = async () => {
         try {
-            if (permissionResponse?.status !== 'granted') {
-                const { granted } = await requestPermission();
-                if (!granted) {
-                    showAlert('Permiso requerido', 'Se necesita acceso a la galería para guardar el QR.', "destructive");
-                    return;
-                }
-            }
-
             const localUri = await captureRef(qrViewRef, {
                 format: 'png',
                 quality: 1,
             });
 
-            await MediaLibrary.saveToLibraryAsync(localUri);
-            showAlert("QR Guardado", "La imagen se ha guardado en tu galería.");
+            await Sharing.shareAsync(localUri, {
+                mimeType: "image/png",
+                dialogTitle: "Compartir o Guardar QR",
+            });
         } catch (e) {
-
-            showAlert("Error", "No se pudo guardar la imagen.", "destructive");
+            showAlert("Error", "No se pudo preparar la imagen.", "destructive");
         }
     };
 

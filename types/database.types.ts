@@ -317,6 +317,16 @@ export interface SearchAccountResult {
   is_external: boolean;
 }
 
+export interface AppVersion {
+  id: number;
+  version: string;
+  build_number: number | null;
+  platform: "ios" | "android";
+  mandatory: boolean;
+  store_url: string | null;
+  created_at: string;
+}
+
 // ============================================================================
 // DATABASE TYPE (para Supabase Client)
 // ============================================================================
@@ -385,6 +395,11 @@ export interface Database {
           encryption_key_id?: string | null;
         };
         Update: Partial<Omit<UserAuthCredential, "id" | "created_at">>;
+      };
+      app_versions: {
+        Row: AppVersion;
+        Insert: Omit<AppVersion, "id" | "created_at">;
+        Update: Partial<Omit<AppVersion, "id" | "created_at">>;
       };
     };
     Views: {

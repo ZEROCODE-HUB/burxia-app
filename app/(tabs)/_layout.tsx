@@ -141,10 +141,6 @@ export default function TabsLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="linked-devices"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

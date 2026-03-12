@@ -68,6 +68,7 @@ export default function DevicesScreen() {
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [devices, setDevices] = useState<UserDevice[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
 
     const [alertConfig, setAlertConfig] = useState<{
         visible: boolean;
@@ -91,10 +92,18 @@ export default function DevicesScreen() {
 
     const loadDevices = async () => {
         try {
-            const data = await authService.getUserDevices();
+            const [data, localId] = await Promise.all([
+                authService.getUserDevices(),
+                authService.getLocalDeviceId()
+            ]);
+            console.log("=== Dispositivos vinculados desde BD ===");
+            console.log(JSON.stringify(data, null, 2));
+            console.log("========================================");
+            
             setDevices(data as UserDevice[]);
+            setCurrentDeviceId(localId);
         } catch (error) {
-            console.error(error);
+            console.error("Error al cargar dispositivos:", error);
             showAlert("Error", "No se pudieron cargar los dispositivos", "destructive");
         } finally {
             setIsLoading(false);
@@ -111,15 +120,24 @@ export default function DevicesScreen() {
             "Desvincular Dispositivo",
             "¿Estás seguro? El usuario tendrá que iniciar sesión nuevamente en ese dispositivo.",
             "destructive",
-            () => {
-                showAlert("Info", "Función de desvincular simulada");
+            async () => {
+                console.log(`Intentando revocar dispositivo con DB id: ${deviceId}`);
+                const res = await authService.revokeDevice(deviceId);
+                if (res.success) {
+                    console.log(`Dispositivo revocado exitosamente.`);
+                    setDevices(prev => prev.filter(d => d.id !== deviceId));
+                } else {
+                    console.log(`Error al revocar: ${res.error}`);
+                    showAlert("Error", res.error || "No se pudo desvincular");
+                }
             }
         );
     };
 
     const renderItem = ({ item }: { item: UserDevice }) => {
-        // Simple heuristic for current device (could be improved with DeviceInfo)
-        const isCurrent = false;
+        if (item.status === 'revoked') return null; // No mostrar revocados
+
+        const isCurrent = currentDeviceId === item.device_id;
 
         return (
             <View style={styles.card}>
@@ -152,7 +170,7 @@ export default function DevicesScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <ScreenHeader title="Dispositivos Vinculados" showBackButton={true} />
+            <ScreenHeader title="Dispositivos" showBackButton={true} />
 
             <FlatList
                 data={devices}

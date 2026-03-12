@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
-
+import { getLocalDeviceId } from './auth.service';
 
 class OneSignalService {
     private isInitialized = false;
@@ -154,36 +154,53 @@ class OneSignalService {
 
             // Obtener información del dispositivo
             const optedIn = await OneSignal.User.pushSubscription.getOptedInAsync();
-            const deviceId = await this.getDeviceId(playerId);
+            
+            // Use exactly the same local device id used for Authentication
+            const deviceId = await getLocalDeviceId();
 
-            // ✅ CORREGIDO: Mapear a los campos REALES de tu tabla
-            const deviceData = {
-                user_id: user.id,
-                device_id: deviceId,
-                player_id: playerId, // ✅ Campo correcto
-                platform: Platform.OS as 'ios' | 'android', // ✅ Campo correcto
-                push_enabled: optedIn, // ✅ Campo correcto (boolean)
-                device_name: Platform.select({ ios: 'iOS Device', android: 'Android Device' }) || 'Unknown Device',
-                device_type: Platform.OS,
-                device_model: 'Unknown', // expo-device removed to avoid native module errors
-                device_os_version: String(Platform.Version),
-                app_version: Constants.expoConfig?.version || '1.0.0',
-                last_active_at: new Date().toISOString(),
-                is_active: true
+            // ✅ CORREGIDO: Llamar al RPC en Supabase para reclamar el device sin violar unique constraints ni RLS
+            const rpcArgs = {
+                p_player_id: playerId,
+                p_device_id: deviceId,
+                p_user_id: user.id,
+                p_platform: Platform.OS as 'ios' | 'android',
+                p_push_enabled: optedIn,
+                p_device_os_version: String(Platform.Version),
+                p_app_version: Constants.expoConfig?.version || '1.0.0'
             };
 
-            console.log('💾 Guardando dispositivo:', deviceData);
+            console.log('💾 Llamando RPC para guardar dispositivo:', rpcArgs);
 
-            const { error } = await supabase
-                .from('user_devices')
-                .upsert(deviceData, {
+            const { error: rpcError } = await supabase.rpc('claim_onesignal_device', rpcArgs as any);
+
+            if (rpcError) {
+                console.error('❌ Error al ganar ownership del dispositivo usando RPC:', rpcError);
+                
+                // Fallback extremo por si el RPC no existe aún o falla (solo UPSERT normal sin limpieza agresiva)
+                console.warn('⚠️ Intentando Upsert normal de Fallback...');
+                const deviceData = {
+                    user_id: user.id,
+                    device_id: deviceId, // Secure local device id
+                    player_id: playerId, // OneSignal id
+                    platform: Platform.OS as 'ios' | 'android',
+                    push_enabled: optedIn,
+                    device_os_version: String(Platform.Version),
+                    app_version: Constants.expoConfig?.version || '1.0.0',
+                    last_active_at: new Date().toISOString(),
+                    is_active: true
+                };
+
+                const { error: fallbackError } = await (supabase.from('user_devices') as any).upsert(deviceData, {
                     onConflict: 'user_id,device_id'
                 });
 
-            if (error) {
-                console.error('❌ Error al guardar dispositivo:', error);
+                if (fallbackError) {
+                     console.error('❌ Error al guardar dispositivo (fallback):', fallbackError);
+                } else {
+                     console.log('✅ Dispositivo guardado en BD (vía Fallback):', playerId);
+                }
             } else {
-                console.log('✅ Dispositivo guardado en BD:', playerId);
+                console.log('✅ Dispositivo guardado exitosamente en BD (vía RPC):', playerId);
             }
         } catch (error) {
             console.error('❌ Error en saveDeviceToDatabase:', error);
@@ -191,15 +208,12 @@ class OneSignalService {
     }
 
     /**
-     * Obtiene un ID único del dispositivo
+     * Obtiene un ID único del dispositivo (Ya no se usa localmente, pero se mantiene por compatibilidad)
      */
     private async getDeviceId(playerId?: string): Promise<string> {
         try {
-            // Fallback: usar el player_id si está disponible
-            if (playerId) return playerId;
-
-            const existingPlayerId = await OneSignal.User.pushSubscription.getIdAsync();
-            return existingPlayerId || 'unknown';
+            // Utilizamos la misma funcion base del auth para no perder coherencia
+            return await getLocalDeviceId();
         } catch (error) {
             console.error('Error obteniendo device_id:', error);
             return 'unknown';
@@ -242,11 +256,11 @@ class OneSignalService {
             if (user) {
                 const playerId = await OneSignal.User.pushSubscription.getIdAsync();
 
-                const { error } = await supabase
-                    .from('user_devices')
-                    .update({ push_enabled: enabled }) // ✅ Campo correcto
+                const { error } = await (supabase
+                    .from('user_devices') as any)
+                    .update({ push_enabled: enabled })
                     .eq('user_id', user.id)
-                    .eq('player_id', playerId); // ✅ Campo correcto
+                    .eq('player_id', playerId || '');
 
                 if (error) {
                     console.error('Error al actualizar push_enabled:', error);

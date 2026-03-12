@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/layout';
 import { SummaryCards } from '../../components/statistics/SummaryCards';
 import { BalanceChart } from '../../components/statistics/BalanceChart';
@@ -28,6 +28,7 @@ const RANGE_LABELS: Record<string, string> = {
 
 export default function StatisticsScreen() {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
     const { account } = useAuth();
     const [selectedRange, setSelectedRange] = useState("1d");
     const [customRange, setCustomRange] = useState<{ start: Date; end: Date } | null>(null);
@@ -150,7 +151,10 @@ export default function StatisticsScreen() {
                 )}
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]} 
+                showsVerticalScrollIndicator={false}
+            >
                 {isLoading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={colors.accent} />
@@ -175,8 +179,6 @@ export default function StatisticsScreen() {
                     </View>
                 )}
 
-                {/* Bottom padding */}
-                <View style={{ height: 40 }} />
             </ScrollView>
         </SafeAreaView>
     );

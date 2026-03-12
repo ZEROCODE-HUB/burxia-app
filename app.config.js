@@ -1,9 +1,9 @@
 // app.config.js
 export default {
     expo: {
-        name: "magnate-mobile",
-        slug: "magnate-mobile",
-        version: "1.0.0",
+        name: "Magnate",
+        slug: "Magnate",
+        version: "1.0.9",
         orientation: "portrait",
         icon: "./assets/icon.png",
         scheme: "magnate",
@@ -13,7 +13,7 @@ export default {
         splash: {
             image: "./assets/splash-icon.png",
             resizeMode: "contain",
-            backgroundColor: "#0F172A"
+            backgroundColor: "#0f172aff"
         },
 
         ios: {
@@ -28,7 +28,7 @@ export default {
             },
             permissions: ["CAMERA", "RECORD_AUDIO"],
             package: "com.magnate.mobile",
-             versionCode: 1 
+             versionCode: 9 
         },
 
         web: {

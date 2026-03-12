@@ -9,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 export const BalanceCard = () => {
     const { colors, isDark } = useTheme();
     const { balance } = useAccount();
-    const [showBalance, setShowBalance] = useState(true);
+    const [showBalance, setShowBalance] = useState(false);
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const formattedBalance = formatBalance(balance);

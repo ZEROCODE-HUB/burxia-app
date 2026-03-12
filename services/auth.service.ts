@@ -10,19 +10,23 @@ bcrypt.setRandomFallback((len) => {
 
 import { encrypt, decrypt, generateSecurePassword } from "../utils/crypto";
 import { sendOtpEmail } from "./email.service";
+import { incrementPinAttempts, resetPinAttempts } from "./storage.service";
 import {
   generateCBU,
   generateCVU,
   generateAlias,
   getEndOfMonth,
 } from "../utils/generators";
-import { incrementPinAttempts, resetPinAttempts } from "./storage.service";
 import {
   User,
   Account,
   UserAuthCredential,
   VerificationStatus,
+  UserDevice,
 } from "../types/database.types";
+import * as SecureStore from "expo-secure-store";
+import * as Device from "expo-device";
+import { Platform } from "react-native";
 
 export interface LoginCredentials {
   email: string;
@@ -48,6 +52,7 @@ export interface AuthResult {
   success: boolean;
   error?: string;
   userId?: string;
+  requireDeviceVerification?: boolean;
 }
 // Tipo para el resultado del RPC get_user_login_data
 export interface LoginUserData {
@@ -57,25 +62,115 @@ export interface LoginUserData {
   verification_status: VerificationStatus;
   auto_password_encrypted: string | null;
 }
+
+// Cuenta de prueba de Play Store — siempre bypassa verificación de dispositivo
+const TEST_ACCOUNT_EMAIL = 'oscarmijaelpg@gmail.com';
 /**
  * Login con email + PIN
  */
-// Cuenta de prueba de Play Store — siempre bypassa verificación de dispositivo
-const TEST_ACCOUNT_EMAIL = 'oscarmijaelpg@gmail.com';
+/**
+ * Obtiene o crea un ID único de dispositivo almacenado localmente.
+ */
+export async function getLocalDeviceId(): Promise<string> {
+  const DEVICE_ID_KEY = "MAGNATE_DEVICE_ID";
+  try {
+    let deviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
+    if (!deviceId) {
+      deviceId = Crypto.randomUUID();
+      await SecureStore.setItemAsync(DEVICE_ID_KEY, deviceId);
+    }
+    return deviceId;
+  } catch (error) {
+    console.error("Error getting/setting device ID:", error);
+    return "UNKNOWN_DEVICE";
+  }
+}
 
 /**
  * Indica si el dispositivo actual es conocido para el usuario.
  * La cuenta de prueba de Play Store siempre retorna true (bypass).
  */
 export async function isDeviceKnown(userId: string, email: string): Promise<boolean> {
-  // Bypass para cuenta de prueba de Play Store
   if (email.toLowerCase().trim() === TEST_ACCOUNT_EMAIL) {
     return true;
   }
 
-  // TODO: implementar verificación real cuando se agregue la pantalla de OTP de dispositivo
-  // Por ahora retorna true para todos los usuarios
-  return true;
+  const deviceId = await getLocalDeviceId();
+
+  try {
+    const { data, error } = await supabase
+      .from("user_devices")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("device_id", deviceId)
+      .eq("status", "active")
+      .limit(1);
+
+    if (error || !data || data.length === 0) {
+      if (error) console.error("isDeviceKnown error:", error);
+      return false; // Not found or error
+    }
+    
+    // Update last_active_at implicitly when checked
+    await (supabase.from("user_devices") as any).update({ last_active_at: new Date().toISOString() }).eq("id", (data as any)[0].id);
+
+    return true;
+  } catch (err) {
+    console.error("Error verifying known device:", err);
+    return false;
+  }
+}
+
+/**
+ * Registra el dispositivo actual como confiable tras éxito de OTP.
+ */
+export async function registerCurrentDevice(): Promise<AuthResult> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Usuario no autenticado." };
+
+    const deviceId = await getLocalDeviceId();
+    
+    // Check if it exists but revoked
+    const { data: existing } = await supabase
+      .from("user_devices")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("device_id", deviceId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const { error } = await (supabase.from("user_devices") as any).update({ 
+        status: "active", 
+        revoked_at: null,
+        last_active_at: new Date().toISOString() 
+      }).eq("id", (existing as any)[0].id);
+      
+      if (error) throw error;
+      return { success: true };
+    }
+
+    // Insert new
+    const { error: insertError } = await supabase.from("user_devices").insert({
+      user_id: user.id,
+      device_id: deviceId,
+      device_name: Device.deviceName || 'Dispositivo desconocido',
+      device_model: Device.modelName || 'Modelo desconocido',
+      platform: Platform.OS as 'ios' | 'android' | 'web',
+      os_version: Device.osVersion || null,
+      app_version: null, // we can inject APP_VERSION easily if needed but not strictly necessary for backend
+      status: "active",
+      is_primary: false,
+      biometric_enabled: false,
+      last_active_at: new Date().toISOString(),
+    } as any);
+
+    if (insertError) throw insertError;
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error registering device:", error);
+    return { success: false, error: "No se pudo registrar el dispositivo." };
+  }
 }
 
 export async function loginWithPin(
@@ -125,22 +220,13 @@ export async function loginWithPin(
     // PIN correcto, resetear intentos
     await resetPinAttempts(normalizedEmail);
 
-    // 3. Verificar status
+    // 4. Verificar status
     if (user.verification_status === "suspended") {
       return { success: false, error: "Esta cuenta se encuentra suspendida." };
     }
 
     if (user.verification_status !== "verified") {
       return { success: false, error: "Cuenta pendiente de verificación" };
-    }
-
-    // 4. Verificar dispositivo (la cuenta de prueba siempre lo bypassa)
-    const deviceKnown = await isDeviceKnown(user.id, normalizedEmail);
-    if (!deviceKnown) {
-      // Cuando se implemente la pantalla de OTP de dispositivo,
-      // aquí se retornaría un código especial para mostrarla.
-      // Por ahora este branch nunca se ejecuta.
-      return { success: false, error: 'Dispositivo no reconocido. Se requiere verificación.' };
     }
 
     // 5. Desencriptar la contraseña
@@ -150,7 +236,7 @@ export async function loginWithPin(
 
     const autoPassword = await decrypt(user.auto_password_encrypted);
 
-    // 6. Hacer login con Supabase Auth
+    // 6. Hacer login con Supabase Auth (Must login first to bypass Row Level Security restrictions for the device check)
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password: autoPassword,
@@ -160,7 +246,16 @@ export async function loginWithPin(
       return { success: false, error: "Error al iniciar sesión" };
     }
 
-    return { success: true, userId: user.id };
+    // 7. Verificar dispositivo (la cuenta de prueba siempre lo bypassa)
+    const deviceKnown = await isDeviceKnown(user.id, normalizedEmail);
+
+    if (!deviceKnown) {
+      // Send OTP implicitly since we are now logged in
+      await sendVerificationOtp();
+      return { success: true, userId: user.id, requireDeviceVerification: true };
+    }
+
+    return { success: true, userId: user.id, requireDeviceVerification: false };
   } catch (error: any) {
     return { success: false, error: error.message || "Error desconocido" };
   }
@@ -526,6 +621,28 @@ export async function logout(): Promise<AuthResult> {
 }
 
 /**
+ * Revocar un dispositivo
+ */
+export async function revokeDevice(deviceId: string): Promise<AuthResult> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Usuario no autenticado." };
+
+    const { error } = await (supabase.from("user_devices") as any).update({
+      status: "revoked",
+      revoked_at: new Date().toISOString(),
+      revoke_reason: "User revoked manually"
+    }).eq("id", deviceId).eq("user_id", user.id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error revoking device:", err);
+    return { success: false, error: "No se pudo desvincular el dispositivo." };
+  }
+}
+
+/**
  * Obtener sesión actual
  */
 export async function getCurrentSession() {
@@ -547,4 +664,35 @@ export async function getCurrentUser(userId: string) {
     .single();
 
   return { user: data as unknown as User | null, error: error?.message };
+}
+
+/**
+ * Actualiza la configuración de Acceso Web
+ */
+export async function updateWebAccess(userId: string, enabled: boolean, password?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const updates: any = {
+            web_access_enabled: enabled,
+            updated_at: new Date().toISOString(),
+        };
+
+        if (enabled && password) {
+             const salt = await bcrypt.genSalt(10);
+             const hash = await bcrypt.hash(password, salt);
+             updates.web_password_hash = hash;
+             updates.web_access_enabled_at = new Date().toISOString();
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update(updates)
+            .eq('id', userId);
+
+        if (error) throw error;
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error updating web access:', error);
+        return { success: false, error: error.message };
+    }
 }

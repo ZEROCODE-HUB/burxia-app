@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -17,13 +17,23 @@ import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
+import { useAuth } from '../../context/AuthContext';
+import { updateWebAccess } from '../../services/auth.service';
+
 export default function WebAccessScreen() {
     const { colors } = useTheme();
+    const { user, refreshUser } = useAuth();
     const [webAccessEnabled, setWebAccessEnabled] = useState(false);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setWebAccessEnabled(user.web_access_enabled || false);
+        }
+    }, [user]);
 
     const [alertConfig, setAlertConfig] = useState<{
         visible: boolean;
@@ -53,8 +63,18 @@ export default function WebAccessScreen() {
     const passwordsMatch = password === confirmPassword && password !== '';
 
     const handleSave = async () => {
+        if (!user) return;
+
         if (!webAccessEnabled) {
-            showAlert("Éxito", "Configuración de Acceso Web actualizada.");
+            setLoading(true);
+            const res = await updateWebAccess(user.id, false);
+            setLoading(false);
+            if (res.success) {
+                await refreshUser();
+                showAlert("Éxito", "Configuración de Acceso Web desactivada.");
+            } else {
+                showAlert("Error", res.error || "No se pudo actualizar.", "destructive");
+            }
             return;
         }
 
@@ -74,10 +94,17 @@ export default function WebAccessScreen() {
         }
 
         setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const res = await updateWebAccess(user.id, true, password);
         setLoading(false);
 
-        showAlert("Éxito", "Configuración de Acceso Web actualizada.");
+        if (res.success) {
+            await refreshUser();
+            showAlert("Éxito", "Configuración de Acceso Web actualizada.");
+            setPassword('');
+            setConfirmPassword('');
+        } else {
+            showAlert("Error", res.error || "No se pudo actualizar.", "destructive");
+        }
     };
 
     return (

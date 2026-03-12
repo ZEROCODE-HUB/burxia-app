@@ -9,9 +9,11 @@ import { LogoIcon } from '../components/LogoIcon';
 import { colors } from '../theme';
 import { oneSignalService } from '../services/oneSignalService';
 import { supabase } from '../lib/supabase';
+import { InactivityWrapper } from '../components/InactivityWrapper';
+import { UpdateModal } from '../components/UpdateModal';
 
 function RootLayoutNav() {
-    const { session, loading, user } = useAuth();
+    const { session, loading, user, pendingDeviceVerification } = useAuth();
     const segments = useSegments();
     const router = useRouter();
 
@@ -21,14 +23,21 @@ function RootLayoutNav() {
         const inAuthGroup = segments[0] === '(auth)';
         const inTabsGroup = segments[0] === '(tabs)';
 
-        if (session && user && inAuthGroup) {
-            // Si hay sesión Y usuario cargado, y estamos en grupo auth (login/register), ir a tabs
-            router.replace('/(tabs)');
+        if (session && user) {
+            if (pendingDeviceVerification) {
+                // If user needs to verify device, push them to the verify screen unless they are already there
+                if (segments.join('/') !== '(auth)/verify-device') {
+                    router.replace('/(auth)/verify-device');
+                }
+            } else if (inAuthGroup) {
+                // Si hay sesión Y usuario verificado, y estamos en grupo auth (login/register), ir a tabs
+                router.replace('/(tabs)');
+            }
         } else if (!session && inTabsGroup) {
             // Si NO hay sesión y estamos en tabs, ir a login
             router.replace('/(auth)/login');
         }
-    }, [session, loading, segments, user]);
+    }, [session, loading, segments, user, pendingDeviceVerification]);
 
     if (loading) {
         return (
@@ -80,8 +89,11 @@ export default function RootLayout() {
         <SafeAreaProvider>
             <ThemeProvider>
                 <AuthProvider>
-                    <StatusBar style="light" />
-                    <RootLayoutNav />
+                    <InactivityWrapper>
+                        <StatusBar style="light" />
+                        <RootLayoutNav />
+                        <UpdateModal />
+                    </InactivityWrapper>
                 </AuthProvider>
             </ThemeProvider>
         </SafeAreaProvider>

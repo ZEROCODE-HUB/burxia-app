@@ -12,10 +12,12 @@ interface AuthContextType {
   session: any;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, pin: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, pin: string) => Promise<{ success: boolean; error?: string; requireDeviceVerification?: boolean }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   refreshAccount: () => Promise<void>;
+  pendingDeviceVerification: boolean;
+  setPendingDeviceVerification: (val: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,8 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<AccountWithType | null>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingDeviceVerification, setPendingDeviceVerification] = useState(false);
 
-  const isAuthenticated = !!session && !!user;
+  const isAuthenticated = !!session && !!user && !pendingDeviceVerification;
 
   useEffect(() => {
     checkSession();
@@ -59,9 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
 
       if (session?.user) {
+        const email = session.user.email || '';
+        const { isDeviceKnown } = await import('../services/auth.service');
+        const known = await isDeviceKnown(session.user.id, email);
+        
+        if (!known) {
+          const { sendVerificationOtp } = await import('../services/auth.service');
+          await sendVerificationOtp();
+          setPendingDeviceVerification(true);
+        }
+
         await loadUserData(session.user.id);
-        // ✅ Vincular con OneSignal si ya existe sesión activa
-        await oneSignalService.loginUser(session.user.id);
+        // ✅ Vincular con OneSignal si ya existe sesión activa y dispositivo conocido
+        if (known) await oneSignalService.loginUser(session.user.id);
       }
     } catch (error) {
       console.error('Error checking session:', error);
@@ -114,10 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Save for "Remember Me"
       if (userData) {
         saveLastUser({
-          email: userData.email,
-          firstName: userData.first_name,
-          lastName: userData.last_name,
-          avatarUrl: userData.photo_url
+          email: (userData as any).email,
+          firstName: (userData as any).first_name,
+          lastName: (userData as any).last_name,
+          avatarUrl: (userData as any).photo_url
         }).catch(() => { });
       }
 
@@ -198,14 +211,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await loginService(email, pin);
 
       if (result.success) {
-        // Save user info for "Remember Me" functionality
-        // We need to fetch the basic user info first if not available in result
-        // But loginService only returns userId.
-        // Option 1: Fetch user here. Option 2: Rely on onAuthStateChange to fetch user and then save it.
-        // Let's rely on the fact that on component mount of Login, we check storage.
-        // But we need to save it *at some point*.
-        // Best place is likely inside loadUserData when we successfully load a user profile.
-        return { success: true };
+        if (result.requireDeviceVerification) {
+          setPendingDeviceVerification(true);
+          return { success: true, requireDeviceVerification: true };
+        } else {
+          setPendingDeviceVerification(false);
+          return { success: true, requireDeviceVerification: false };
+        }
       } else {
         return { success: false, error: result.error };
       }
@@ -254,6 +266,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         refreshUser,
         refreshAccount,
+        pendingDeviceVerification,
+        setPendingDeviceVerification,
       }}
     >
       {children}
