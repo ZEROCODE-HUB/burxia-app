@@ -20,7 +20,9 @@ workflows:
       - name: Setup EAS
         script: npm install -g eas-cli
       - name: Build iOS
-        script: eas build --platform ios --profile production --non-interactive --local
+        script: |
+          export EXPO_TOKEN=$EXPO_TOKEN
+          eas build --platform ios --profile production --non-interactive --local
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
