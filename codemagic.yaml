@@ -6,6 +6,8 @@ workflows:
     integrations:
       app_store_connect: Codemagic Key2
     environment:
+      groups:
+        - magnate-variables
       ios_signing:
         provisioning_profiles:
           - Magnate AppStore
@@ -20,9 +22,7 @@ workflows:
       - name: Setup EAS
         script: npm install -g eas-cli
       - name: Build iOS
-        script: |
-          export EXPO_TOKEN=$EXPO_TOKEN
-          eas build --platform ios --profile production --non-interactive --local
+        script: eas build --platform ios --profile production --non-interactive --local
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
