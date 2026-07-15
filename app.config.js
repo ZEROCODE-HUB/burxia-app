@@ -13,12 +13,14 @@ export default {
         splash: {
             image: "./assets/splash-icon.png",
             resizeMode: "contain",
-            backgroundColor: "#0f172aff"
+            backgroundColor: "#0f172a"
         },
 
         ios: {
             supportsTablet: true,
-            bundleIdentifier: "com.magnate.mobile"
+            bundleIdentifier: "com.magnate.mobile",
+            infoPlist: {
+                ITSAppUsesNonExemptEncryption: false
         },
 
         android: {
