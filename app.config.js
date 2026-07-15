@@ -44,6 +44,9 @@ export default {
                     android: {
                         minSdkVersion: 26,
                         newArchEnabled: true
+                    },
+                    ios: {
+                        deploymentTarget: "13.0"
                     }
                 }
             ],
