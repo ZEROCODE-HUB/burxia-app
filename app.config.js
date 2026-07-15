@@ -46,7 +46,7 @@ export default {
                         newArchEnabled: true
                     },
                     ios: {
-                        deploymentTarget: "13.0"
+                        deploymentTarget: "15.1"
                     }
                 }
             ],
