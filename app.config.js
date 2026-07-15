@@ -21,8 +21,8 @@ export default {
             bundleIdentifier: "com.magnate.mobile",
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false
+            }
         },
-
         android: {
             adaptiveIcon: {
                 foregroundImage: "./assets/adaptive-icon.png",
