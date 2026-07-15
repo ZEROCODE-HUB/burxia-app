@@ -11,6 +11,7 @@ workflows:
       ios_signing:
         provisioning_profiles:
           - Magnate AppStore
+          - Magnate OneSignal AppStore
         certificates:
           - Apple Distribution Certificate
       node: 22
