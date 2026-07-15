@@ -14,15 +14,15 @@ workflows:
         certificates:
           - Apple Distribution Certificate
       node: 22
-      vars:
-        XCODE_SCHEME: Magnate
     scripts:
       - name: Install dependencies
         script: npm ci
       - name: Setup EAS
         script: npm install -g eas-cli
-      - name: Build iOS
-        script: eas build --platform ios --profile production --non-interactive --local
+      - name: Build and submit iOS
+        script: |
+          eas build --platform ios --profile production --non-interactive
+          eas submit --platform ios --profile production --non-interactive
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
