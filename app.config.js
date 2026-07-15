@@ -2,7 +2,7 @@
 export default {
     expo: {
         name: "Magnate",
-        slug: "Magnate",
+        slug: "magnate-mobile",
         version: "1.0.9",
         orientation: "portrait",
         icon: "./assets/icon.png",
