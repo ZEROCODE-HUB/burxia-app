@@ -17,12 +17,24 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm ci
-      - name: Setup EAS
-        script: npm install -g eas-cli
-      - name: Build and submit iOS
+      - name: Install Expo CLI
+        script: npm install -g @expo/cli
+      - name: Prebuild iOS
+        script: npx expo prebuild --platform ios --clean
+      - name: Build iOS
         script: |
-          eas build --platform ios --profile production --non-interactive
-          eas submit --platform ios --profile production --non-interactive
+          xcode-project use-profiles
+          xcodebuild \
+            -project ios/Magnate.xcodeproj \
+            -scheme Magnate \
+            -configuration Release \
+            -archivePath build/Magnate.xcarchive \
+            archive
+      - name: Export IPA
+        script: |
+          xcode-project build-ipa \
+            --project ios/Magnate.xcodeproj \
+            --scheme Magnate
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
