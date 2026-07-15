@@ -22,6 +22,10 @@ workflows:
         script: npm install -g @expo/cli
       - name: Prebuild iOS
         script: npx expo prebuild --platform ios --clean
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
       - name: Build iOS
         script: |
           xcode-project use-profiles
