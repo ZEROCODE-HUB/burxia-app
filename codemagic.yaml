@@ -26,6 +26,8 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
+      - name: Show RCTOneSignalExtensionService header
+        script: cat ios/Pods/Headers/Public/react-native-onesignal/RCTOneSignalExtensionService.h
       - name: Fix OneSignal
         script: |
           cat > ios/OneSignalNotificationServiceExtension/NotificationService.m << 'EOF'
