@@ -21,7 +21,7 @@ workflows:
       - name: Install Expo CLI
         script: npm install -g @expo/cli
       - name: Prebuild iOS
-        script: npx expo prebuild --platform ios --clean || true
+        script: EXPO_NO_DEV_CLIENT=1 npx expo prebuild --platform ios --clean || true
       - name: Fix OneSignal NotificationService
         script: |
           python3 -c "
@@ -68,9 +68,6 @@ workflows:
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
-            SKIP_INSTALL=NO \
-            BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-            -skip-testing \
             archive
       - name: Export IPA
         script: |
