@@ -22,30 +22,4 @@ workflows:
         script: npm install -g @expo/cli
       - name: Prebuild iOS
         script: npx expo prebuild --platform ios --clean
-      - name: Install CocoaPods
-        script: |
-          cd ios
-          pod install
-      - name: Fix OneSignal deployment target
-        script: |
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
-      - name: Build iOS
-        script: |
-          xcode-project use-profiles
-          xcodebuild \
-            -project ios/Magnate.xcodeproj \
-            -scheme Magnate \
-            -configuration Release \
-            -archivePath build/Magnate.xcarchive \
-            archive
-      - name: Export IPA
-        script: |
-          xcode-project build-ipa \
-            --project ios/Magnate.xcodeproj \
-            --scheme Magnate
-    artifacts:
-      - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
+      -
