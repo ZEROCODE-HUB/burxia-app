@@ -22,15 +22,14 @@ workflows:
         script: npm install -g @expo/cli
       - name: Prebuild iOS
         script: npx expo prebuild --platform ios --clean || true
-      - name: Show Podfile
-        script: cat ios/Podfile
       - name: Install CocoaPods
         script: |
           cd ios
           pod install --repo-update
-      - name: Fix OneSignal deployment target
+      - name: Fix OneSignal deployment target and import
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
+          sed -i '' 's/#import <OneSignalFramework\/OneSignalFramework.h>/#import <OneSignalXCFramework\/OneSignal.h>/g' ios/OneSignalNotificationServiceExtension/NotificationService.m
       - name: Build iOS
         script: |
           xcode-project use-profiles
