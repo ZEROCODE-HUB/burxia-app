@@ -28,7 +28,27 @@ workflows:
           pod install --repo-update
       - name: Fix OneSignal
         script: |
-          sed -i '' 's/#import <RCTOneSignalExtensionService.h>/#import <RCTOneSignalExtensionService.h>\n#import <OneSignalXCFramework\/OneSignal.h>/g' ios/OneSignalNotificationServiceExtension/NotificationService.m
+          cat > ios/OneSignalNotificationServiceExtension/NotificationService.m << 'EOF'
+          #import <RCTOneSignalExtensionService.h>
+          #import "NotificationService.h"
+          @interface NotificationService ()
+          @property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
+          @property (nonatomic, strong) UNNotificationRequest *receivedRequest;
+          @property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
+          @end
+          @implementation NotificationService
+          - (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
+              self.receivedRequest = request;
+              self.contentHandler = contentHandler;
+              self.bestAttemptContent = [request.content mutableCopy];
+              [RCTOneSignalExtensionService didReceiveNotificationExtensionRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent withContentHandler:self.contentHandler];
+          }
+          - (void)serviceExtensionTimeWillExpire {
+              [RCTOneSignalExtensionService serviceExtensionTimeWillExpireRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent];
+              self.contentHandler(self.bestAttemptContent);
+          }
+          @end
+          EOF
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
       - name: Build iOS
         script: |
