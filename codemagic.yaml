@@ -1,7 +1,7 @@
 workflows:
   ios-workflow:
     name: iOS Build - Magnate
-    max_build_duration: 60
+    max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
       app_store_connect: Codemagic Key2
@@ -22,39 +22,47 @@ workflows:
         script: npm install -g @expo/cli
       - name: Prebuild iOS
         script: npx expo prebuild --platform ios --clean || true
+      - name: Fix OneSignal NotificationService
+        script: |
+          cat > ios/OneSignalNotificationServiceExtension/NotificationService.m << 'EOF'
+#import <RCTOneSignalExtensionService.h>
+#import "NotificationService.h"
+
+@interface NotificationService ()
+@property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
+@property (nonatomic, strong) UNNotificationRequest *receivedRequest;
+@property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
+@end
+
+@implementation NotificationService
+
+- (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
+    self.receivedRequest = request;
+    self.contentHandler = contentHandler;
+    self.bestAttemptContent = [request.content mutableCopy];
+    [RCTOneSignalExtensionService didReceiveNotificationRequest:self.receivedRequest withContent:self.bestAttemptContent withContentHandler:self.contentHandler];
+}
+
+- (void)serviceExtensionTimeWillExpire {
+    [RCTOneSignalExtensionService serviceExtensionTimeWillExpireRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent];
+    self.contentHandler(self.bestAttemptContent);
+}
+
+@end
+EOF
       - name: Install CocoaPods
         script: |
           cd ios
           pod install --repo-update
-      - name: Fix OneSignal
+      - name: Fix deployment target
         script: |
-          cat > ios/OneSignalNotificationServiceExtension/NotificationService.m << 'EOF'
-          #import <RCTOneSignalExtensionService.h>
-          #import "NotificationService.h"
-          @interface NotificationService ()
-          @property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
-          @property (nonatomic, strong) UNNotificationRequest *receivedRequest;
-          @property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
-          @end
-          @implementation NotificationService
-          - (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
-              self.receivedRequest = request;
-              self.contentHandler = contentHandler;
-              self.bestAttemptContent = [request.content mutableCopy];
-              [RCTOneSignalExtensionService didReceiveNotificationRequest:self.receivedRequest withContent:self.bestAttemptContent withContentHandler:self.contentHandler];
-          }
-          - (void)serviceExtensionTimeWillExpire {
-              [RCTOneSignalExtensionService serviceExtensionTimeWillExpireRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent];
-              self.contentHandler(self.bestAttemptContent);
-          }
-          @end
-          EOF
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
       - name: Build iOS
         script: |
           xcode-project use-profiles
           xcodebuild \
-            -project ios/Magnate.xcodeproj \
+            -workspace ios/Magnate.xcworkspace \
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
@@ -62,7 +70,7 @@ workflows:
       - name: Export IPA
         script: |
           xcode-project build-ipa \
-            --project ios/Magnate.xcodeproj \
+            --workspace ios/Magnate.xcworkspace \
             --scheme Magnate
     artifacts:
       - build/ios/ipa/*.ipa
