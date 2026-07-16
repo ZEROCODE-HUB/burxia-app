@@ -28,9 +28,7 @@ workflows:
           pod install
       - name: Fix OneSignal deployment target
         script: |
-          grep "IPHONEOS_DEPLOYMENT_TARGET" ios/Magnate.xcodeproj/project.pbxproj | head -5
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.1/g' ios/Magnate.xcodeproj/project.pbxproj
-          grep "IPHONEOS_DEPLOYMENT_TARGET" ios/Magnate.xcodeproj/project.pbxproj | head -5
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
       - name: Build iOS
         script: |
           xcode-project use-profiles
