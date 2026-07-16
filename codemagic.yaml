@@ -26,8 +26,6 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
-      - name: Show RCTOneSignalExtensionService header
-        script: cat ios/Pods/Headers/Public/react-native-onesignal/RCTOneSignalExtensionService.h
       - name: Fix OneSignal
         script: |
           cat > ios/OneSignalNotificationServiceExtension/NotificationService.m << 'EOF'
@@ -43,7 +41,7 @@ workflows:
               self.receivedRequest = request;
               self.contentHandler = contentHandler;
               self.bestAttemptContent = [request.content mutableCopy];
-              [RCTOneSignalExtensionService didReceiveNotificationExtensionRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent withContentHandler:self.contentHandler];
+              [RCTOneSignalExtensionService didReceiveNotificationExtensionRequest:self.receivedRequest withContent:self.bestAttemptContent withContentHandler:self.contentHandler];
           }
           - (void)serviceExtensionTimeWillExpire {
               [RCTOneSignalExtensionService serviceExtensionTimeWillExpireRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent];
