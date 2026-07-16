@@ -28,7 +28,7 @@ workflows:
           pod install --repo-update
       - name: Fix OneSignal
         script: |
-          sed -i '' 's/#import <OneSignalFramework\/OneSignalFramework.h>/#import <RCTOneSignalExtensionService.h>/g' ios/OneSignalNotificationServiceExtension/NotificationService.m
+          sed -i '' 's/#import <RCTOneSignalExtensionService.h>/#import <RCTOneSignalExtensionService.h>\n#import <OneSignalXCFramework\/OneSignal.h>/g' ios/OneSignalNotificationServiceExtension/NotificationService.m
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
       - name: Build iOS
         script: |
