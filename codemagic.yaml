@@ -22,6 +22,8 @@ workflows:
         script: npm install -g @expo/cli
       - name: Prebuild iOS
         script: npx expo prebuild --platform ios --clean || true
+      - name: Show NotificationService
+        script: cat ios/OneSignalNotificationServiceExtension/NotificationService.m
       - name: Install CocoaPods
         script: |
           cd ios
