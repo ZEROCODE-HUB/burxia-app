@@ -41,7 +41,7 @@ workflows:
               self.receivedRequest = request;
               self.contentHandler = contentHandler;
               self.bestAttemptContent = [request.content mutableCopy];
-              [RCTOneSignalExtensionService didReceiveNotificationExtensionRequest:self.receivedRequest withContent:self.bestAttemptContent withContentHandler:self.contentHandler];
+              [RCTOneSignalExtensionService didReceiveNotificationRequest:self.receivedRequest withContent:self.bestAttemptContent withContentHandler:self.contentHandler];
           }
           - (void)serviceExtensionTimeWillExpire {
               [RCTOneSignalExtensionService serviceExtensionTimeWillExpireRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent];
