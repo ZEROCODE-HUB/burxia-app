@@ -60,7 +60,6 @@ workflows:
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 9.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' ios/Pods/Pods.xcodeproj/project.pbxproj
       - name: Build iOS
         script: |
           xcode-project use-profiles
@@ -69,14 +68,9 @@ workflows:
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
-            archive \
-            OTHER_LDFLAGS="-v" \
-            2>&1 | grep -E "error:|ld:|warning: search path" | head -30
-          xcodebuild \
-            -workspace ios/Magnate.xcworkspace \
-            -scheme Magnate \
-            -configuration Release \
-            -archivePath build/Magnate.xcarchive \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+            -skip-testing \
             archive
       - name: Export IPA
         script: |
