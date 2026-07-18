@@ -30,14 +30,13 @@ workflows:
           python3 << 'PYEOF'
           with open('ios/Podfile', 'r') as f:
               content = f.read()
-          old = "  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
-          new = "  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  pod 'react-native-onesignal', :path => '../node_modules/react-native-onesignal'\n  use_frameworks!"
+          old = "target 'OneSignalNotificationServiceExtension' do\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
+          new = "target 'OneSignalNotificationServiceExtension' do\n  inherit! :search_paths\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
           if old in content:
               content = content.replace(old, new)
               print('Podfile patched successfully')
           else:
               print('Pattern not found')
-              print(repr(content[-500:]))
           with open('ios/Podfile', 'w') as f:
               f.write(content)
           PYEOF
