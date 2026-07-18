@@ -25,8 +25,22 @@ workflows:
           export EXPO_NO_DEV_CLIENT=1
           export EAS_BUILD_PROFILE=production
           npx expo prebuild --platform ios --clean || true
-      - name: Show Podfile
-        script: cat ios/Podfile
+      - name: Fix Podfile
+        script: |
+          python3 << 'PYEOF'
+          with open('ios/Podfile', 'r') as f:
+              content = f.read()
+          old = "  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
+          new = "  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  pod 'react-native-onesignal', :path => '../node_modules/react-native-onesignal'\n  use_frameworks!"
+          if old in content:
+              content = content.replace(old, new)
+              print('Podfile patched successfully')
+          else:
+              print('Pattern not found')
+              print(repr(content[-500:]))
+          with open('ios/Podfile', 'w') as f:
+              f.write(content)
+          PYEOF
       - name: Fix OneSignal NotificationService
         script: cp NotificationService.m ios/OneSignalNotificationServiceExtension/NotificationService.m
       - name: Install CocoaPods
