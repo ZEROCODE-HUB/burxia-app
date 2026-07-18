@@ -21,11 +21,12 @@ workflows:
       - name: Install Expo CLI
         script: npm install -g @expo/cli
       - name: Prebuild iOS
-        script: EXPO_NO_DEV_CLIENT=1 npx expo prebuild --platform ios --clean || true
+        script: |
+          export EXPO_NO_DEV_CLIENT=1
+          export EAS_BUILD_PROFILE=production
+          npx expo prebuild --platform ios --clean || true
       - name: Fix OneSignal NotificationService
         script: cp NotificationService.m ios/OneSignalNotificationServiceExtension/NotificationService.m
-      - name: Show NotificationService content
-        script: cat ios/OneSignalNotificationServiceExtension/NotificationService.m
       - name: Install CocoaPods
         script: |
           cd ios
