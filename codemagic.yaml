@@ -23,12 +23,9 @@ workflows:
       - name: Prebuild iOS
         script: EXPO_NO_DEV_CLIENT=1 npx expo prebuild --platform ios --clean || true
       - name: Fix OneSignal NotificationService
-        script: |
-          python3 -c "
-          content = '#import <RCTOneSignalExtensionService.h>\n#import \"NotificationService.h\"\n\n@interface NotificationService ()\n@property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);\n@property (nonatomic, strong) UNNotificationRequest *receivedRequest;\n@property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;\n@end\n\n@implementation NotificationService\n\n- (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {\n    self.receivedRequest = request;\n    self.contentHandler = contentHandler;\n    self.bestAttemptContent = [request.content mutableCopy];\n    [RCTOneSignalExtensionService didReceiveNotificationRequest:self.receivedRequest withContent:self.bestAttemptContent withContentHandler:self.contentHandler];\n}\n\n- (void)serviceExtensionTimeWillExpire {\n    [RCTOneSignalExtensionService serviceExtensionTimeWillExpireRequest:self.receivedRequest withMutableNotificationContent:self.bestAttemptContent];\n    self.contentHandler(self.bestAttemptContent);\n}\n\n@end\n'
-          with open('ios/OneSignalNotificationServiceExtension/NotificationService.m', 'w') as f:
-              f.write(content)
-          "
+        script: cp NotificationService.m ios/OneSignalNotificationServiceExtension/NotificationService.m
+      - name: Show NotificationService content
+        script: cat ios/OneSignalNotificationServiceExtension/NotificationService.m
       - name: Install CocoaPods
         script: |
           cd ios
