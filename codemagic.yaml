@@ -60,6 +60,12 @@ workflows:
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
+      - name: Show Podfile and extension config
+        script: |
+          echo "=== PODFILE ==="
+          cat ios/Podfile
+          echo "=== PODS IN EXTENSION ==="
+          grep -A 10 "OneSignalNotificationServiceExtension" ios/Pods/Pods.xcodeproj/project.pbxproj | head -30
       - name: Build iOS
         script: |
           xcode-project use-profiles
@@ -68,7 +74,8 @@ workflows:
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
-            archive
+            archive 2>&1 | tee /tmp/build.log
+          grep -E "^ld:|error:|library not found|framework not found" /tmp/build.log | head -20
       - name: Export IPA
         script: |
           xcode-project build-ipa \
