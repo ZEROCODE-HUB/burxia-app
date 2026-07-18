@@ -23,20 +23,34 @@ workflows:
       - name: Prebuild iOS
         script: EXPO_NO_DEV_CLIENT=1 npx expo prebuild --platform ios --clean || true
       - name: Fix OneSignal NotificationService
+        script: cp NotificationService.m ios/OneSignalNotificationServiceExtension/NotificationService.m
+      - name: Install CocoaPods
         script: |
-          python3 -c "
-          content = '''#import <RCTOneSignalExtensionService.h>
-          #import \"NotificationService.h\"
-
-          @interface NotificationService ()
-          @property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
-          @property (nonatomic, strong) UNNotificationRequest *receivedRequest;
-          @property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
-          @end
-
-          @implementation NotificationService
-
-          - (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
-              self.receivedRequest = request;
-              self.contentHandler = contentHandler;
-              self.bestAttemptContent = [request.content mutableCopy];
+          cd ios
+          pod install --repo-update
+      - name: Fix deployment target
+        script: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
+      - name: Build iOS
+        script: |
+          xcode-project use-profiles
+          xcodebuild \
+            -workspace ios/Magnate.xcworkspace \
+            -scheme Magnate \
+            -configuration Release \
+            -archivePath build/Magnate.xcarchive \
+            archive
+      - name: Export IPA
+        script: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/Magnate.xcarchive \
+            -exportOptionsPlist $CM_EXPORT_OPTIONS_PATH \
+            -exportPath build/ios/ipa
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
