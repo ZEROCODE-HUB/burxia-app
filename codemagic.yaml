@@ -31,13 +31,12 @@ workflows:
           with open('ios/Podfile', 'r') as f:
               content = f.read()
           old = "target 'OneSignalNotificationServiceExtension' do\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
-          new = "target 'OneSignalNotificationServiceExtension' do\n  inherit! :search_paths\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  pod 'react-native-onesignal', :path => '../node_modules/react-native-onesignal'\n  use_frameworks!"
+          new = "target 'OneSignalNotificationServiceExtension' do\n  inherit! :search_paths\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
           if old in content:
               content = content.replace(old, new)
               print('Podfile patched successfully')
           else:
               print('Pattern not found')
-              print(repr(content))
           with open('ios/Podfile', 'w') as f:
               f.write(content)
           PYEOF
@@ -47,10 +46,19 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
-      - name: Fix deployment target
+      - name: Fix deployment target and link onesignal
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
+          python3 << 'PYEOF'
+          import re
+          with open('ios/Magnate.xcodeproj/project.pbxproj', 'r') as f:
+              content = f.read()
+          print('Looking for OneSignalNotificationServiceExtension link settings...')
+          matches = re.findall(r'OneSignalNotificationServiceExtension[^\n]*\n[^\n]*OTHER_LDFLAGS[^\n]*', content)
+          for m in matches:
+              print(m)
+          PYEOF
       - name: Build iOS
         script: |
           xcode-project use-profiles
