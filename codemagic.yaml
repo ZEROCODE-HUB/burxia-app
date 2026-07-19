@@ -30,13 +30,23 @@ workflows:
           python3 << 'PYEOF'
           with open('ios/Podfile', 'r') as f:
               content = f.read()
-          old = "target 'OneSignalNotificationServiceExtension' do\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
-          new = "target 'OneSignalNotificationServiceExtension' do\n  inherit! :search_paths\n  pod 'OneSignalXCFramework', '>= 5.0', '< 6.0'\n  use_frameworks!"
+          old = "  post_install do |installer|\n    react_native_post_install("
+          new = """  post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              if target.name == 'Pods-OneSignalNotificationServiceExtension'
+                target.build_configurations.each do |config|
+                  config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+                  config.build_settings['OTHER_LDFLAGS'] << '-lreact-native-onesignal'
+                end
+              end
+            end
+            react_native_post_install("""
           if old in content:
               content = content.replace(old, new)
-              print('Podfile patched successfully')
+              print('Post install hook added successfully')
           else:
-              print('Pattern not found')
+              print('Pattern not found, showing end of file:')
+              print(content[-500:])
           with open('ios/Podfile', 'w') as f:
               f.write(content)
           PYEOF
@@ -58,8 +68,6 @@ workflows:
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
-            LIBRARY_SEARCH_PATHS="$(inherited) /Users/builder/Library/Developer/Xcode/DerivedData/Magnate-crwshkbpjjuktfaylucspglbxlxe/Build/Intermediates.noindex/ArchiveIntermediates/Magnate/IntermediateBuildFilesPath/UninstalledProducts/iphoneos" \
-            OTHER_LDFLAGS="-ObjC -lreact-native-onesignal" \
             archive
       - name: Export IPA
         script: |
