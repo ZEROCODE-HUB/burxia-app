@@ -25,31 +25,6 @@ workflows:
           export EXPO_NO_DEV_CLIENT=1
           export EAS_BUILD_PROFILE=production
           npx expo prebuild --platform ios --clean || true
-      - name: Fix Podfile
-        script: |
-          python3 << 'PYEOF'
-          with open('ios/Podfile', 'r') as f:
-              content = f.read()
-          old = "  post_install do |installer|\n    react_native_post_install("
-          new = """  post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              if target.name == 'Pods-OneSignalNotificationServiceExtension'
-                target.build_configurations.each do |config|
-                  config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
-                  config.build_settings['OTHER_LDFLAGS'] << '-lreact-native-onesignal'
-                end
-              end
-            end
-            react_native_post_install("""
-          if old in content:
-              content = content.replace(old, new)
-              print('Post install hook added successfully')
-          else:
-              print('Pattern not found, showing end of file:')
-              print(content[-500:])
-          with open('ios/Podfile', 'w') as f:
-              f.write(content)
-          PYEOF
       - name: Fix OneSignal NotificationService
         script: cp NotificationService.m ios/OneSignalNotificationServiceExtension/NotificationService.m
       - name: Install CocoaPods
@@ -68,7 +43,10 @@ workflows:
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
-            archive
+            archive \
+            "SWIFT_OBJC_BRIDGING_HEADER=\$(inherited)" \
+            "OTHER_LDFLAGS[sdk=iphoneos*]=\$(inherited) -lreact-native-onesignal" \
+            ONLY_ACTIVE_ARCH=NO
       - name: Export IPA
         script: |
           xcodebuild \
