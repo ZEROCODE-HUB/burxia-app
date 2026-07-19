@@ -46,14 +46,10 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
-      - name: Fix deployment target and xcconfig
+      - name: Fix deployment target
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
-          echo "=== Listing OneSignal xcconfig files ==="
-          find ios/Pods/Target\ Support\ Files -name "*OneSignal*" -type f
-          echo "=== Content of xcconfig ==="
-          cat "ios/Pods/Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.release.xcconfig" 2>/dev/null || echo "File not found"
       - name: Build iOS
         script: |
           xcode-project use-profiles
@@ -62,6 +58,8 @@ workflows:
             -scheme Magnate \
             -configuration Release \
             -archivePath build/Magnate.xcarchive \
+            LIBRARY_SEARCH_PATHS="$(inherited) /Users/builder/Library/Developer/Xcode/DerivedData/Magnate-crwshkbpjjuktfaylucspglbxlxe/Build/Intermediates.noindex/ArchiveIntermediates/Magnate/IntermediateBuildFilesPath/UninstalledProducts/iphoneos" \
+            OTHER_LDFLAGS="-ObjC -lreact-native-onesignal" \
             archive
       - name: Export IPA
         script: |
