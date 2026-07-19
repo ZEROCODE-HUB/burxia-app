@@ -50,15 +50,10 @@ workflows:
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
-          XCCONFIG="ios/Pods/Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.release.xcconfig"
-          if [ -f "$XCCONFIG" ]; then
-            echo "Found xcconfig, adding react-native-onesignal link flag"
-            echo 'OTHER_LDFLAGS = $(inherited) -lreact-native-onesignal' >> "$XCCONFIG"
-            cat "$XCCONFIG"
-          else
-            echo "xcconfig not found, listing available files:"
-            ls "ios/Pods/Target Support Files/" | grep -i onesignal
-          fi
+          echo "=== Listing OneSignal xcconfig files ==="
+          find ios/Pods/Target\ Support\ Files -name "*OneSignal*" -type f
+          echo "=== Content of xcconfig ==="
+          cat "ios/Pods/Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.release.xcconfig" 2>/dev/null || echo "File not found"
       - name: Build iOS
         script: |
           xcode-project use-profiles
