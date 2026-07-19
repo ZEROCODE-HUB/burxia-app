@@ -1,61 +1,21 @@
 workflows:
   ios-workflow:
     name: iOS Build - Magnate
-    max_build_duration: 90
+    max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
       app_store_connect: Codemagic Key2
     environment:
       groups:
         - magnate-variables
-      ios_signing:
-        provisioning_profiles:
-          - Magnate AppStore
-          - Magnate OneSignal AppStore
-        certificates:
-          - Apple Distribution Certificate
       node: 22
     scripts:
       - name: Install dependencies
         script: npm ci
-      - name: Install Expo CLI
-        script: npm install -g @expo/cli
-      - name: Prebuild iOS
-        script: |
-          export EXPO_NO_DEV_CLIENT=1
-          export EAS_BUILD_PROFILE=production
-          npx expo prebuild --platform ios --clean || true
-      - name: Fix OneSignal NotificationService
-        script: cp NotificationService.m ios/OneSignalNotificationServiceExtension/NotificationService.m
-      - name: Install CocoaPods
-        script: |
-          cd ios
-          pod install --repo-update
-      - name: Fix deployment target
-        script: |
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
-      - name: Build iOS
-        script: |
-          xcode-project use-profiles
-          xcodebuild \
-            -workspace ios/Magnate.xcworkspace \
-            -scheme Magnate \
-            -configuration Release \
-            -archivePath build/Magnate.xcarchive \
-            archive \
-            "SWIFT_OBJC_BRIDGING_HEADER=\$(inherited)" \
-            "OTHER_LDFLAGS[sdk=iphoneos*]=\$(inherited) -lreact-native-onesignal" \
-            ONLY_ACTIVE_ARCH=NO
-      - name: Export IPA
-        script: |
-          xcodebuild \
-            -exportArchive \
-            -archivePath build/Magnate.xcarchive \
-            -exportOptionsPlist $CM_EXPORT_OPTIONS_PATH \
-            -exportPath build/ios/ipa
+      - name: Build iOS with EAS
+        script: eas build --platform ios --profile production --non-interactive --wait
     artifacts:
-      - build/ios/ipa/*.ipa
+      - "**/*.ipa"
     publishing:
       app_store_connect:
         auth: integration
