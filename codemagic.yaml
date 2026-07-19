@@ -46,7 +46,7 @@ workflows:
         script: |
           cd ios
           pod install --repo-update
-      - name: Fix deployment target and link onesignal
+      - name: Fix deployment target and add onesignal link flag
         script: |
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 11/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 12/IPHONEOS_DEPLOYMENT_TARGET = 15/g' ios/Magnate.xcodeproj/project.pbxproj
@@ -54,10 +54,21 @@ workflows:
           import re
           with open('ios/Magnate.xcodeproj/project.pbxproj', 'r') as f:
               content = f.read()
-          print('Looking for OneSignalNotificationServiceExtension link settings...')
-          matches = re.findall(r'OneSignalNotificationServiceExtension[^\n]*\n[^\n]*OTHER_LDFLAGS[^\n]*', content)
-          for m in matches:
-              print(m)
+          onesignal_lib_path = '/Users/builder/Library/Developer/Xcode/DerivedData'
+          pattern = r'(OneSignalNotificationServiceExtension[^;]*OTHER_LDFLAGS[^;]*=\s*\()'
+          matches = re.findall(pattern, content)
+          print(f'Found {len(matches)} matches for OTHER_LDFLAGS in extension')
+          build_lib_path = '/Users/builder/Library/Developer/Xcode/DerivedData/Magnate-crwshkbpjjuktfaylucspglbxlxe/Build/Intermediates.noindex/ArchiveIntermediates/Magnate/IntermediateBuildFilesPath/UninstalledProducts/iphoneos'
+          new_content = content.replace(
+              '-lPods-OneSignalNotificationServiceExtension',
+              '-lPods-OneSignalNotificationServiceExtension -lreact-native-onesignal'
+          )
+          if new_content != content:
+              print('Successfully added -lreact-native-onesignal flag')
+          else:
+              print('Flag already exists or pattern not found')
+          with open('ios/Magnate.xcodeproj/project.pbxproj', 'w') as f:
+              f.write(new_content)
           PYEOF
       - name: Build iOS
         script: |
