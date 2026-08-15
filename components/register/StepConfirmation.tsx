@@ -19,6 +19,7 @@ interface StepConfirmationProps {
         dni: string;
         cuit: string;
         zapsign_doc_token?: string;
+        zapsign_data?: any;
     };
     pin: string;
 }

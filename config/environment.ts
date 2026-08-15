@@ -23,6 +23,11 @@ export const ZAPSIGN_CONFIG = {
     templateId: isTestEnv
         ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID') || ''
         : getEnvVar('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD') || '',
+    // Tipo de validación biométrica (solo producción). Si está vacío, no se exige matching real.
+    // Ej: 'liveness-document-match' | 'identity-verification-global' (requiere créditos en ZapSign).
+    selfieValidationType: isProductionEnv
+        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE') || ''
+        : '',
 };
 
 /**

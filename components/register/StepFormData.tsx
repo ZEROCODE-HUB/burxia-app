@@ -24,11 +24,12 @@ interface FormData {
   dni: string;
   cuit: string;
   zapsign_doc_token?: string;
+  zapsign_data?: any;
 }
 
 interface StepFormDataProps {
   formData: FormData;
-  onChange: (field: keyof FormData, value: string) => void;
+  onChange: (field: keyof FormData, value: any) => void;
   onContinue: () => void;
   isValid: boolean;
 }
@@ -162,10 +163,13 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
         <BiometricCard 
           userName={`${formData.nombres} ${formData.apellidos}`.trim()}
   userEmail={formData.email}
-  onSignatureSuccess={(token, contractUrl) => {
+  onSignatureSuccess={(token, contractUrl, biometric) => {
     onChange('zapsign_doc_token', token);
     if (contractUrl) {
       onChange('zapsign_contract_url' as any, contractUrl);
+    }
+    if (biometric) {
+      onChange('zapsign_data', biometric);
     }
   }}
 />

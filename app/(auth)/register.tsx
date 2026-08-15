@@ -29,6 +29,7 @@ interface FormData {
     cuit: string;
     zapsign_doc_token?: string;
     zapsign_contract_url?: string;
+    zapsign_data?: any;
 }
 
 export default function RegisterScreen() {
@@ -43,7 +44,7 @@ export default function RegisterScreen() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleChange = (field: keyof FormData, value: string) => {
+    const handleChange = (field: keyof FormData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 

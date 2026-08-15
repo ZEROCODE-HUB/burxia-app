@@ -43,6 +43,7 @@ export interface RegisterData {
   pin: string;
   zapsign_doc_token?: string;
   zapsign_contract_url?: string;
+  zapsign_data?: any;
 }
 
 // Global state for manual OTP (Resend flow)
@@ -314,6 +315,7 @@ export async function registerUser(data: RegisterData): Promise<AuthResult> {
             // ✅ Estos keys matchean con lo que el trigger busca:
             zapsign_verification_id: data.zapsign_doc_token || null,
             zapsign_contract_url: data.zapsign_contract_url || null,
+            zapsign_data: data.zapsign_data || null,
         },
     },
 });

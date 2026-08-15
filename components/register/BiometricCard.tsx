@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
 import { colors, spacing, borderRadius } from '../../theme';
-import { createZapSignDocument, getSignedDocumentUrl, getSignerUrl } from '../../services/zapsign.service';
+import { createZapSignDocument, getSignerUrl, verifyZapSignIdentity, ZapSignBiometric } from '../../services/zapsign.service';
 import { Camera } from 'expo-camera';
 import { supabase } from '@/lib/supabase';
 
@@ -14,7 +14,7 @@ type ScanStatus = 'idle' | 'creating' | 'waiting_signature' | 'success' | 'error
 interface BiometricCardProps {
     userName: string;
     userEmail: string;
-    onSignatureSuccess?: (docToken: string, contractUrl: string | null) => void;
+    onSignatureSuccess?: (docToken: string, contractUrl: string | null, biometric?: ZapSignBiometric) => void;
 }
 
 export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmail, onSignatureSuccess }) => {
@@ -99,51 +99,64 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
     if (!docToken) return;
 
     setStatus('creating');
-    const res = await getSignedDocumentUrl(docToken);
-    
-    if (res.success && (res.status === 'assinado' || res.signedFileUrl !== null)) {
-        // Subir el PDF a Supabase Storage para URL permanente
-        let permanentUrl: string | null = null;
-        
-        if (res.signedFileUrl) {
-            try {
-                const pdfResponse = await fetch(res.signedFileUrl);
-                if (pdfResponse.ok) {
-                    const blob = await pdfResponse.blob();
-                    const arrayBuffer = await new Response(blob).arrayBuffer();
-                    const fileName = `contracts/presignup/${docToken}.pdf`;
+    const identity = await verifyZapSignIdentity(docToken);
 
-                    const { error: uploadError } = await supabase.storage
-                        .from('documents')
-                        .upload(fileName, arrayBuffer, {
-                            contentType: 'application/pdf',
-                            upsert: true,
-                        });
-
-                    if (!uploadError) {
-                        const { data: urlData } = supabase.storage
-                            .from('documents')
-                            .getPublicUrl(fileName);
-                        permanentUrl = urlData.publicUrl;
-                        console.log('[BiometricCard] PDF guardado en storage:', permanentUrl);
-                    } else {
-                        console.error('[BiometricCard] Error subiendo PDF:', uploadError);
-                    }
-                }
-            } catch (err) {
-                console.error('[BiometricCard] Error descargando/subiendo PDF:', err);
-            }
-        }
-
-        setStatus('success');
-        if (onSignatureSuccess) {
-            onSignatureSuccess(docToken, permanentUrl);
-        }
-    } else {
+    if (!identity.signed) {
         setStatus('waiting_signature');
-        console.log('[ZapSign] Aún no firmado. Status API:', res.status);
+        console.log('[ZapSign] Aún no firmado.');
         setErrorMsg('Aún no has finalizado la firma.');
         setTimeout(() => setErrorMsg(''), 3000);
+        return;
+    }
+
+    if (!identity.verified) {
+        setStatus('waiting_signature');
+        console.log('[ZapSign] Verificación biométrica no superada:', identity.biometric);
+        setErrorMsg(
+            identity.strict
+                ? 'La verificación biométrica no se completó correctamente. Intenta de nuevo.'
+                : 'No pudimos confirmar la verificación de identidad.',
+        );
+        setTimeout(() => setErrorMsg(''), 3000);
+        return;
+    }
+
+    // Contrato firmado y (en su caso) biometría validada: subir PDF a Supabase Storage
+    let permanentUrl: string | null = null;
+
+    if (identity.signedFileUrl) {
+        try {
+            const pdfResponse = await fetch(identity.signedFileUrl);
+            if (pdfResponse.ok) {
+                const blob = await pdfResponse.blob();
+                const arrayBuffer = await new Response(blob).arrayBuffer();
+                const fileName = `contracts/presignup/${docToken}.pdf`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('documents')
+                    .upload(fileName, arrayBuffer, {
+                        contentType: 'application/pdf',
+                        upsert: true,
+                    });
+
+                if (!uploadError) {
+                    const { data: urlData } = supabase.storage
+                        .from('documents')
+                        .getPublicUrl(fileName);
+                    permanentUrl = urlData.publicUrl;
+                    console.log('[BiometricCard] PDF guardado en storage:', permanentUrl);
+                } else {
+                    console.error('[BiometricCard] Error subiendo PDF:', uploadError);
+                }
+            }
+        } catch (err) {
+            console.error('[BiometricCard] Error descargando/subiendo PDF:', err);
+        }
+    }
+
+    setStatus('success');
+    if (onSignatureSuccess) {
+        onSignatureSuccess(docToken, permanentUrl, identity.biometric);
     }
 };
 

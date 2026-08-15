@@ -66,7 +66,14 @@ export default {
             // Variables de entorno de forma segura
             supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
             supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-            oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID
+            oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
+            // ZapSign (EXPO_PUBLIC_ para que getEnvVar las resuelva desde extra en builds nativos)
+            EXPO_PUBLIC_APP_ENV: process.env.EXPO_PUBLIC_APP_ENV,
+            EXPO_PUBLIC_ZAPSIGN_API_KEY: process.env.EXPO_PUBLIC_ZAPSIGN_API_KEY,
+            EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID: process.env.EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID,
+            EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD: process.env.EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD,
+            EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD: process.env.EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD,
+            EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE: process.env.EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE
         }
     }
 };
