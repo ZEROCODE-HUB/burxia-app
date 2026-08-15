@@ -15,9 +15,10 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
       - name: Build iOS with EAS
-        script: eas build --platform ios --profile production --non-interactive --wait
-      - name: Download IPA from EAS
-        script: eas build:download --platform ios --profile production || true
+        script: |
+          eas build --platform ios --profile production --non-interactive --wait --json > eas_build.json
+          BUILD_ID=$(node -e "console.log(require('./eas_build.json').id)")
+          eas build:download --platform ios --id "$BUILD_ID" --output "$CM_BUILD_DIR/magnate.ipa" || true
     artifacts:
       - "**/*.ipa"
     publishing:
@@ -39,9 +40,10 @@ workflows:
       - name: Install EAS CLI
         script: npm install -g eas-cli
       - name: Build Android with EAS
-        script: eas build --platform android --profile preview --non-interactive --wait
-      - name: Download artifact from EAS
-        script: eas build:download --platform android --profile preview || true
+        script: |
+          eas build --platform android --profile preview --non-interactive --wait --json > eas_build.json
+          BUILD_ID=$(node -e "console.log(require('./eas_build.json').id)")
+          eas build:download --platform android --id "$BUILD_ID" --output "$CM_BUILD_DIR/magnate.aab" || true
     artifacts:
       - "**/*.apk"
       - "**/*.aab"
