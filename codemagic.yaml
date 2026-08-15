@@ -18,7 +18,7 @@ workflows:
         script: |
           eas build --platform ios --profile production --non-interactive --wait --json > eas_build.json
           BUILD_ID=$(node -e "console.log(require('./eas_build.json').id)")
-          eas build:download --platform ios --id "$BUILD_ID" --output "$CM_BUILD_DIR/magnate.ipa" || true
+          eas build:download --platform ios --id "$BUILD_ID" || true
     artifacts:
       - "**/*.ipa"
     publishing:
@@ -43,7 +43,7 @@ workflows:
         script: |
           eas build --platform android --profile preview --non-interactive --wait --json > eas_build.json
           BUILD_ID=$(node -e "console.log(require('./eas_build.json').id)")
-          eas build:download --platform android --id "$BUILD_ID" --output "$CM_BUILD_DIR/magnate.aab" || true
+          eas build:download --platform android --id "$BUILD_ID" || true
     artifacts:
       - "**/*.apk"
       - "**/*.aab"
