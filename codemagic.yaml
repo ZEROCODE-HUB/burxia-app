@@ -16,9 +16,10 @@ workflows:
         script: npm install -g eas-cli
       - name: Build iOS with EAS
         script: |
-          eas build --platform ios --profile production --non-interactive --wait --json > eas_build.json
-          BUILD_ID=$(node -e "console.log(require('./eas_build.json').id)")
-          eas build:download --platform ios --id "$BUILD_ID" || true
+          eas build --platform ios --profile production --non-interactive --wait 2>&1 | tee eas_build.log
+          ARTIFACT_URL=$(grep -oE 'https://expo\.dev/artifacts/eas/[^ ]+\.ipa' eas_build.log | tail -1)
+          echo "Artifact URL: $ARTIFACT_URL"
+          curl -L -o "$CM_BUILD_DIR/magnate.ipa" "$ARTIFACT_URL"
     artifacts:
       - "**/*.ipa"
     publishing:
@@ -41,9 +42,10 @@ workflows:
         script: npm install -g eas-cli
       - name: Build Android with EAS
         script: |
-          eas build --platform android --profile preview --non-interactive --wait --json > eas_build.json
-          BUILD_ID=$(node -e "console.log(require('./eas_build.json').id)")
-          eas build:download --platform android --id "$BUILD_ID" || true
+          eas build --platform android --profile preview --non-interactive --wait 2>&1 | tee eas_build.log
+          ARTIFACT_URL=$(grep -oE 'https://expo\.dev/artifacts/eas/[^ ]+\.(aab|apk)' eas_build.log | tail -1)
+          echo "Artifact URL: $ARTIFACT_URL"
+          curl -L -o "$CM_BUILD_DIR/magnate.aab" "$ARTIFACT_URL"
     artifacts:
       - "**/*.apk"
       - "**/*.aab"
