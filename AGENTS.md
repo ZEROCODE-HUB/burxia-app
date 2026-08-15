@@ -8,9 +8,14 @@ Las credenciales de **sandbox** de ZapSign están **hardcodeadas en `app.config.
 funcione sin configurar EAS, porque los builds de EAS se compilan en los servidores de EAS
 y solo las variables de entorno de **EAS** (no las del grupo de Codemagic) llegan al empaquetado.
 
-La app resuelve estas vars en `config/environment.ts` vía `readEnv()`, que primero intenta
-`process.env.EXPO_PUBLIC_*` (inline de EAS cuando existe) y luego cae a
+La app resuelve estas vars en `config/environment.ts` vía `getEnvVar()` de `utils/env.ts`,
+que primero intenta `process.env.EXPO_PUBLIC_*` (inline de EAS cuando existe) y luego cae a
 `Constants.expoConfig.extra.*` (el valor embebido). Por eso funciona aunque EAS no tenga las vars.
+
+⚠️ **NO usar `import { Constants } from 'expo-constants'`**: en `expo-constants` `Constants` es un
+export **solo de tipo** (`export type`); el named import queda `undefined` en runtime y reventar
+`environment.ts` al cargar la pantalla de registro. Usar el import por defecto (`import Constants
+from 'expo-constants'`), que es lo que hace `utils/env.ts`.
 
 ### Para PRODUCCIÓN REAL (OBLIGATORIO antes de release):
 - **NO** enviés el sandbox hardcodeado a producción.

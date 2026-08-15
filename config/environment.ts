@@ -5,24 +5,15 @@
  * Set EXPO_PUBLIC_APP_ENV=test for testing / Play Store review accounts.
  * Set EXPO_PUBLIC_APP_ENV=production for live production builds.
  *
- * Las variables EXPO_PUBLIC_* se resuelven así:
- *   1) process.env.EXPO_PUBLIC_X  -> inline que hace Expo en el bundle cuando la var
- *      existe en el entorno de EAS (producción).
- *   2) Constants.expoConfig.extra.EXPO_PUBLIC_X -> valor embebido en app.config.js
- *      (útil para QA/builds donde EAS no tiene la var).
+ * Las variables se resuelven con getEnvVar(): process.env (inline de EAS) y luego
+ * Constants.expoConfig.extra (valor embebido en app.config.js). Para QA, app.config.js
+ * trae las credenciales de sandbox hardcodeadas en extra, así el build funciona sin
+ * configurar EAS. NO usar esos valores en producción.
  */
 
-import { Constants } from 'expo-constants';
+import { getEnvVar } from '../utils/env';
 
-const readEnv = (name: string): string => {
-    const fromProcess = (process.env as Record<string, string | undefined>)[name];
-    if (fromProcess !== undefined && fromProcess !== null && fromProcess !== '') return fromProcess;
-    const extra = (Constants.expoConfig as any)?.extra;
-    if (extra && extra[name] !== undefined && extra[name] !== null && extra[name] !== '') return extra[name];
-    return '';
-};
-
-const APP_ENV = readEnv('EXPO_PUBLIC_APP_ENV') || 'test';
+const APP_ENV = (getEnvVar('EXPO_PUBLIC_APP_ENV') || 'test') as 'test' | 'production';
 
 export const isTestEnv = APP_ENV === 'test';
 export const isProductionEnv = APP_ENV === 'production';
@@ -32,15 +23,15 @@ export const ZAPSIGN_CONFIG = {
         ? 'https://sandbox.api.zapsign.com.br'
         : 'https://api.zapsign.com.br',
     apiKey: isTestEnv
-        ? readEnv('EXPO_PUBLIC_ZAPSIGN_API_KEY')
-        : readEnv('EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD'),
+        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_API_KEY')
+        : getEnvVar('EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD'),
     templateId: isTestEnv
-        ? readEnv('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID')
-        : readEnv('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD'),
+        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID')
+        : getEnvVar('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD'),
     // Tipo de validación biométrica (solo producción). Si está vacío, no se exige matching real.
     // Ej: 'liveness-document-match' | 'identity-verification-global' (requiere créditos en ZapSign).
     selfieValidationType: isProductionEnv
-        ? readEnv('EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE')
+        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE')
         : '',
 };
 
