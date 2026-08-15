@@ -67,10 +67,13 @@ export default {
             supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
             supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
             oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
-            // ZapSign (EXPO_PUBLIC_ para que getEnvVar las resuelva desde extra en builds nativos)
-            EXPO_PUBLIC_APP_ENV: process.env.EXPO_PUBLIC_APP_ENV,
-            EXPO_PUBLIC_ZAPSIGN_API_KEY: process.env.EXPO_PUBLIC_ZAPSIGN_API_KEY,
-            EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID: process.env.EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID,
+            // ZapSign
+            // ── SANDBOX (QA) ── valores hardcodeados para que el build funcione sin configurar EAS.
+            // NO usar en producción: para producción setear EXPO_PUBLIC_ZAPSIGN_*_PROD y
+            // EXPO_PUBLIC_APP_ENV=production vía EAS Environment Variables.
+            EXPO_PUBLIC_APP_ENV: 'test',
+            EXPO_PUBLIC_ZAPSIGN_API_KEY: 'ceffd5f8-9fbd-4bc0-828e-2fb4e12f6145be16875a-a747-4f42-adff-42b84c3b172b',
+            EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID: '187c0e6e-825c-4fd3-99f9-bfaacbdff1f3',
             EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD: process.env.EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD,
             EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD: process.env.EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD,
             EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE: process.env.EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE
