@@ -16,6 +16,8 @@ workflows:
         script: npm install -g eas-cli
       - name: Build iOS with EAS
         script: eas build --platform ios --profile production --non-interactive --wait
+      - name: Download IPA from EAS
+        script: eas build:download --platform ios --profile production || true
     artifacts:
       - "**/*.ipa"
     publishing:
@@ -38,6 +40,8 @@ workflows:
         script: npm install -g eas-cli
       - name: Build Android with EAS
         script: eas build --platform android --profile preview --non-interactive --wait
+      - name: Download artifact from EAS
+        script: eas build:download --platform android --profile preview || true
     artifacts:
       - "**/*.apk"
       - "**/*.aab"
