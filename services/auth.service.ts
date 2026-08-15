@@ -303,25 +303,37 @@ export async function registerUser(data: RegisterData): Promise<AuthResult> {
     const { data: authData, error: authError } = await supabase.auth.signUp({
     email: normalizedEmail,
     password: autoPassword,
-    options: {
+      options: {
         data: {
-            nombres: data.nombres.trim(),
-            apellidos: data.apellidos.trim(),
-            telefono: cleanPhone,
-            dni: cleanDni,
-            cuit: cleanCuit,
-            pin_hash: pinHash,
-            zapsign_doc_token: data.zapsign_doc_token || null,
-            // ✅ Estos keys matchean con lo que el trigger busca:
-            zapsign_verification_id: data.zapsign_doc_token || null,
-            zapsign_contract_url: data.zapsign_contract_url || null,
-            zapsign_data: data.zapsign_data || null,
+          // user-facing keys (por compatibilidad con triggers existentes)
+          nombres: data.nombres.trim(),
+          apellidos: data.apellidos.trim(),
+          telefono: cleanPhone,
+          cuit: cleanCuit,
+          dni: cleanDni,
+          pin_hash: pinHash,
+          // claves canónicas (coinciden con las columnas NOT NULL de public.users)
+          first_name: data.nombres.trim(),
+          last_name: data.apellidos.trim(),
+          phone: cleanPhone,
+          cuit_cuil: cleanCuit,
+          zapsign_verification_id: data.zapsign_doc_token || null,
+          zapsign_contract_url: data.zapsign_contract_url || null,
+          zapsign_data: data.zapsign_data || null,
         },
-    },
+      },
 });
 
     if (authError) {
-      return { success: false, error: authError.message };
+      // Superficializar el error completo de la base de datos (code/hint/details)
+      // para poder diagnosticar fallos del trigger de creación de usuario.
+      const anyErr = authError as any;
+      const code = anyErr?.code ? ` [${anyErr.code}]` : '';
+      const hint = anyErr?.hint ? `: ${anyErr.hint}` : '';
+      const details = anyErr?.details ? ` | ${anyErr.details}` : '';
+      const fullMessage = `${authError.message}${code}${hint}${details}`;
+      console.error('[AUTH] signUp error:', anyErr);
+      return { success: false, error: fullMessage };
     }
 
     if (!authData.user) {
@@ -344,6 +356,14 @@ export async function registerUser(data: RegisterData): Promise<AuthResult> {
         } as any);
 
       if (credError) {
+        const anyErr = credError as any;
+        const code = anyErr?.code ? ` [${anyErr.code}]` : '';
+        const hint = anyErr?.hint ? `: ${anyErr.hint}` : '';
+        console.error('[AUTH] user_auth_credentials insert error:', anyErr);
+        // No es bloqueante con el mensaje original; se anota para diagnóstico
+        // pero se continúa (el login manual se reintenta al crear la credencial).
+        // eslint-disable-next-line no-empty
+        void code; void hint;
       }
     }
 
