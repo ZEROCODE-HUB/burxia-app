@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius } from '../../theme';
 import { DashboardTransaction } from '../../data/mockTransactions';
 import { useTheme } from '../../context/ThemeContext';
 
-interface TransactionItemProps extends DashboardTransaction { }
+interface TransactionItemProps extends DashboardTransaction {
+    onPress?: () => void;
+}
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
     iconName,
@@ -13,13 +15,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     description,
     amount,
     type,
+    onPress,
 }) => {
     const { colors } = useTheme();
     const isIncome = type === 'income';
     const styles = useMemo(() => createStyles(colors, isIncome), [colors, isIncome]);
 
-    return (
-        <View style={styles.container}>
+    const content = (
+        <>
             {/* Icon + Info */}
             <View style={styles.leftContent}>
                 <View style={[styles.iconBox, isIncome ? styles.incomeIconBox : styles.expenseIconBox]}>
@@ -40,7 +43,21 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <Text style={[styles.amount, isIncome ? styles.incomeAmount : styles.expenseAmount]}>
                 {amount}
             </Text>
-        </View>
+        </>
+    );
+
+    if (!onPress) {
+        return <View style={styles.container}>{content}</View>;
+    }
+
+    return (
+        <TouchableOpacity
+            style={styles.container}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
+            {content}
+        </TouchableOpacity>
     );
 };
 

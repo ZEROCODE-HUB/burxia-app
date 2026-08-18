@@ -9,6 +9,7 @@ import { spacing, typography, borderRadius } from '../../theme';
 import { ScreenHeader } from '../../components/layout';
 import { SearchBar, FilterChips, FilterType, DateRangeFilter } from '../../components/movements';
 import { TransactionItem } from '../../components/dashboard';
+import { TransactionDetailModal } from '../../components/dashboard';
 import { formatBalance } from '../../utils/formatters';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,7 @@ export default function MovementsScreen() {
     const [showBalance, setShowBalance] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
 
     const [showDateFilter, setShowDateFilter] = useState(false);
     const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
@@ -152,7 +154,8 @@ export default function MovementsScreen() {
                 amount: formatBalance(t.amount),
                 type: t.movement_type === 'income' ? 'income' : 'expense',
                 iconName: t.movement_type === 'income' ? 'arrow-down' : 'arrow-up',
-                date: t.created_at
+                date: t.created_at,
+                transaction: t
             });
         });
 
@@ -167,7 +170,10 @@ export default function MovementsScreen() {
     );
 
     const renderItem = ({ item }: { item: any }) => (
-        <TransactionItem {...item} />
+        <TransactionItem
+            {...item}
+            onPress={() => setSelectedTransaction(item.transaction || item)}
+        />
     );
 
     return (
@@ -247,6 +253,12 @@ export default function MovementsScreen() {
                 visible={showDateFilter}
                 onClose={() => setShowDateFilter(false)}
                 onApply={applyDateFilter}
+            />
+
+            <TransactionDetailModal
+                visible={!!selectedTransaction}
+                onClose={() => setSelectedTransaction(null)}
+                transaction={selectedTransaction}
             />
         </View>
     );
