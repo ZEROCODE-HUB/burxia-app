@@ -107,16 +107,22 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         || 'Transacción';
 
     const categoryLabel = (transaction.category || transaction.transaction_type_name || '—').trim();
-    const details: { label: string; value: string; icon: string }[] = [
+    const details: { label: string; value: string; icon: string; fullWidth?: boolean }[] = [
         {
             label: 'Fecha',
             value: formatDateTime(transaction.created_at),
             icon: 'calendar-outline',
+            fullWidth: true,
         },
         {
-            label: 'Tipo de movimiento',
+            label: 'Tipo',
             value: isIncome ? 'Ingreso' : 'Egreso',
             icon: isIncome ? 'arrow-down-outline' : 'arrow-up-outline',
+        },
+        {
+            label: 'Medio de pago',
+            value: formatPaymentMethod(transaction.payment_method),
+            icon: 'card-outline',
         },
         {
             label: 'Categoría',
@@ -124,9 +130,9 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             icon: 'pricetag-outline',
         },
         {
-            label: 'Medio de pago',
-            value: formatPaymentMethod(transaction.payment_method),
-            icon: 'card-outline',
+            label: 'N° de referencia',
+            value: transaction.reference_number || transaction.transaction_id || '—',
+            icon: 'receipt-outline',
         },
         {
             label: 'Concepto',
@@ -137,11 +143,6 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             label: 'Contraparte',
             value: transaction.counterpart_name || '—',
             icon: 'person-outline',
-        },
-        {
-            label: 'N° de referencia',
-            value: transaction.reference_number || transaction.transaction_id || '—',
-            icon: 'receipt-outline',
         },
     ];
 
@@ -161,7 +162,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <View style={[styles.heroIcon, isIncome ? styles.incomeIconBg : styles.expenseIconBg]}>
                         <Ionicons
                             name={iconName as any}
-                            size={28}
+                            size={22}
                             color={isIncome ? colors.success : colors.foreground}
                         />
                     </View>
@@ -179,24 +180,22 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     </View>
                 </View>
 
-                <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
                 <View style={styles.detailsSection}>
-                    {details.map((detail, index) => (
+                    {details.map((detail) => (
                         <View
                             key={detail.label}
                             style={[
-                                styles.detailRow,
-                                index < details.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                                styles.infoCell,
+                                detail.fullWidth && styles.infoCellFull,
                             ]}
                         >
-                            <View style={[styles.detailIconBox, { backgroundColor: colors.mutedAlpha[20] }]}>
-                                <Ionicons name={detail.icon as any} size={16} color={colors.mutedForeground} />
+                            <View style={styles.infoCellHeader}>
+                                <Ionicons name={detail.icon as any} size={14} color={colors.mutedForeground} />
+                                <Text style={styles.infoCellLabel}>{detail.label}</Text>
                             </View>
-                            <View style={styles.detailTexts}>
-                                <Text style={styles.detailLabel}>{detail.label}</Text>
-                                <Text style={styles.detailValue}>{detail.value}</Text>
-                            </View>
+                            <Text style={styles.infoCellValue} numberOfLines={detail.fullWidth ? 2 : 3}>
+                                {detail.value}
+                            </Text>
                         </View>
                     ))}
                 </View>
@@ -222,7 +221,7 @@ const createStyles = (colors: any) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: spacing.lg,
+        marginBottom: spacing.base,
     },
     headerTitle: {
         fontSize: typography.sizes.base,
@@ -234,15 +233,15 @@ const createStyles = (colors: any) => StyleSheet.create({
     },
     hero: {
         alignItems: 'center',
-        marginBottom: spacing.lg,
+        marginBottom: spacing.base,
     },
     heroIcon: {
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         borderRadius: borderRadius.full,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: spacing.md,
+        marginBottom: spacing.sm,
     },
     incomeIconBg: {
         backgroundColor: 'rgba(34, 197, 94, 0.12)',
@@ -285,35 +284,35 @@ const createStyles = (colors: any) => StyleSheet.create({
         fontSize: typography.sizes.sm,
         fontWeight: '600',
     },
-    divider: {
-        height: 1,
-        marginBottom: spacing.md,
-    },
     detailsSection: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.base,
         marginBottom: spacing.lg,
     },
-    detailRow: {
+    infoCell: {
+        flexBasis: '47%',
+        flexGrow: 1,
+        backgroundColor: colors.mutedAlpha[10],
+        borderRadius: borderRadius.lg,
+        padding: spacing.base,
+        gap: spacing.xs,
+    },
+    infoCellFull: {
+        flexBasis: '100%',
+    },
+    infoCellHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: spacing.base,
-        gap: spacing.md,
+        gap: spacing.xs,
     },
-    detailIconBox: {
-        width: 34,
-        height: 34,
-        borderRadius: borderRadius.full,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    detailTexts: {
-        flex: 1,
-        gap: 2,
-    },
-    detailLabel: {
-        fontSize: typography.sizes.sm,
+    infoCellLabel: {
+        fontSize: typography.sizes.xs,
         color: colors.mutedForeground,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
     },
-    detailValue: {
+    infoCellValue: {
         fontSize: typography.sizes.base,
         fontWeight: '600',
         color: colors.foreground,
