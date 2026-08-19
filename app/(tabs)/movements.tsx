@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,15 +14,17 @@ import { formatBalance } from '../../utils/formatters';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { transactionService } from '../../services/transaction.service';
+import { statementService } from '../../services/statement.service';
 
 export default function MovementsScreen() {
     const { colors, isDark } = useTheme();
     const insets = useSafeAreaInsets();
-    const { account } = useAuth();
+    const { account, user } = useAuth();
     const [activeFilter, setActiveFilter] = useState<FilterType>('todos');
     const [searchQuery, setSearchQuery] = useState('');
     const [showBalance, setShowBalance] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
 
@@ -69,6 +71,40 @@ export default function MovementsScreen() {
         setDateRange(range);
         setActiveFilter('fechas');
         setShowDateFilter(false);
+    };
+
+    const handleDownloadStatement = async () => {
+        if (!account) return;
+        setIsDownloading(true);
+        try {
+            const filters: { type?: 'income' | 'expense'; startDate?: Date; endDate?: Date } = {};
+            if (activeFilter === 'ingresos') filters.type = 'income';
+            if (activeFilter === 'egresos') filters.type = 'expense';
+            if (dateRange) {
+                filters.startDate = dateRange.from;
+                filters.endDate = dateRange.to;
+            }
+
+            const result = await statementService.generateAndShare({
+                accountId: account.id,
+                accountHolderName: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Usuario',
+                balance: account.balance,
+                filters,
+            });
+
+            Alert.alert(
+                'Estado de cuenta',
+                `PDF generado con ${result.count} movimientos.\n\nIngresos: ${formatBalance(result.income)}\nEgresos: ${formatBalance(result.expense)}`,
+            );
+        } catch (error: any) {
+            console.error('Error generando estado de cuenta:', error);
+            Alert.alert(
+                'Error',
+                error?.message || 'No se pudo generar el estado de cuenta. Intente nuevamente.',
+            );
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     // Procesar datos para la lista (agrupar y filtrar por búsqueda localmente por ahora)
@@ -221,6 +257,22 @@ export default function MovementsScreen() {
                             </TouchableOpacity>
                         </View>
 
+                        <TouchableOpacity
+                            style={styles.statementButton}
+                            onPress={handleDownloadStatement}
+                            disabled={isDownloading}
+                            activeOpacity={0.7}
+                        >
+                            {isDownloading ? (
+                                <ActivityIndicator size="small" color={colors.accent} />
+                            ) : (
+                                <Ionicons name="download-outline" size={20} color={colors.accent} />
+                            )}
+                            <Text style={styles.statementButtonText}>
+                                {isDownloading ? 'Generando PDF...' : 'Descargar estado de cuenta'}
+                            </Text>
+                        </TouchableOpacity>
+
                         <View style={styles.filtersSection}>
                             <SearchBar
                                 value={searchQuery}
@@ -297,6 +349,23 @@ const createStyles = (colors: any) => StyleSheet.create({
         padding: 8,
         borderRadius: borderRadius.full,
         backgroundColor: colors.mutedAlpha[20],
+    },
+    statementButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.sm,
+        paddingVertical: spacing.base,
+        borderRadius: borderRadius.lg,
+        borderWidth: 1.5,
+        borderColor: colors.border,
+        backgroundColor: colors.card,
+        marginBottom: spacing.md,
+    },
+    statementButtonText: {
+        fontSize: typography.sizes.base,
+        fontWeight: '600',
+        color: colors.accent,
     },
     filtersSection: {
         gap: spacing.md,
