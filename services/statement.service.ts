@@ -208,7 +208,7 @@ const buildStatementHtml = (params: {
             </style>
         </head>
         <body>
-            <div class="brand">TecnoMind</div>
+            <div class="brand">Proxpera</div>
             <div class="title">Estado de cuenta</div>
             <div class="subtitle">${escapeHtml(accountHolderName)}</div>
 
@@ -258,7 +258,7 @@ const buildStatementHtml = (params: {
             }
 
             <div class="footer">
-                Documento generado por TecnoMind · ${escapeHtml(new Date().getFullYear().toString())}
+                Documento generado por Proxpera · ${escapeHtml(new Date().getFullYear().toString())}
             </div>
         </body>
         </html>`;

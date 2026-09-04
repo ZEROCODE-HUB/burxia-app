@@ -1,15 +1,16 @@
 // app.config.js
 export default {
     expo: {
-        name: "TecnoMind",
-        // slug, scheme, bundleIdentifier, package y projectId conservan el
-        // valor com.magnate.* a proposito: son la identidad de release
-        // (firma, push, EAS). Cambiarlos lo decide el cliente.
-        slug: "magnate-mobile",
+        name: "Proxpera",
+        // NOTA DE RELEASE: el projectId de EAS (extra.eas.projectId más abajo)
+        // sigue siendo el de la cuenta original. Antes del primer build bajo la
+        // cuenta EAS de Proxpera hay que correr `eas init` para regenerarlo; el
+        // slug se ajustará a ese proyecto. Ver docs/pendientes.md.
+        slug: "proxpera-mobile",
         version: "1.0.9",
         orientation: "portrait",
         icon: "./assets/icon.png",
-        scheme: "magnate",
+        scheme: "proxpera",
         userInterfaceStyle: "dark",
         newArchEnabled: true,
 
@@ -21,7 +22,7 @@ export default {
 
         ios: {
             supportsTablet: true,
-            bundleIdentifier: "com.magnate.mobile",
+            bundleIdentifier: "com.proxpera.app",
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false
             }
@@ -32,7 +33,7 @@ export default {
                 backgroundColor: "#0F172A"
             },
             permissions: ["CAMERA", "RECORD_AUDIO"],
-            package: "com.magnate.mobile",
+            package: "com.proxpera.app",
              versionCode: 9 
         },
 

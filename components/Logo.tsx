@@ -20,7 +20,7 @@ export const Logo: React.FC<LogoProps> = ({ showText = true, height = 32 }) => {
             </View>
 
             {showText && (
-                <Text style={styles.text}>TecnoMind</Text>
+                <Text style={styles.text}>Proxpera</Text>
             )}
         </View>
     );

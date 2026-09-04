@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // En TecnoMind las columnas son document_number / tax_id; la app
+      // En Proxpera las columnas son document_number / tax_id; la app
       // heredada lee user.dni / user.cuit_cuil en ~28 lugares. Se normaliza
       // acá, en el único punto donde se arma el user, en vez de tocar cada
       // pantalla. Se conservan ambos nombres para no romper nada.

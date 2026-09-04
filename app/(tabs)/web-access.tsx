@@ -137,7 +137,7 @@ export default function WebAccessScreen() {
                             <Text style={styles.warningTitle}>Zona de Seguridad</Text>
                         </View>
                         <Text style={styles.warningText}>
-                            Esta contraseña permite el acceso directo a tu cuenta TecnoMind vía navegadores web. Mantenla segura.
+                            Esta contraseña permite el acceso directo a tu cuenta Proxpera vía navegadores web. Mantenla segura.
                         </Text>
                     </View>
 

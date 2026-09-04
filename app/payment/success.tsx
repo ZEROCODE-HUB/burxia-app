@@ -214,7 +214,7 @@ export default function SuccessScreen() {
               {/* Watermark/Footer en el capture */}
               <View style={styles.captureFooter}>
                 <Text style={styles.captureFooterText}>
-                  Comprobante oficial TecnoMind Financial Freedom
+                  Comprobante oficial Proxpera Financial Freedom
                 </Text>
               </View>
             </View>

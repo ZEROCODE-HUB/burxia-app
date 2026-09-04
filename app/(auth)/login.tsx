@@ -163,7 +163,7 @@ export default function LoginScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <LogoIcon size={40} />
-                        <Text style={styles.headerTitle}>TecnoMind</Text>
+                        <Text style={styles.headerTitle}>Proxpera</Text>
                     </View>
 
                     {/* Content */}

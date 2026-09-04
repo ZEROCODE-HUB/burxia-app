@@ -310,7 +310,7 @@ export default function ProfileScreen() {
             >
               Cerrar Sesión
             </Button>
-            <Text style={styles.versionText}>TecnoMind v2.4.0 (Build 892)</Text>
+            <Text style={styles.versionText}>Proxpera v2.4.0 (Build 892)</Text>
           </View>
         </View>
       </ScrollView>

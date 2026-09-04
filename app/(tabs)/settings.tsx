@@ -158,7 +158,7 @@ export default function SettingsScreen() {
                 {/* Version Info */}
                 <View style={styles.footerInfo}>
                     <Text style={styles.versionText}>
-                        TecnoMind v2.4.0 (Build 892)
+                        Proxpera v2.4.0 (Build 892)
                     </Text>
                     <Text style={styles.securityText}>
                         Enterprise Grade Security

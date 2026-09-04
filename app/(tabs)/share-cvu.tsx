@@ -70,7 +70,7 @@ export default function ShareCvuScreen() {
     }, [account?.id]);
 
     const accountData = {
-        titular: user ? `${user.first_name} ${user.last_name}` : "Usuario TecnoMind",
+        titular: user ? `${user.first_name} ${user.last_name}` : "Usuario Proxpera",
         cvu: account?.cvu || "0000000000000000000000",
         alias: account?.alias || "sin.alias.asignado",
     };
@@ -83,7 +83,7 @@ export default function ShareCvuScreen() {
 
     const handleShare = async () => {
         try {
-            const textToShare = `Mis datos de cuenta TecnoMind:\n\nTitular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
+            const textToShare = `Mis datos de cuenta Proxpera:\n\nTitular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
             await Share.share({
                 message: textToShare,
             });
