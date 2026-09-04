@@ -1,23 +1,39 @@
 import Constants from "expo-constants";
 
-// Función para obtener variables de entorno de manera segura
+/**
+ * Lectura de variables de entorno.
+ *
+ * Antes esta función tenía como último recurso la URL y la anon key de
+ * Supabase escritas a mano — y las de Magnate, además. Eso hacía dos
+ * cosas malas: dejaba una credencial en un archivo versionado, y sobre
+ * todo hacía que una configuración faltante pasara desapercibida: la app
+ * arrancaba igual, contra la base equivocada.
+ *
+ * Ahora falla fuerte y temprano. Es preferible no arrancar a arrancar
+ * apuntando a otro lado.
+ */
 export const getEnvVar = (key: string): string => {
-  // Primero intenta desde process.env (web/desarrollo)
+  // En desarrollo web y en el bundler, las EXPO_PUBLIC_* llegan por acá.
   if (process.env[key]) {
     return process.env[key] as string;
   }
 
-  // Luego intenta desde expo-constants (nativo)
-  if (Constants.expoConfig?.extra?.[key]) {
-    return Constants.expoConfig.extra[key];
+  // En un build nativo llegan por el `extra` de app.config.js.
+  const extra = Constants.expoConfig?.extra?.[key];
+  if (extra) {
+    return extra as string;
   }
 
-  // Valores por defecto hardcodeados como último recurso
-  const defaults: Record<string, string> = {
-    EXPO_PUBLIC_SUPABASE_URL: "https://mzxhyjgbbabnughknrxc.supabase.co",
-    EXPO_PUBLIC_SUPABASE_ANON_KEY:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16eGh5amdiYmFibnVnaGtucnhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTk1NzYsImV4cCI6MjA4NDA3NTU3Nn0.OMPAyQoQbiZKbmN7USAbDk7C4w-glidP1p3Izt_LkRY",
-  };
+  return "";
+};
 
-  return defaults[key] || "";
+/** Igual que getEnvVar, pero para lo que la app no puede no tener. */
+export const requireEnvVar = (key: string): string => {
+  const valor = getEnvVar(key);
+  if (!valor) {
+    throw new Error(
+      `Falta la variable de entorno ${key}. Copiá .env.example a .env y completala.`,
+    );
+  }
+  return valor;
 };

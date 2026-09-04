@@ -8,9 +8,7 @@ bcrypt.setRandomFallback((len) => {
   return Array.from(randomBytes);
 });
 
-import { encrypt, decrypt, generateSecurePassword } from "../utils/crypto";
 import { sendOtpEmail } from "./email.service";
-import { incrementPinAttempts, resetPinAttempts } from "./storage.service";
 import {
   generateCBU,
   generateCVU,
@@ -181,82 +179,70 @@ export async function loginWithPin(
   try {
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 1. Usar RPC para buscar datos saltando RLS
-    const { data: userData, error: userError } = await supabase.rpc(
-      "get_user_login_data",
-      { email_input: normalizedEmail } as any,
-    );
+    // Modelo TecnoMind (migración 00021): el PIN ES la contraseña de
+    // Supabase Auth. No hay pin_hash ni auto-password cifrada que descifrar
+    // en el cliente. El bloqueo por intentos lo lleva la base
+    // (check_login_blocked / record_login_attempt), no AsyncStorage: un
+    // contador local lo borra cualquiera reinstalando la app.
 
-    if (userError) {
-      return { success: false, error: "Error de conexión" };
-    }
-
-    // RPC retorna un array, tomamos el primero y lo tipamos
-    const user = userData?.[0] as LoginUserData | undefined;
-    if (!user) {
-      return { success: false, error: "Usuario no encontrado" };
-    }
-
-    // 2. Verificar PIN con bcrypt
-    if (!user.pin_hash) {
-      return { success: false, error: "Datos de seguridad corruptos" };
-    }
-
-    const pinValid = await bcrypt.compare(pin, user.pin_hash);
-    if (!pinValid) {
-      const attempts = await incrementPinAttempts(normalizedEmail);
-      if (attempts >= 3) {
-        await suspendUserAccount(user.id);
-        return {
-          success: false,
-          error: "Has excedido el número de intentos. Cuenta suspendida.",
-        };
-      }
+    const { data: bloqueoData } = await supabase.rpc("check_login_blocked", {
+      p_email: normalizedEmail,
+    } as any);
+    const bloqueo = (bloqueoData as any)?.[0];
+    if (bloqueo?.blocked) {
+      const minutos = Math.ceil((bloqueo.retry_after_seconds ?? 0) / 60);
       return {
         success: false,
-        error: `PIN incorrecto. Intentos restantes: ${3 - attempts}`,
+        error: `Demasiados intentos. Probá de nuevo en ${minutos} minuto${minutos === 1 ? "" : "s"}.`,
       };
     }
 
-    // PIN correcto, resetear intentos
-    await resetPinAttempts(normalizedEmail);
+    const { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: pin,
+      });
 
-    // 4. Verificar status
-    if (user.verification_status === "suspended") {
+    // Se registra el intento (la RPC no filtra si el usuario existe).
+    await supabase.rpc("record_login_attempt", {
+      p_email: normalizedEmail,
+      p_success: !signInError,
+      p_failure_reason: signInError?.message ?? null,
+    } as any);
+
+    if (signInError || !signInData.user) {
+      // Mensaje deliberadamente ambiguo: "ese email no existe" permitiría
+      // enumerar clientes.
+      const restantes = (bloqueo?.attempts_left ?? 5) - 1;
+      const aviso =
+        restantes > 0 && restantes <= 2 ? ` Te quedan ${restantes} intentos.` : "";
+      return { success: false, error: `Email o PIN incorrectos.${aviso}` };
+    }
+
+    const userId = signInData.user.id;
+
+    // El estado de verificación no bloquea el ingreso: un usuario recién
+    // registrado usa la app con funciones limitadas mientras el backoffice
+    // resuelve su KYC. Solo se corta si la cuenta fue dada de baja.
+    const { data: perfil } = await supabase
+      .from("users")
+      .select("verification_status")
+      .eq("id", userId)
+      .maybeSingle();
+    const estado = (perfil as any)?.verification_status;
+    if (estado === "suspended" || estado === "rejected") {
+      await supabase.auth.signOut();
       return { success: false, error: "Esta cuenta se encuentra suspendida." };
     }
 
-    if (user.verification_status !== "verified") {
-      return { success: false, error: "Cuenta pendiente de verificación" };
-    }
-
-    // 5. Desencriptar la contraseña
-    if (!user.auto_password_encrypted) {
-      return { success: false, error: "Error interno: Credenciales inválidas" };
-    }
-
-    const autoPassword = await decrypt(user.auto_password_encrypted);
-
-    // 6. Hacer login con Supabase Auth (Must login first to bypass Row Level Security restrictions for the device check)
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password: autoPassword,
-    });
-
-    if (signInError) {
-      return { success: false, error: "Error al iniciar sesión" };
-    }
-
-    // 7. Verificar dispositivo (la cuenta de prueba siempre lo bypassa)
-    const deviceKnown = await isDeviceKnown(user.id, normalizedEmail);
-
+    // Verificación de dispositivo (la cuenta de prueba la bypassa).
+    const deviceKnown = await isDeviceKnown(userId, normalizedEmail);
     if (!deviceKnown) {
-      // Send OTP implicitly since we are now logged in
       await sendVerificationOtp();
-      return { success: true, userId: user.id, requireDeviceVerification: true };
+      return { success: true, userId, requireDeviceVerification: true };
     }
 
-    return { success: true, userId: user.id, requireDeviceVerification: false };
+    return { success: true, userId, requireDeviceVerification: false };
   } catch (error: any) {
     return { success: false, error: error.message || "Error desconocido" };
   }
@@ -285,107 +271,75 @@ export async function suspendUserAccount(userId: string): Promise<AuthResult> {
 export async function registerUser(data: RegisterData): Promise<AuthResult> {
   try {
     const normalizedEmail = data.email.toLowerCase().trim();
-
-    // 1. Hash del PIN first
-
-    const salt = await bcrypt.genSalt(10);
-    const pinHash = await bcrypt.hash(data.pin, salt);
-
-    // 2. Prepare metadata and Create user via signUp
-
     const cleanDni = data.dni.replace(/\D/g, "");
     const cleanCuit = data.cuit.replace(/\D/g, "");
     const cleanPhone = data.telefono.trim();
 
-    // Generamos password seguro para el auth.users
-    const autoPassword = await generateSecurePassword(32);
+    // Chequeo previo con can_register(): responde si el email, el documento
+    // o el CUIT ya existen SIN decir cuál, para no permitir enumerarlos.
+    const { data: disponible, error: errorChequeo } = await supabase.rpc(
+      "can_register",
+      {
+        p_email: normalizedEmail,
+        p_document_number: cleanDni,
+        p_tax_id: cleanCuit,
+      } as any,
+    );
+    if (errorChequeo) {
+      return { success: false, error: "No se pudo validar los datos. Intentá de nuevo." };
+    }
+    if (!disponible) {
+      return {
+        success: false,
+        error: "Ya existe una cuenta con esos datos. Si es tuya, iniciá sesión.",
+      };
+    }
 
+    // Modelo TecnoMind: el PIN es la contraseña de Supabase Auth. No se
+    // genera una auto-password, no se guarda pin_hash ni se escribe en
+    // user_auth_credentials. El trigger on_auth_user_created lee esta
+    // metadata y crea el perfil, la cuenta, los límites y el QR.
     const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: normalizedEmail,
-    password: autoPassword,
+      email: normalizedEmail,
+      password: data.pin,
       options: {
         data: {
-          // user-facing keys (por compatibilidad con triggers existentes)
           nombres: data.nombres.trim(),
           apellidos: data.apellidos.trim(),
           telefono: cleanPhone,
-          cuit: cleanCuit,
           dni: cleanDni,
-          pin_hash: pinHash,
-          // claves canónicas (coinciden con las columnas NOT NULL de public.users)
-          first_name: data.nombres.trim(),
-          last_name: data.apellidos.trim(),
-          phone: cleanPhone,
-          cuit_cuil: cleanCuit,
+          cuit: cleanCuit,
+          tipo_documento: "DNI",
+          pais: "AR",
+          // Si el KYC de ZapSign ya corrió, se pasa para que el trigger lo
+          // registre en kyc_verifications.
           zapsign_verification_id: data.zapsign_doc_token || null,
           zapsign_contract_url: data.zapsign_contract_url || null,
           zapsign_data: data.zapsign_data || null,
         },
       },
-});
+    });
 
     if (authError) {
-      // Superficializar el error completo de la base de datos (code/hint/details)
-      // para poder diagnosticar fallos del trigger de creación de usuario.
+      if (authError.message.includes("already registered")) {
+        return { success: false, error: "Ya existe una cuenta con ese email." };
+      }
+      if (authError.message.includes("Password")) {
+        return { success: false, error: "El PIN no cumple los requisitos mínimos." };
+      }
       const anyErr = authError as any;
-      const code = anyErr?.code ? ` [${anyErr.code}]` : '';
-      const hint = anyErr?.hint ? `: ${anyErr.hint}` : '';
-      const details = anyErr?.details ? ` | ${anyErr.details}` : '';
-      const fullMessage = `${authError.message}${code}${hint}${details}`;
-      console.error('[AUTH] signUp error:', anyErr);
-      return { success: false, error: fullMessage };
+      const code = anyErr?.code ? ` [${anyErr.code}]` : "";
+      console.error("[AUTH] signUp error:", anyErr);
+      return { success: false, error: `${authError.message}${code}` };
     }
 
     if (!authData.user) {
       return { success: false, error: "Error al crear usuario" };
     }
 
-    const userId = authData.user.id;
-
-    // 3. (REMOVED) Manual insert into public.users is handled by DB Trigger
-
-    // 4. Guardar password encriptado par login automático
-    if (authData.session) {
-      const encryptedPassword = await encrypt(autoPassword);
-
-      const { error: credError } = await supabase
-        .from("user_auth_credentials")
-        .insert({
-          user_id: userId,
-          auto_password_encrypted: encryptedPassword,
-        } as any);
-
-      if (credError) {
-        const anyErr = credError as any;
-        const code = anyErr?.code ? ` [${anyErr.code}]` : '';
-        const hint = anyErr?.hint ? `: ${anyErr.hint}` : '';
-        console.error('[AUTH] user_auth_credentials insert error:', anyErr);
-        // No es bloqueante con el mensaje original; se anota para diagnóstico
-        // pero se continúa (el login manual se reintenta al crear la credencial).
-        // eslint-disable-next-line no-empty
-        void code; void hint;
-      }
-    }
-
-    // 5. Esperar a que el trigger cree la cuenta y obtener info
-
-    // Reintentos para dar tiempo al trigger
-    let accountInfo = null;
-    for (let i = 0; i < 5; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
-      const { data } = await supabase.rpc("get_account_info", {
-        p_user_id: userId,
-      } as any);
-      if (data && (data as any).length > 0) {
-        accountInfo = data[0];
-        break;
-      }
-    }
-
-    return {
-      success: true,
-      userId,
-    };
+    // El trigger corre dentro de la transacción del signup, así que al
+    // volver acá el perfil y la cuenta ya existen. No hace falta poll.
+    return { success: true, userId: authData.user.id };
   } catch (error: any) {
     return { success: false, error: error.message || "Error desconocido" };
   }
@@ -494,21 +448,20 @@ export async function verifyPin(pin: string): Promise<boolean> {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user?.email) return false;
 
-    const { data, error } = await (supabase.from('users') as any)
-      .select('pin_hash')
-      .eq('id', user.id)
-      .single();
+    // El PIN es la contraseña de Supabase Auth, así que verificarlo es
+    // re-autenticar. El usuario ya está logueado con esta misma cuenta, de
+    // modo que si el PIN es correcto la sesión simplemente se refresca; si
+    // es incorrecto, falla sin afectar la sesión vigente.
+    const { error } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: pin,
+    });
 
-    if (error || !data?.pin_hash) {
-      console.error('[AUTH] Error fetching pin_hash:', error);
-      return false;
-    }
-
-    return await bcrypt.compare(pin, data.pin_hash);
+    return !error;
   } catch (error) {
-    console.error('[AUTH] Error verifying PIN:', error);
+    console.error("[AUTH] Error verifying PIN:", error);
     return false;
   }
 }
@@ -587,24 +540,19 @@ export async function updatePin(newPin: string): Promise<AuthResult> {
     } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Usuario no autenticado" };
 
-    // 1. Hash new PIN
-    const salt = await bcrypt.genSalt(10);
-    const newPinHash = await bcrypt.hash(newPin, salt);
-
-    // 2. Update in DB
-    const { error: updateError } = await (supabase.from("users") as any)
-      .update({ pin_hash: newPinHash })
-      .eq("id", user.id);
+    // El PIN es la contraseña de Supabase Auth: cambiarlo es cambiar la
+    // contraseña. No se toca users.pin_hash (sin uso en el modelo actual).
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPin,
+    });
 
     if (updateError) {
-      console.error("[AUTH] Error updating pin_hash in DB:", updateError);
+      if (updateError.message.includes("Password")) {
+        return { success: false, error: "El PIN no cumple los requisitos mínimos." };
+      }
+      console.error("[AUTH] Error updating PIN:", updateError);
       return { success: false, error: "Error al actualizar el PIN" };
     }
-
-    // 3. Update Auth Metadata
-    await supabase.auth.updateUser({
-      data: { pin_hash: newPinHash },
-    });
 
     return { success: true };
   } catch (error: any) {
