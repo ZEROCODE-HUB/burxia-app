@@ -1,411 +1,284 @@
-import { ZAPSIGN_CONFIG, isTestEnv, isProductionEnv } from '../config/environment';
+import { supabase } from "../lib/supabase";
+import { isTestEnv, isProductionEnv } from "../config/environment";
+
+/**
+ * Cliente de ZapSign (KYC).
+ *
+ * Antes este servicio llamaba a la API de ZapSign directamente, con la API
+ * key incrustada en el binario (EXPO_PUBLIC_ZAPSIGN_API_KEY). Cualquiera que
+ * abriera el APK la extraía. Ahora todas las llamadas pasan por la Edge
+ * Function `zapsign-proxy`, que guarda la key en el servidor; la app nunca
+ * la ve.
+ *
+ * En modo test se devuelven respuestas mock, para que el flujo de registro
+ * ande sin depender de que ZapSign esté configurado. En producción se usa
+ * el proxy real.
+ */
+
+const ZAPSIGN_MOCK = isTestEnv;
 
 export interface ZapSignDocument {
-    token: string;
-    status: string;
-    original_file: string;
-    signed_file: string | null;
-    signers: Array<{
-        token: string;
-        sign_url: string;
-        status: string;
-        signed_at: string | null;
-    }>;
+  token: string;
+  status: string;
+  signed_file?: string | null;
+  signers?: Array<{
+    token?: string;
+    sign_url?: string;
+  }>;
 }
 
 export interface CreateDocumentResult {
-    success: boolean;
-    signUrl?: string;
-    docToken?: string;
-    error?: string;
+  success: boolean;
+  signUrl?: string;
+  docToken?: string;
+  error?: string;
 }
 
 export interface GetSignedUrlResult {
-    success: boolean;
-    signedFileUrl?: string | null;
-    status?: string;
-    error?: string;
+  success: boolean;
+  signedFileUrl?: string | null;
+  status?: string;
+  error?: string;
 }
 
 export interface GetSignerUrlResult {
-    success: boolean;
-    signUrl?: string;
-    error?: string;
+  success: boolean;
+  signUrl?: string;
+  error?: string;
 }
 
 /**
- * Crea un documento en ZapSign para que el usuario lo firme durante el registro.
- * En modo test sin API key → usa un mock local.
+ * Invoca la Edge Function zapsign-proxy. El Bearer de ZapSign vive en el
+ * servidor; acá solo viaja el JWT del usuario, que Supabase adjunta solo.
  */
+async function invokeProxy<T>(
+  action: string,
+  params: Record<string, unknown>,
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+  const { data, error } = await supabase.functions.invoke("zapsign-proxy", {
+    body: { action, ...params },
+  });
+
+  if (error) {
+    // FunctionsHttpError trae el cuerpo en context; se intenta leer el
+    // mensaje que devolvió la función o ZapSign.
+    let detalle = error.message;
+    try {
+      const cuerpo = await (error as any).context?.json?.();
+      detalle = cuerpo?.error || cuerpo?.detail || detalle;
+    } catch {
+      /* se deja el mensaje genérico */
+    }
+    return { ok: false, error: detalle };
+  }
+  return { ok: true, data: data as T };
+}
+
 export async function createZapSignDocument(
-    userName: string,
-    userEmail: string,
+  userName: string,
+  userEmail: string,
 ): Promise<CreateDocumentResult> {
-    const name = (userName || '').trim();
-    const email = (userEmail || '').trim().toLowerCase();
-    // --- MODO MOCK (test sin API key) ---
-    if (isTestEnv && !ZAPSIGN_CONFIG.apiKey) {
-        console.log('[ZapSign] Modo MOCK activo (test sin API key)');
-        return {
-            success: true,
-            signUrl: 'https://mock-zapsign.local/mock-sign',
-            docToken: 'mock-doc-token-' + Date.now(),
-        };
-    }
+  const name = (userName || "").trim();
+  const email = (userEmail || "").trim().toLowerCase();
 
-    console.log('[ZapSign] Enviando request a:', `${ZAPSIGN_CONFIG.baseUrl}/api/v1/models/create-doc/`);
-    console.log('[ZapSign] Token cargado por Expo:', `***${ZAPSIGN_CONFIG.apiKey.slice(-4)}`);
-    console.log('[ZapSign] Template ID:', ZAPSIGN_CONFIG.templateId);
-    
-    if (!ZAPSIGN_CONFIG.apiKey || !ZAPSIGN_CONFIG.templateId) {
-        console.error('[ZapSign] CRÍTICO: La API key o el Template ID están vacíos. Revisa el archivo .env');
-    }
+  if (ZAPSIGN_MOCK) {
+    return {
+      success: true,
+      signUrl: "https://mock-zapsign.local/mock-sign",
+      docToken: "mock-doc-token-" + Date.now(),
+    };
+  }
 
-    try {
-        const payload = {
-            template_id: ZAPSIGN_CONFIG.templateId,
-            signer_name: name,
-            send_automatic_email: false,
-            signers: [
-                {
-                    name,
-                    email,
-                    auth_mode: 'assinaturaTela',
-                    send_automatic_email: true,
-                    // En sandbox y producción exigimos documento; selfie sólo en producción
-                    require_selfie_photo: isProductionEnv,
-                    require_document_photo: true,
-                    // Matching biométrico real sólo si se configuró el tipo (producción + créditos)
-                    ...(ZAPSIGN_CONFIG.selfieValidationType
-                        ? { selfie_validation_type: ZAPSIGN_CONFIG.selfieValidationType }
-                        : {}),
-                }
-            ],
-            data: [
-                { de: '{{Nombre}}', para: name },
-                { de: '{{Email}}', para: email }
-            ]
-        };
+  const r = await invokeProxy<ZapSignDocument>("create-doc", { name, email });
+  if (!r.ok) return { success: false, error: r.error };
 
-        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/models/create-doc/`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorData: any = {};
-            try { errorData = JSON.parse(errorText); } catch(e) {}
-            
-            console.error('[ZapSign] Payload enviado:', JSON.stringify(payload));
-            console.error('[ZapSign] Respuesta cruda (HTTP '+response.status+'):', errorText);
-            
-            const errMsg = errorData.detail || errorData.error || `Error HTTP ${response.status} al crear documento en ZapSign`;
-            return { success: false, error: errMsg };
-        }
-
-        const data: ZapSignDocument = await response.json();
-        const signer = data.signers?.[0];
-
-        const signUrl = signer?.sign_url || `https://app.zapsign.com.br/verificar/${signer?.token}`;
-
-        return {
-            success: true,
-            signUrl,
-            docToken: data.token,
-        };
-    } catch (error: any) {
-        console.error('[ZapSign] Error inesperado al crear documento:', error);
-        return { success: false, error: error.message || 'Error de red con ZapSign' };
-    }
+  const signer = r.data.signers?.[0];
+  const signUrl = signer?.sign_url || `https://app.zapsign.com.br/verificar/${signer?.token}`;
+  return { success: true, signUrl, docToken: r.data.token };
 }
 
-/**
- * Obtiene la URL de firma del primer firmante dado el token del documento.
- */
 export async function getSignerUrl(docToken: string): Promise<GetSignerUrlResult> {
-    try {
-        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/docs/${docToken}/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}`,
-            },
-        });
+  if (ZAPSIGN_MOCK || docToken.startsWith("mock-")) {
+    return { success: true, signUrl: "https://mock-zapsign.local/mock-sign" };
+  }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            return { success: false, error: errorText || `HTTP ${response.status}` };
-        }
+  const r = await invokeProxy<ZapSignDocument>("get-doc", { docToken });
+  if (!r.ok) return { success: false, error: r.error };
 
-        const data: ZapSignDocument = await response.json();
-        const signer = data.signers?.[0];
-        const signUrl = signer?.sign_url || (signer?.token ? `https://app.zapsign.com.br/verificar/${signer.token}` : undefined);
-
-        if (!signUrl) {
-            return { success: false, error: 'No se pudo obtener sign_url del documento' };
-        }
-        return { success: true, signUrl };
-    } catch (e: any) {
-        return { success: false, error: e.message || 'Error al consultar sign_url' };
-    }
+  const signer = r.data.signers?.[0];
+  const signUrl =
+    signer?.sign_url || (signer?.token ? `https://app.zapsign.com.br/verificar/${signer.token}` : undefined);
+  if (!signUrl) return { success: false, error: "No se pudo obtener sign_url del documento" };
+  return { success: true, signUrl };
 }
 
-/**
- * Obtiene la URL del documento firmado dado el token del documento.
- * `signed_file` es null mientras el usuario no haya completado la firma.
- * Las URLs expiran en ~60 minutos.
- */
-export async function getSignedDocumentUrl(
-    docToken: string,
-): Promise<GetSignedUrlResult> {
-    // --- MODO MOCK ---
-    if (isTestEnv && !ZAPSIGN_CONFIG.apiKey) {
-        return {
-            success: true,
-            signedFileUrl: 'https://mock-zapsign.local/mock-signed-document.pdf',
-            status: 'signed',
-        };
-    }
+export async function getSignedDocumentUrl(docToken: string): Promise<GetSignedUrlResult> {
+  if (ZAPSIGN_MOCK || docToken.startsWith("mock-doc-token-")) {
+    return {
+      success: true,
+      signedFileUrl: "https://mock-zapsign.local/mock-signed-document.pdf",
+      status: "signed",
+    };
+  }
 
-    if (docToken.startsWith('mock-doc-token-')) {
-        return {
-            success: true,
-            signedFileUrl: 'https://mock-zapsign.local/mock-signed-document.pdf',
-            status: 'signed',
-        };
-    }
-
-    try {
-        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/docs/${docToken}/`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}`,
-            },
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const errMsg = (errorData as any).detail || `Error HTTP ${response.status} al consultar documento`;
-            return { success: false, error: errMsg };
-        }
-
-        const data: ZapSignDocument = await response.json();
-
-        return {
-            success: true,
-            signedFileUrl: data.signed_file || null,
-            status: data.status,
-        };
-    } catch (error: any) {
-        console.error('[ZapSign] Error al consultar documento:', error);
-        return { success: false, error: error.message || 'Error de red con ZapSign' };
-    }
+  const r = await invokeProxy<ZapSignDocument>("get-doc", { docToken });
+  if (!r.ok) return { success: false, error: r.error };
+  return { success: true, signedFileUrl: r.data.signed_file || null, status: r.data.status };
 }
 
-/**
- * Obtiene la URL del contrato firmado con reintentos.
- * ZapSign Sandbox puede tardar unos segundos en generar el PDF después de la firma.
- */
 export async function getSignedDocumentUrlWithRetry(
-    docToken: string,
-    maxRetries: number = 3,
-    delayMs: number = 2000,
+  docToken: string,
+  maxRetries = 3,
+  delayMs = 2000,
 ): Promise<string | null> {
-    for (let i = 0; i < maxRetries; i++) {
-        const result = await getSignedDocumentUrl(docToken);
-        if (result.success && result.signedFileUrl) {
-            return result.signedFileUrl;
-        }
-        if (i < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-        }
-    }
-    return null;
+  for (let i = 0; i < maxRetries; i++) {
+    const result = await getSignedDocumentUrl(docToken);
+    if (result.success && result.signedFileUrl) return result.signedFileUrl;
+    if (i < maxRetries - 1) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------ */
-/* Verificación biométrica del firmante (Consultar validações)         */
+/* Verificación biométrica del firmante                                */
 /* ------------------------------------------------------------------ */
 
 export interface ZapSignValidationItem {
-    type: string;
-    status: string; // 'success' | 'failed' | ...
-    reason?: string;
-    created_at?: string;
-    document_ocr?: {
-        name?: string;
-        last_name?: string;
-        document_type?: string;
-        document_number?: string;
-        date_of_birth?: string;
-        document_country?: string;
-    } | null;
+  type: string;
+  status: string;
+  reason?: string;
+  created_at?: string;
+  document_ocr?: {
+    name?: string;
+    last_name?: string;
+    document_type?: string;
+    document_number?: string;
+    date_of_birth?: string;
+    document_country?: string;
+  } | null;
 }
 
 export interface GetSignerValidationResult {
-    success: boolean;
-    validations?: ZapSignValidationItem[];
-    selfieValidationType?: string | null;
-    error?: string;
+  success: boolean;
+  validations?: ZapSignValidationItem[];
+  selfieValidationType?: string | null;
+  error?: string;
 }
 
 export interface ZapSignBiometric {
-    selfieValidationType?: string | null;
-    valid: boolean;
-    validations?: ZapSignValidationItem[];
-    extractedName?: string;
-    documentNumber?: string;
-    reason?: string;
+  selfieValidationType?: string | null;
+  valid: boolean;
+  validations?: ZapSignValidationItem[];
+  extractedName?: string;
+  documentNumber?: string;
+  reason?: string;
 }
 
 export interface ZapSignIdentityResult {
-    signed: boolean;
-    verified: boolean;
-    strict: boolean;
-    signedFileUrl?: string | null;
-    biometric?: ZapSignBiometric;
-    error?: string;
+  signed: boolean;
+  verified: boolean;
+  strict: boolean;
+  signedFileUrl?: string | null;
+  biometric?: ZapSignBiometric;
+  error?: string;
 }
 
 function mockValidationResult(): GetSignerValidationResult {
-    return {
-        success: true,
-        selfieValidationType: 'mock',
-        validations: [
-            { type: 'Identity verification', status: 'success' },
-            { type: 'Name validation', status: 'success' },
-        ],
-    };
+  return {
+    success: true,
+    selfieValidationType: "mock",
+    validations: [
+      { type: "Identity verification", status: "success" },
+      { type: "Name validation", status: "success" },
+    ],
+  };
 }
 
-/**
- * Devuelve el detalle del documento, incluyendo el token del primer firmante.
- */
 async function getDocumentDetail(docToken: string): Promise<{
-    success: boolean;
-    status?: string;
-    signedFile?: string | null;
-    signerToken?: string | null;
-    error?: string;
+  success: boolean;
+  status?: string;
+  signedFile?: string | null;
+  signerToken?: string | null;
+  error?: string;
 }> {
-    if (isTestEnv && !ZAPSIGN_CONFIG.apiKey) {
-        return { success: true, status: 'assinado', signedFile: 'mock', signerToken: 'mock-signer-' + docToken };
-    }
-    if (docToken.startsWith('mock-')) {
-        return { success: true, status: 'assinado', signedFile: 'mock', signerToken: 'mock-signer-' + docToken };
-    }
-    try {
-        const response = await fetch(`${ZAPSIGN_CONFIG.baseUrl}/api/v1/docs/${docToken}/`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}` },
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            return { success: false, error: errorText || `HTTP ${response.status}` };
-        }
-        const data: ZapSignDocument = await response.json();
-        return {
-            success: true,
-            status: data.status,
-            signedFile: data.signed_file,
-            signerToken: data.signers?.[0]?.token || null,
-        };
-    } catch (e: any) {
-        return { success: false, error: e.message || 'Error al consultar documento' };
-    }
+  if (ZAPSIGN_MOCK || docToken.startsWith("mock-")) {
+    return { success: true, status: "assinado", signedFile: "mock", signerToken: "mock-signer-" + docToken };
+  }
+
+  const r = await invokeProxy<ZapSignDocument>("get-doc", { docToken });
+  if (!r.ok) return { success: false, error: r.error };
+  return {
+    success: true,
+    status: r.data.status,
+    signedFile: r.data.signed_file,
+    signerToken: r.data.signers?.[0]?.token || null,
+  };
 }
 
-/**
- * Consulta las validaciones de identidad del firmante.
- * Endpoint: GET /api/v1/signer-verification-details/{signer_token}/
- */
 export async function getSignerValidation(signerToken: string): Promise<GetSignerValidationResult> {
-    if (isTestEnv && !ZAPSIGN_CONFIG.apiKey) {
-        return mockValidationResult();
-    }
-    if (signerToken.startsWith('mock-')) {
-        return mockValidationResult();
-    }
-    try {
-        const response = await fetch(
-            `${ZAPSIGN_CONFIG.baseUrl}/api/v1/signer-verification-details/${signerToken}/`,
-            {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${ZAPSIGN_CONFIG.apiKey.trim()}` },
-            },
-        );
-        if (!response.ok) {
-            const errorText = await response.text();
-            return { success: false, error: errorText || `HTTP ${response.status}` };
-        }
-        const data = await response.json();
-        return {
-            success: true,
-            validations: data.validations || [],
-            selfieValidationType: data.selfie_validation_type || null,
-        };
-    } catch (e: any) {
-        return { success: false, error: e.message || 'Error al consultar validaciones' };
-    }
+  if (ZAPSIGN_MOCK || signerToken.startsWith("mock-")) {
+    return mockValidationResult();
+  }
+
+  const r = await invokeProxy<{
+    validations?: ZapSignValidationItem[];
+    selfie_validation_type?: string | null;
+  }>("get-signer-validation", { signerToken });
+  if (!r.ok) return { success: false, error: r.error };
+  return {
+    success: true,
+    validations: r.data.validations || [],
+    selfieValidationType: r.data.selfie_validation_type || null,
+  };
 }
 
 /**
- * Verifica la identidad del usuario tras la firma del contrato.
- *
- * - `signed`: el contrato fue firmado (status === 'assinado' o signed_file presente).
- * - `verified`: en modo estricto (producción + selfie_validation_type configurado) requiere
- *   que TODAS las validaciones del firmante hayan pasado. En sandbox/test siempre es true
- *   (ZapSign sólo captura la selfie/documento, no hace matching real), para no romper el demo.
+ * Verifica la identidad del usuario tras la firma del contrato. En modo no
+ * estricto (sandbox/test) alcanza con el contrato firmado; en estricto
+ * (producción con matching biométrico) exige que todas las validaciones
+ * hayan pasado.
  */
 export async function verifyZapSignIdentity(
-    docToken: string,
-    strict: boolean = isProductionEnv && !!ZAPSIGN_CONFIG.selfieValidationType,
+  docToken: string,
+  strict: boolean = isProductionEnv,
 ): Promise<ZapSignIdentityResult> {
-    const detail = await getDocumentDetail(docToken);
-    if (!detail.success) {
-        return { signed: false, verified: false, strict, error: detail.error };
-    }
+  const detail = await getDocumentDetail(docToken);
+  if (!detail.success) {
+    return { signed: false, verified: false, strict, error: detail.error };
+  }
 
-    const signed = detail.status === 'assinado' || !!detail.signedFile;
-    if (!signed) {
-        return { signed: false, verified: false, strict, error: 'Documento aún no firmado' };
-    }
+  const signed = detail.status === "assinado" || !!detail.signedFile;
+  if (!signed) {
+    return { signed: false, verified: false, strict, error: "Documento aún no firmado" };
+  }
 
-    const validation = await getSignerValidation(detail.signerToken || '');
-    const validations = validation.success ? (validation.validations || []) : [];
-    const ocr = validations.find(v => v.document_ocr)?.document_ocr;
-    const biometric: ZapSignBiometric = {
-        selfieValidationType: validation.success ? validation.selfieValidationType : null,
-        valid: false,
-        validations,
-        extractedName: ocr ? `${ocr.name || ''} ${ocr.last_name || ''}`.trim() : undefined,
-        documentNumber: ocr?.document_number,
-    };
+  const validation = await getSignerValidation(detail.signerToken || "");
+  const validations = validation.success ? validation.validations || [] : [];
+  const ocr = validations.find((v) => v.document_ocr)?.document_ocr;
+  const biometric: ZapSignBiometric = {
+    selfieValidationType: validation.success ? validation.selfieValidationType : null,
+    valid: false,
+    validations,
+    extractedName: ocr ? `${ocr.name || ""} ${ocr.last_name || ""}`.trim() : undefined,
+    documentNumber: ocr?.document_number,
+  };
 
-    if (!validation.success) {
-        // No pudimos consultar las validaciones.
-        if (strict) {
-            biometric.reason = 'no_validation_data';
-            return { signed: true, verified: false, strict, signedFileUrl: detail.signedFile, biometric };
-        }
-        biometric.reason = 'validation_unavailable';
-        return { signed: true, verified: true, strict, signedFileUrl: detail.signedFile, biometric };
-    }
-
-    const allPassed = validations.length > 0 && validations.every(v => v.status === null || v.status === 'success');
-    biometric.valid = allPassed;
-
+  if (!validation.success) {
     if (strict) {
-        if (!allPassed) {
-            biometric.reason = 'biometric_failed';
-            return { signed: true, verified: false, strict, signedFileUrl: detail.signedFile, biometric };
-        }
-        return { signed: true, verified: true, strict, signedFileUrl: detail.signedFile, biometric };
+      biometric.reason = "no_validation_data";
+      return { signed: true, verified: false, strict, signedFileUrl: detail.signedFile, biometric };
     }
-
-    // No estricto (sandbox/test): el demo pasa con el contrato firmado.
+    biometric.reason = "validation_unavailable";
     return { signed: true, verified: true, strict, signedFileUrl: detail.signedFile, biometric };
+  }
+
+  const allPassed = validations.length > 0 && validations.every((v) => v.status === null || v.status === "success");
+  biometric.valid = allPassed;
+
+  if (strict && !allPassed) {
+    biometric.reason = "biometric_failed";
+    return { signed: true, verified: false, strict, signedFileUrl: detail.signedFile, biometric };
+  }
+
+  return { signed: true, verified: true, strict, signedFileUrl: detail.signedFile, biometric };
 }

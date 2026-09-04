@@ -18,22 +18,10 @@ const APP_ENV = (getEnvVar('EXPO_PUBLIC_APP_ENV') || 'test') as 'test' | 'produc
 export const isTestEnv = APP_ENV === 'test';
 export const isProductionEnv = APP_ENV === 'production';
 
-export const ZAPSIGN_CONFIG = {
-    baseUrl: isTestEnv
-        ? 'https://sandbox.api.zapsign.com.br'
-        : 'https://api.zapsign.com.br',
-    apiKey: isTestEnv
-        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_API_KEY')
-        : getEnvVar('EXPO_PUBLIC_ZAPSIGN_API_KEY_PROD'),
-    templateId: isTestEnv
-        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID')
-        : getEnvVar('EXPO_PUBLIC_ZAPSIGN_TEMPLATE_ID_PROD'),
-    // Tipo de validación biométrica (solo producción). Si está vacío, no se exige matching real.
-    // Ej: 'liveness-document-match' | 'identity-verification-global' (requiere créditos en ZapSign).
-    selfieValidationType: isProductionEnv
-        ? getEnvVar('EXPO_PUBLIC_ZAPSIGN_SELFIE_VALIDATION_TYPE')
-        : '',
-};
+// La configuración de ZapSign (API key, template, base url, tipo de
+// validación) ya no vive acá: se movió a la Edge Function zapsign-proxy,
+// del lado servidor. Nada de eso debe estar en el cliente, porque todo lo
+// EXPO_PUBLIC_ queda incrustado en el binario. Ver services/zapsign.service.ts.
 
 /**
  * Validate CUIT/CUIL formula

@@ -102,3 +102,27 @@ PIN ni dispositivos.
 inexistente, propiedad `xxl`, tipos `never`). Metro transpila sin typecheck
 estricto, por eso el APK de producción funciona igual. No confundir con errores
 que introduzca la adaptación.
+
+## ✅ ZapSign movido a Edge Function (hecho el 2026-09-04)
+
+La API key salió del cliente. El flujo ahora es:
+`app → supabase.functions.invoke('zapsign-proxy') → ZapSign` con la key en
+`Deno.env` del servidor. `services/zapsign.service.ts` ya no hace `fetch` directo
+ni conoce la key; `config/environment.ts` ya no expone `ZAPSIGN_CONFIG`;
+`app.config.js` ya no trae ninguna clave de ZapSign.
+
+**La Edge Function** está en `Proyecto sin Cripto/supabase/functions/zapsign-proxy/`.
+Falta desplegarla y cargar sus secrets:
+
+```
+supabase functions deploy zapsign-proxy
+supabase secrets set ZAPSIGN_API_KEY=<key> ZAPSIGN_TEMPLATE_ID=<id> \
+  ZAPSIGN_BASE_URL=https://sandbox.api.zapsign.com.br
+```
+
+### 🔴 Rotar la key vieja
+
+Quitarla del código NO la invalida: la key `ceffd5f8-…` ya está en el historial de
+git de `magnate-virtual-wallet` y dentro de los APK/AAB ya compilados. **Hay que
+generar una nueva en ZapSign y revocar la anterior**, y cargar solo la nueva en los
+secrets del servidor.
