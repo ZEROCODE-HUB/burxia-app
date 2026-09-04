@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { FormInput } from "./FormInput";
 import { Button } from "../ui/Button";
 import { colors, spacing, typography, borderRadius } from "../../theme";
+import { BRAND_NAME } from "../../constants/brand";
 import { BiometricCard } from "./BiometricCard";
 import { formatCUITCUIL, formatDNI, validateEmail, validatePhone, validateDNI, validateName, validateCUITCUIL } from "../../utils/validators";
 import { AlertDialog } from "../ui/AlertDialog";
@@ -90,7 +91,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
         <Text style={styles.title}>Datos Personales</Text>
         <Text style={styles.subtitle}>
           Completa tu información para configurar tu perfil de inversor en
-          Proxpera.
+          {" "}{BRAND_NAME}.
         </Text>
       </View>
 
@@ -177,7 +178,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
         <Text style={styles.termsText}>
           Al continuar, aceptas los{" "}
           <Text style={styles.link}>Términos de Servicio</Text> y la{" "}
-          <Text style={styles.link}>Política de Privacidad</Text> de Proxpera.
+          <Text style={styles.link}>Política de Privacidad</Text> de {BRAND_NAME}.
         </Text>
 
         <Button onPress={handlePressContinue} disabled={false} style={styles.button}>

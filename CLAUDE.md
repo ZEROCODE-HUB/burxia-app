@@ -1,7 +1,7 @@
 # Instrucciones del proyecto (léelas antes de tocar nada)
 
-> **Proxpera.** App tomada de `magnate-virtual-wallet` rama `master`, adaptada al
-> stack de Proxpera. Apunta a la base fiat vía `.env` (no versionado; ver
+> **Bruxia.** App tomada de `magnate-virtual-wallet` rama `master`, adaptada al
+> stack de Bruxia. Apunta a la base fiat vía `.env` (no versionado; ver
 > `.env.example`). Estado y pendientes en `docs/pendientes.md`.
 
 ## ⚠️ SEGURIDAD — ZapSign va por Edge Function, NO hardcodeado

@@ -164,7 +164,7 @@ export async function loginWithPin(
   try {
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Modelo Proxpera (migración 00021): el PIN ES la contraseña de
+    // Modelo Bruxia (migración 00021): el PIN ES la contraseña de
     // Supabase Auth. No hay pin_hash ni auto-password cifrada que descifrar
     // en el cliente. El bloqueo por intentos lo lleva la base
     // (check_login_blocked / record_login_attempt), no AsyncStorage: un
@@ -280,7 +280,7 @@ export async function registerUser(data: RegisterData): Promise<AuthResult> {
       };
     }
 
-    // Modelo Proxpera: el PIN es la contraseña de Supabase Auth. No se
+    // Modelo Bruxia: el PIN es la contraseña de Supabase Auth. No se
     // genera una auto-password, no se guarda pin_hash ni se escribe en
     // user_auth_credentials. El trigger on_auth_user_created lee esta
     // metadata y crea el perfil, la cuenta, los límites y el QR.

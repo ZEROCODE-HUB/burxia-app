@@ -18,6 +18,7 @@ import { LogoIcon } from '../../components/LogoIcon';
 import { FeatureCard, PinIndicator, PinKeypad, LoginProcessingModal } from '../../components/login';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { PIN_LENGTH, APP_VERSION } from '../../constants/app';
+import { BRAND_NAME, EMAIL_PLACEHOLDER } from '../../constants/brand';
 import { useAuth } from '../../context/AuthContext';
 import { validateEmail, validatePIN } from '../../utils/validators';
 import { getLastUser, clearLastUser, SavedUser } from '../../services/storage.service';
@@ -163,7 +164,7 @@ export default function LoginScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <LogoIcon size={40} />
-                        <Text style={styles.headerTitle}>Proxpera</Text>
+                        <Text style={styles.headerTitle}>{BRAND_NAME}</Text>
                     </View>
 
                     {/* Content */}
@@ -204,7 +205,7 @@ export default function LoginScreen() {
                                         setEmail(text);
                                         // setError(null); // Error state removed
                                     }}
-                                    placeholder="ejemplo@tecnomind.com"
+                                    placeholder={EMAIL_PLACEHOLDER}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoCorrect={false}

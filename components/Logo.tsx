@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { LogoIcon } from './LogoIcon';
 import { typography, spacing } from '../theme';
 import { useTheme } from '../context/ThemeContext';
+import { BRAND_NAME } from '../constants/brand';
 
 interface LogoProps {
     showText?: boolean;
@@ -20,7 +21,7 @@ export const Logo: React.FC<LogoProps> = ({ showText = true, height = 32 }) => {
             </View>
 
             {showText && (
-                <Text style={styles.text}>Proxpera</Text>
+                <Text style={styles.text}>{BRAND_NAME}</Text>
             )}
         </View>
     );

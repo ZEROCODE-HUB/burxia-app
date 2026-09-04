@@ -1,8 +1,8 @@
-# App Proxpera (nativa) — estado y pendientes
+# App Bruxia (nativa) — estado y pendientes
 
 App **React Native / Expo** (SDK 54, RN 0.81.5). Es el producto real, tomada de
 `magnate-virtual-wallet` rama **`master`** y adaptada al stack de TecnoMind (la
-base de datos) con la marca **Proxpera**.
+base de datos) con la marca **Bruxia**.
 
 Apunta a la base fiat (`spieokzbbwmgkcdigsxo`) vía `.env` (no versionado; ver
 `.env.example`). `utils/env.ts` falla si falta configuración en vez de caer a
@@ -31,9 +31,9 @@ valores hardcodeados.
   `ZAPSIGN_API_KEY`, `ZAPSIGN_TEMPLATE_ID`, y opcionales `ZAPSIGN_BASE_URL` /
   `ZAPSIGN_SELFIE_VALIDATION_TYPE`. Sin secrets responde 503 a usuarios
   autenticados; en modo test el KYC usa mocks, así que no bloquea.
-- **Marca Proxpera** en UI, textos y el `name` de la app.
-- **Package `com.proxpera.app`** (iOS `bundleIdentifier` + Android `package`),
-  `scheme: proxpera`, `slug: proxpera-mobile`.
+- **Marca Bruxia** en UI, textos y el `name` de la app.
+- **Package `com.bruxia.app`** (iOS `bundleIdentifier` + Android `package`),
+  `scheme: bruxia`, `slug: bruxia-mobile`.
 - **Mocks eliminados** (`data/`); el tipo que se usaba se movió a `types/dashboard.ts`.
 - **Columnas**: `AuthContext` normaliza `document_number→dni` y `tax_id→cuit_cuil`
   en un solo punto.
@@ -46,18 +46,18 @@ valores hardcodeados.
 - `assets/{icon,splash-icon,adaptive-icon,favicon}.png` son los del proyecto de
   origen. Son el ícono de la app en las tiendas y la splash.
 
-No hay logo ni identidad visual de Proxpera todavía (lo confirmó el cliente).
+No hay logo ni identidad visual de Bruxia todavía (lo confirmó el cliente).
 Cuando llegue: reemplazar esos PNG (icon 1024×1024, adaptive-icon, splash) y el
 SVG de `LogoIcon.tsx`.
 
 ### 📦 EAS / release (necesita la cuenta del cliente)
 
 - `extra.eas.projectId` en `app.config.js` sigue siendo el de la cuenta original.
-  Antes del primer build bajo la cuenta EAS de Proxpera hay que correr `eas init`
+  Antes del primer build bajo la cuenta EAS de Bruxia hay que correr `eas init`
   para regenerarlo (ajusta el `slug`).
 - Certificados de firma (iOS/Android) y el AuthKey de Apple: los aporta el cliente
   con su cuenta.
-- OneSignal (`EXPO_PUBLIC_ONESIGNAL_APP_ID`): app de push propia de Proxpera.
+- OneSignal (`EXPO_PUBLIC_ONESIGNAL_APP_ID`): app de push propia de Bruxia.
 
 ### ✅ Test funcional en web (2026-09-04)
 

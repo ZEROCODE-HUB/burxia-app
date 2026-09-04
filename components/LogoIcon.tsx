@@ -6,7 +6,7 @@ interface LogoIconProps {
 }
 
 /**
- * Isotipo SVG de Proxpera - Letra M con flecha de crecimiento
+ * Isotipo SVG de Bruxia - Letra M con flecha de crecimiento
  */
 export const LogoIcon: React.FC<LogoIconProps> = ({ size = 56 }) => {
     return (

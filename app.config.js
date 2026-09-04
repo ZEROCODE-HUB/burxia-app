@@ -1,16 +1,20 @@
 // app.config.js
 export default {
     expo: {
-        name: "Proxpera",
+        // NOTA DE MARCA: el nombre visible de la app vive en constants/brand.ts
+        // (BRAND_NAME) para el runtime. Estos identificadores nativos (name,
+        // slug, scheme, bundleIdentifier, package) los consume el build de
+        // Expo/EAS y se declaran acá; si cambia la marca, actualizá ambos lados.
+        name: "Bruxia",
         // NOTA DE RELEASE: el projectId de EAS (extra.eas.projectId más abajo)
         // sigue siendo el de la cuenta original. Antes del primer build bajo la
-        // cuenta EAS de Proxpera hay que correr `eas init` para regenerarlo; el
+        // cuenta EAS de Bruxia hay que correr `eas init` para regenerarlo; el
         // slug se ajustará a ese proyecto. Ver docs/pendientes.md.
-        slug: "proxpera-mobile",
+        slug: "bruxia-mobile",
         version: "1.0.9",
         orientation: "portrait",
         icon: "./assets/icon.png",
-        scheme: "proxpera",
+        scheme: "bruxia",
         userInterfaceStyle: "dark",
         newArchEnabled: true,
 
@@ -22,7 +26,7 @@ export default {
 
         ios: {
             supportsTablet: true,
-            bundleIdentifier: "com.proxpera.app",
+            bundleIdentifier: "com.bruxia.app",
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false
             }
@@ -33,7 +37,7 @@ export default {
                 backgroundColor: "#0F172A"
             },
             permissions: ["CAMERA", "RECORD_AUDIO"],
-            package: "com.proxpera.app",
+            package: "com.bruxia.app",
              versionCode: 9 
         },
 

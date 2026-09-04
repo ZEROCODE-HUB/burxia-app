@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenHeader } from '../../components/layout';
 import { spacing, borderRadius, typography } from '../../theme';
+import { BRAND_NAME } from '../../constants/brand';
 import { useTheme } from '../../context/ThemeContext';
 import { oneSignalService } from '../../services/oneSignalService';
 import { getSettings, saveSettings } from '../../services/storage.service';
@@ -158,7 +159,7 @@ export default function SettingsScreen() {
                 {/* Version Info */}
                 <View style={styles.footerInfo}>
                     <Text style={styles.versionText}>
-                        Proxpera v2.4.0 (Build 892)
+                        {BRAND_NAME} v2.4.0 (Build 892)
                     </Text>
                     <Text style={styles.securityText}>
                         Enterprise Grade Security

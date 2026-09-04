@@ -18,6 +18,7 @@ import * as Clipboard from 'expo-clipboard';
 import { ScreenHeader } from '../../components/layout';
 import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius, typography } from '../../theme';
+import { BRAND_NAME } from '../../constants/brand';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import QRCode from 'react-native-qrcode-svg';
@@ -70,7 +71,7 @@ export default function ShareCvuScreen() {
     }, [account?.id]);
 
     const accountData = {
-        titular: user ? `${user.first_name} ${user.last_name}` : "Usuario Proxpera",
+        titular: user ? `${user.first_name} ${user.last_name}` : `Usuario ${BRAND_NAME}`,
         cvu: account?.cvu || "0000000000000000000000",
         alias: account?.alias || "sin.alias.asignado",
     };
@@ -83,7 +84,7 @@ export default function ShareCvuScreen() {
 
     const handleShare = async () => {
         try {
-            const textToShare = `Mis datos de cuenta Proxpera:\n\nTitular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
+            const textToShare = `Mis datos de cuenta ${BRAND_NAME}:\n\nTitular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
             await Share.share({
                 message: textToShare,
             });
@@ -95,7 +96,7 @@ export default function ShareCvuScreen() {
     const handleSaveQr = async () => {
         try {
             const res = await capturarYCompartir(qrViewRef, {
-                nombre: 'cvu-proxpera',
+                nombre: `cvu-${BRAND_NAME.toLowerCase()}`,
                 titulo: 'Compartir o Guardar QR',
             });
             if (!res.ok && res.error) throw new Error(res.error);

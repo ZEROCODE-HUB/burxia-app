@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { spacing } from "../../theme";
+import { SUPPORT_EMAIL } from "../../constants/brand";
 import { ScreenHeader } from "../../components/layout";
 import { AmountInput, RecipientInput } from "../../components/transfer";
 import { Input, Button } from "../../components/ui";
@@ -37,7 +38,7 @@ export default function TransferScreen() {
     (AccountLimit & { percentUsed: number }) | null
   >(null);
   const [loadingLimits, setLoadingLimits] = useState(true);
-  const [supportEmail, setSupportEmail] = useState('soporte@tecnomind.com');
+  const [supportEmail, setSupportEmail] = useState(SUPPORT_EMAIL);
 
   // Pre-fill recipient if passed via params (e.g. from QR scan)
   useEffect(() => {

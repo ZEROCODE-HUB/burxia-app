@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { transactionService } from './transaction.service';
 import { formatCurrency, formatBalance } from '../utils/formatters';
 import { AccountMovement, TransactionStatus } from '../types/database.types';
+import { BRAND_NAME } from '../constants/brand';
 
 export interface StatementFilters {
     startDate?: Date;
@@ -208,7 +209,7 @@ const buildStatementHtml = (params: {
             </style>
         </head>
         <body>
-            <div class="brand">Proxpera</div>
+            <div class="brand">${BRAND_NAME}</div>
             <div class="title">Estado de cuenta</div>
             <div class="subtitle">${escapeHtml(accountHolderName)}</div>
 
@@ -258,7 +259,7 @@ const buildStatementHtml = (params: {
             }
 
             <div class="footer">
-                Documento generado por Proxpera · ${escapeHtml(new Date().getFullYear().toString())}
+                Documento generado por ${BRAND_NAME} · ${escapeHtml(new Date().getFullYear().toString())}
             </div>
         </body>
         </html>`;

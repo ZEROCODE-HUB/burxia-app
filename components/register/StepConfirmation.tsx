@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Button } from '../ui/Button';
 import { colors, spacing, borderRadius, typography } from '../../theme';
+import { BRAND_NAME } from '../../constants/brand';
 import { registerUser } from '../../services/auth.service';
 import { useAuth } from '../../context/AuthContext';
 import { getSignedDocumentUrlWithRetry } from '../../services/zapsign.service';
@@ -60,7 +61,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({ data, pin })
                 <View style={styles.loadingBox}>
                     <ActivityIndicator size="large" color={colors.accent} />
                     <Text style={styles.processingTitle}>Procesando tu registro</Text>
-                    <Text style={styles.processingSubtitle}>Estamos configurando tu cuenta de Proxpera...</Text>
+                    <Text style={styles.processingSubtitle}>Estamos configurando tu cuenta de {BRAND_NAME}...</Text>
                 </View>
             </View>
         );
@@ -114,7 +115,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({ data, pin })
                     <Text style={styles.nextStepTitle}>Próximo paso</Text>
                 </View>
                 <Text style={styles.nextStepDesc}>
-                    Por favor, confirma tu email para activar todas las funciones de tu billetera Proxpera.
+                    Por favor, confirma tu email para activar todas las funciones de tu billetera {BRAND_NAME}.
                     Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
                 </Text>
             </View>

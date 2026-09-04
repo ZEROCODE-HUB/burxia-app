@@ -15,6 +15,7 @@ import { ScreenHeader } from '../../components/layout';
 import { FormInput } from '../../components/register/FormInput';
 import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius } from '../../theme';
+import { BRAND_NAME } from '../../constants/brand';
 import { useTheme } from '../../context/ThemeContext';
 
 import { useAuth } from '../../context/AuthContext';
@@ -137,7 +138,7 @@ export default function WebAccessScreen() {
                             <Text style={styles.warningTitle}>Zona de Seguridad</Text>
                         </View>
                         <Text style={styles.warningText}>
-                            Esta contraseña permite el acceso directo a tu cuenta Proxpera vía navegadores web. Mantenla segura.
+                            Esta contraseña permite el acceso directo a tu cuenta {BRAND_NAME} vía navegadores web. Mantenla segura.
                         </Text>
                     </View>
 

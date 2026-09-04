@@ -15,6 +15,7 @@ import { ScreenHeader } from '../../components/layout';
 import { FormInput } from '../../components/register/FormInput';
 import { Button } from '../../components/ui/Button';
 import { colors, spacing, borderRadius, typography } from '../../theme';
+import { EMAIL_PLACEHOLDER } from '../../constants/brand';
 
 export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
@@ -73,7 +74,7 @@ export default function ForgotPasswordScreen() {
                             {/* Email Input */}
                             <FormInput
                                 label="Correo Electrónico"
-                                placeholder="ejemplo@tecnomind.com"
+                                placeholder={EMAIL_PLACEHOLDER}
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"
