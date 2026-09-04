@@ -143,12 +143,10 @@ Verificado en web: pantalla "Mis Datos de Cuenta" con QR real y datos reales;
 
 - Escaneo QR en vivo por webcam: **descartado por decisión del cliente** (en web
   solo se sube la imagen del QR; el fallback ya lo cubre).
-- **Nivel B (escritorio con sidebar): pendiente de decisión** del cliente (hoy es
-  Nivel A: teléfono centrado con `WebFrame`).
-- `services/statement.service.ts` usa `expo-print` para el PDF del estado de
-  cuenta; **expo-print no corre en web**. Si se quiere exportar el estado desde el
-  navegador hay que una variante `.web` (p. ej. abrir el HTML en pestaña nueva /
-  `window.print`). No bloquea el resto.
+- **Nivel B (escritorio con sidebar): HECHO** (ver sección más abajo).
+- **PDF de estado de cuenta en web: HECHO** (`statement.service.web.ts`).
+- Avatar (`expo-image-picker`) y KYC real de ZapSign: falta QA con interacción
+  real (file-picker del SO / credenciales reales), no automatizable acá.
 
 ## 🏷️ Rebrand a Bruxia + Web Fase 4 (KYC) + responsive completo (2026-09-04)
 
@@ -182,3 +180,22 @@ Verificado en web: pantalla "Mis Datos de Cuenta" con QR real y datos reales;
   toma "Bruxia" del `app.config.js`.
 - Recordatorio: hay **dispositivos de test/piloto** en `user_devices` de la cuenta
   demo (se ven en la pantalla Dispositivos) — limpiar antes de producción.
+
+## 🖥️ Nivel B — layout de escritorio (2026-09-04)
+
+- **`components/WebFrame.tsx`:** en web con ancho ≥ 900px (`hooks/useIsDesktop.ts`)
+  y dentro de la app autenticada, renderiza `DesktopSidebar` a la izquierda +
+  contenido centrado en una columna (máx. 760px). En angosto y en pantallas sin
+  sesión (login/registro/verify) mantiene el marco tipo teléfono (Nivel A).
+- **`components/layout/DesktopSidebar.tsx`:** navegación agrupada + tarjeta de
+  usuario + cerrar sesión; resalta la ruta activa (`usePathname`).
+- **`app/(tabs)/_layout.tsx`:** oculta la tab-bar inferior en escritorio.
+- **`constants/navItems.ts`:** fuente ÚNICA de navegación, consumida por el menú
+  móvil **y** el sidebar → agregar/quitar un destino = editar un solo archivo.
+- El sidebar usa el componente `Logo` central → cuando llegue el gráfico de
+  Bruxia, se cambia en `LogoIcon.tsx`/`Logo.tsx` y se propaga a todos lados.
+- Verificado en el navegador: dashboard y transferir con sidebar, navegación y
+  resaltado activo funcionando. tsc: 0.
+- **PDF de estado de cuenta en web** (`statement.service.web.ts`): el generador de
+  HTML se extrajo a `services/statement.template.ts` (neutro) y lo comparten la
+  versión nativa (expo-print) y la web (abre ventana + `window.print`).
