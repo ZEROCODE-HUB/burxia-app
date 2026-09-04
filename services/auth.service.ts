@@ -15,13 +15,7 @@ import {
   generateAlias,
   getEndOfMonth,
 } from "../utils/generators";
-import {
-  User,
-  Account,
-  UserAuthCredential,
-  VerificationStatus,
-  UserDevice,
-} from "../types/database.types";
+import { User } from "../types/database.types";
 import * as SecureStore from "expo-secure-store";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
@@ -53,15 +47,6 @@ export interface AuthResult {
   userId?: string;
   requireDeviceVerification?: boolean;
 }
-// Tipo para el resultado del RPC get_user_login_data
-export interface LoginUserData {
-  id: string;
-  email: string;
-  pin_hash: string;
-  verification_status: VerificationStatus;
-  auto_password_encrypted: string | null;
-}
-
 // Cuenta de prueba de Play Store — siempre bypassa verificación de dispositivo
 const TEST_ACCOUNT_EMAIL = 'oscarmijaelpg@gmail.com';
 /**

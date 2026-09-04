@@ -10,6 +10,14 @@ valores hardcodeados.
 
 ## ✅ Resuelto
 
+- **Saneamiento estructural (2026-09-04):** eliminada la carpeta `src/` (2544
+  líneas de clean architecture con inyección de dependencias que estaba aislada y
+  no entraba al bundle — nadie la importaba). Con ella se quitaron las dependencias
+  `inversify` y `reflect-metadata`. La app corre por `app/` (expo-router) +
+  `services/` + `hooks/` + `context/`, una sola capa. Colores hardcodeados movidos a
+  los tokens de `theme/` (quedan solo el SVG del logo placeholder y rgba alpha).
+  Tipos e imports muertos en `auth.service` eliminados.
+
 - **Autenticación alineada al modelo de la base** (migración 00021): el PIN es la
   contraseña de Supabase Auth. Se eliminó el modelo viejo (auto-password cifrada,
   `pin_hash`, descifrado en el cliente). Login/registro/cambio de PIN reescritos;

@@ -41,7 +41,6 @@
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "^31.0.13",
     "expo-status-bar": "~3.0.9",
-    "inversify": "^7.11.0",
     "jpeg-js": "^0.4.4",
     "jsqr": "^1.4.0",
     "lottie-react-native": "^7.3.5",
@@ -64,7 +63,6 @@
     "react-native-view-shot": "^4.0.3",
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.15.0",
-    "reflect-metadata": "^0.2.2",
     "zod": "^4.3.6",
     "zustand": "^5.0.10"
   },

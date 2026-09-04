@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#10B981", // Success
+    backgroundColor: colors.success, // Success
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing.md,

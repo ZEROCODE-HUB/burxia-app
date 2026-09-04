@@ -203,7 +203,7 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
         if (status === 'success') {
             return (
                 <View style={[styles.button, styles.buttonSuccess]}>
-                    <Ionicons name="checkmark-circle" size={18} color="#10B981" style={{ marginRight: 8 }} />
+                    <Ionicons name="checkmark-circle" size={18} color={colors.success} style={{ marginRight: 8 }} />
                     <Text style={styles.buttonTextSuccess}>Verificado</Text>
                 </View>
             );
@@ -244,7 +244,7 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
                 <Ionicons
                     name="person-add-outline"
                     size={32}
-                    color={status === 'success' ? "#10B981" : colors.accent}
+                    color={status === 'success' ? colors.success : colors.accent}
                 />
             </View>
 

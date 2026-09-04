@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal } from '../ui/Modal';
-import { spacing, borderRadius, typography } from '../../theme';
+import { colors, spacing, borderRadius, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { formatCurrency } from '../../utils/formatters';
 import { PaymentMethod, TransactionStatus } from '../../types/database.types';
@@ -32,12 +32,12 @@ interface TransactionDetailModalProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-    completed: { label: 'Completada', color: '#22C55E', bg: 'rgba(34, 197, 94, 0.12)', icon: 'checkmark-circle' },
-    pending: { label: 'Pendiente', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)', icon: 'time' },
-    processing: { label: 'En proceso', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.12)', icon: 'sync' },
-    failed: { label: 'Fallida', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)', icon: 'close-circle' },
-    cancelled: { label: 'Cancelada', color: '#64748B', bg: 'rgba(100, 116, 139, 0.12)', icon: 'ban' },
-    reversed: { label: 'Reversada', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)', icon: 'arrow-undo-circle' },
+    completed: { label: 'Completada', color: colors.success, bg: 'rgba(34, 197, 94, 0.12)', icon: 'checkmark-circle' },
+    pending: { label: 'Pendiente', color: colors.warning, bg: 'rgba(245, 158, 11, 0.12)', icon: 'time' },
+    processing: { label: 'En proceso', color: colors.accent, bg: 'rgba(59, 130, 246, 0.12)', icon: 'sync' },
+    failed: { label: 'Fallida', color: colors.destructive, bg: 'rgba(239, 68, 68, 0.12)', icon: 'close-circle' },
+    cancelled: { label: 'Cancelada', color: colors.mutedForeground, bg: 'rgba(100, 116, 139, 0.12)', icon: 'ban' },
+    reversed: { label: 'Reversada', color: colors.destructive, bg: 'rgba(239, 68, 68, 0.12)', icon: 'arrow-undo-circle' },
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {

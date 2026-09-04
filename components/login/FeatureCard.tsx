@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { borderRadius, spacing, typography, shadows } from '../../theme';
+import { colors, borderRadius, spacing, typography, shadows } from '../../theme';
 
 interface FeatureCardProps {
     icon: React.ReactNode;
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     label: {
-        color: '#FFFFFF',
+        color: colors.primaryForeground,
         fontSize: typography.sizes.xs,
         fontWeight: '700',
         textAlign: 'center',

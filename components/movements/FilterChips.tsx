@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
-import { spacing, borderRadius, typography } from '../../theme';
+import { colors, spacing, borderRadius, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 
 export type FilterType = string;
@@ -85,7 +85,7 @@ const createStyles = (colors: any) => StyleSheet.create({
         fontWeight: '500',
     },
     activeLabel: {
-        color: '#FFFFFF',
+        color: colors.accentForeground,
         fontWeight: '600',
     },
 });
