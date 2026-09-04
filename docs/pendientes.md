@@ -81,11 +81,12 @@ y notificaciones no se pudieron probar en web.
 
 ### 🔧 Menor
 
-- ✅ ** regenerado (2026-09-04).** El bloque  se
+- ✅ **`types/database.types.ts` regenerado (2026-09-04).** El bloque `Database` se
   reemplazó por el generado desde la base (cumple el contrato de supabase-js v2), y
-  los alias de dominio (, …) se conservaron, con los campos legacy
-  (, , , ) marcados opcionales para no romper el
-  código que los lee. **tsc pasa de 11 a 0 errores.** Re-testeado en web: login +
-  dashboard con datos reales siguen funcionando.
+  los alias de dominio (`User`, `Account`, `AccountWithType`…) se conservaron, con
+  los campos legacy (`dni`, `cuit_cuil`, `pin_hash`, `zapsign_*`, `web_password_hash`)
+  marcados opcionales para no romper el código que los lee (AuthContext los inyecta).
+  **tsc pasa de 11 a 0 errores.** Re-testeado en web: login + dashboard con datos
+  reales siguen funcionando.
 - El registro de la app lo revisará el cliente más adelante (depende del SMTP —
   Resend — para confirmar el email; hasta entonces el signup público está limitado).
