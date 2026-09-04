@@ -141,7 +141,44 @@ Verificado en web: pantalla "Mis Datos de Cuenta" con QR real y datos reales;
 
 ### Sigue pendiente de la web
 
-- Escaneo QR en vivo por webcam (opcional; el fallback de subir imagen ya cubre).
-- KYC con foto de documento en el registro (Fase 4, la pieza más grande).
-- Repaso de settings, dispositivos, api-config, web-access dentro del marco.
-- Decidir Nivel B (escritorio con sidebar).
+- Escaneo QR en vivo por webcam: **descartado por decisión del cliente** (en web
+  solo se sube la imagen del QR; el fallback ya lo cubre).
+- **Nivel B (escritorio con sidebar): pendiente de decisión** del cliente (hoy es
+  Nivel A: teléfono centrado con `WebFrame`).
+- `services/statement.service.ts` usa `expo-print` para el PDF del estado de
+  cuenta; **expo-print no corre en web**. Si se quiere exportar el estado desde el
+  navegador hay que una variante `.web` (p. ej. abrir el HTML en pestaña nueva /
+  `window.print`). No bloquea el resto.
+
+## 🏷️ Rebrand a Bruxia + Web Fase 4 (KYC) + responsive completo (2026-09-04)
+
+- **Nombre definitivo: Bruxia** (antes "Proxpera", antes "Tecnomind/Magnate");
+  package `com.bruxia.app`.
+- **Fuente ÚNICA de marca: `constants/brand.ts`** (`BRAND_NAME`, `BRAND_TAGLINE`,
+  `SUPPORT_EMAIL`, `EMAIL_PLACEHOLDER`, `ALIAS_PREFIX`). Toda la UI/servicios la
+  referencian: **renombrar la app = cambiar una línea**. Los identificadores
+  nativos (name, slug `bruxia-mobile`, scheme `bruxia`, bundle/package
+  `com.bruxia.app`) viven en `app.config.js` (los consume el build de Expo/EAS);
+  si cambia la marca, actualizar ambos lados.
+- **Eliminado `constants/AppConfig.ts`**: era código muerto (nadie lo importaba) y
+  traía una **URL + anon key de Supabase hardcodeadas de un proyecto equivocado**
+  (`mzxhyjgbbabnughknrxc`). Fuera.
+- Barridos todos los residuos de marca en UI, comprobante (`success.tsx` decía
+  "TECNOMIND"), PDF (`statement.service.ts`), alias del CVU (`generators.ts` +
+  `AliasManagement.tsx` → prefijo `bruxia.`), placeholders de email y email de
+  soporte, comentarios y docs.
+- **KYC web (Fase 4):** `components/register/BiometricCard.web.tsx`. El nativo usa
+  `react-native-webview` + `expo-camera`, que **rompían el bundle web y la ruta
+  `/register`**. La variante `.web` abre la `signerUrl` de ZapSign en pestaña nueva
+  (`window.open`) y verifica con polling de `verifyZapSignIdentity` (misma subida
+  del PDF a Storage). Metro resuelve `.web.tsx` en web y `.tsx` en nativo.
+- **Responsive Nivel A COMPLETO.** Verificadas en el navegador dentro del
+  `WebFrame`: login, dashboard, movimientos, transferir, estadísticas, QR
+  (fallback), compartir CVU, menú, API, acceso web, **registro** (con la tarjeta
+  biométrica web), **perfil**, **dispositivos** y **configuración**. `change-pin`
+  reutiliza el teclado del login. tsc: 0.
+- Menor: el **título de la pestaña** del navegador todavía sale "Proxpera" hasta
+  reiniciar el dev server (Metro cachea el `name` del arranque); el binario/EAS ya
+  toma "Bruxia" del `app.config.js`.
+- Recordatorio: hay **dispositivos de test/piloto** en `user_devices` de la cuenta
+  demo (se ven en la pantalla Dispositivos) — limpiar antes de producción.
