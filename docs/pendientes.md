@@ -59,16 +59,34 @@ SVG de `LogoIcon.tsx`.
   con su cuenta.
 - OneSignal (`EXPO_PUBLIC_ONESIGNAL_APP_ID`): app de push propia de Proxpera.
 
+### ✅ Test funcional en web (2026-09-04)
+
+Se levantó la app en web (`expo start --web`) y se probó el flujo con la cuenta
+demo: login con **PIN de 6 dígitos** → dashboard con **saldo real ($571.150)** →
+movimientos agrupados por día con la contraparte resuelta → transferir. Todo con
+datos reales de la base. Confirma que el auth (PIN=6), las lecturas y el mapeo de
+columnas funcionan end-to-end.
+
+Limitaciones del test en web (esperadas, no bugs): el viewport del navegador no se
+pudo achicar a tamaño teléfono en el entorno (se usó un marco CSS para aproximar el
+layout móvil); `expo-secure-store` y los módulos nativos (cámara, biometría, push)
+no funcionan en web, por eso el device-check pide verificación — en un móvil real
+anda.
+
 ### 🧪 Verificación en dispositivo
 
-Nada de esto se probó en emulador/dispositivo (no hay en el entorno de trabajo). El
-login se verificó a nivel base y el código compila, pero falta un pase de QA real
-en Android/iOS (cámara, biometría, SecureStore y push solo corren en el móvil).
+Falta el pase de QA real en Android/iOS. Cámara, biometría, SecureStore y push solo
+corren en el móvil, así que las pantallas de escaneo QR, verificación de dispositivo
+y notificaciones no se pudieron probar en web.
 
 ### 🔧 Menor
 
-- `types/database.types.ts` está hecho a mano y desalineado con la base (da errores
-  `never` en `tsc` que Metro ignora). Regenerar desde la base cuando se quiera
-  typecheck limpio.
+- `types/database.types.ts`: 10 errores `never` de `tsc` (Metro los ignora, la app
+  corre igual). Causa: el tipo `Database` hecho a mano no cumple el contrato de
+  supabase-js v2 (falta `Relationships` por tabla). Arreglarlo es regenerar el
+  `Database` entero y reconstruir los ~20 alias de dominio que el código consume
+  (`User`, `Account`, `AccountWithType`…): un refactor grande que debe validarse
+  corriendo la app en un dispositivo, así que se hace junto con el QA nativo, no
+  antes. El error de `spacing.xxl` (que era de spacing, no de tipos) ya se corrigió.
 - El registro de la app lo revisará el cliente más adelante (depende del SMTP —
   Resend — para confirmar el email; hasta entonces el signup público está limitado).
