@@ -8,6 +8,7 @@ import { spacing, borderRadius, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { AlertDialog } from '../../components/ui';
+import { NAV_ITEMS, NAV_GROUP_ORDER, NAV_GROUP_TITLES } from '../../constants/navItems';
 
 interface MenuItemProps {
     icon: keyof typeof Ionicons.glyphMap;
@@ -98,121 +99,45 @@ export default function MenuScreen() {
                 contentContainerStyle={{ paddingBottom: insets.bottom + 60 }}
             >
                 <View style={styles.content}>
-                    {/* Sección Principal */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Principal</Text>
-                        <View style={styles.sectionCard}>
-                            <MenuItem
-                                icon="home-outline"
-                                label="Inicio"
-                                description="Panel principal"
-                                path="/"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="swap-horizontal-outline"
-                                label="Transferir"
-                                description="Enviar dinero"
-                                path="/transfer"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="receipt-outline"
-                                label="Movimientos"
-                                description="Historial de transacciones"
-                                path="/movements"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="stats-chart-outline"
-                                label="Estadísticas"
-                                description="Análisis de gastos"
-                                path="/statistics"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="person-outline"
-                                label="Perfil"
-                                description="Tu información"
-                                path="/profile"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="code-working-outline"
-                                label="API"
-                                description="Configuración de API"
-                                path="/api-config"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="desktop-outline"
-                                label="Acceso Web"
-                                description="Acceso desde navegador"
-                                path="/web-access"
-                                colors={colors}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Sección Acciones Rápidas */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
-                        <View style={styles.sectionCard}>
-                            <MenuItem
-                                icon="qr-code-outline"
-                                label="Escanear QR"
-                                description="Pagar con código QR"
-                                path="/qr"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="share-social-outline"
-                                label="Compartir CVU"
-                                description="Compartir tu información"
-                                path="/share-cvu"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="phone-portrait-outline"
-                                label="Dispositivos"
-                                description="Dispositivos vinculados"
-                                path="/profile/devices"
-                                colors={colors}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Sección Configuración */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Ajustes</Text>
-                        <View style={styles.sectionCard}>
-                            <MenuItem
-                                icon="settings-outline"
-                                label="Configuración"
-                                description="Ajustes de la cuenta"
-                                path="/settings"
-                                colors={colors}
-                            />
-                            <View style={styles.divider} />
-                            <MenuItem
-                                icon="log-out-outline"
-                                label="Cerrar Sesión"
-                                description="Salir de tu cuenta"
-                                path="/login"
-                                variant="destructive"
-                                colors={colors}
-                                onPress={() => setShowLogoutAlert(true)}
-                            />
-                        </View>
-                    </View>
+                    {/* Navegación desde la fuente única constants/navItems.ts */}
+                    {NAV_GROUP_ORDER.map((group) => {
+                        const items = NAV_ITEMS.filter((i) => i.group === group);
+                        const isAjustes = group === 'ajustes';
+                        if (items.length === 0 && !isAjustes) return null;
+                        return (
+                            <View key={group} style={styles.section}>
+                                <Text style={styles.sectionTitle}>{NAV_GROUP_TITLES[group]}</Text>
+                                <View style={styles.sectionCard}>
+                                    {items.map((item, idx) => (
+                                        <React.Fragment key={item.path}>
+                                            {idx > 0 && <View style={styles.divider} />}
+                                            <MenuItem
+                                                icon={item.icon}
+                                                label={item.label}
+                                                description={item.description}
+                                                path={item.path}
+                                                colors={colors}
+                                            />
+                                        </React.Fragment>
+                                    ))}
+                                    {isAjustes && (
+                                        <>
+                                            {items.length > 0 && <View style={styles.divider} />}
+                                            <MenuItem
+                                                icon="log-out-outline"
+                                                label="Cerrar Sesión"
+                                                description="Salir de tu cuenta"
+                                                path="/login"
+                                                variant="destructive"
+                                                colors={colors}
+                                                onPress={() => setShowLogoutAlert(true)}
+                                            />
+                                        </>
+                                    )}
+                                </View>
+                            </View>
+                        );
+                    })}
                 </View>
 
                 {/* Footer space */}

@@ -5,16 +5,20 @@ import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QrTabBarButton } from "../../components/layout/TabBarButtons";
 import { useTheme } from "../../context/ThemeContext";
+import { useIsDesktop } from "../../hooks/useIsDesktop";
 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets(); // Obtener insets seguros
+  // En escritorio (Nivel B) la navegación la maneja el DesktopSidebar del
+  // WebFrame, así que ocultamos la tab-bar inferior.
+  const isDesktop = useIsDesktop();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
+        tabBarStyle: isDesktop ? { display: "none" } : {
           backgroundColor: colors.card,
           borderTopWidth: 1,
           borderTopColor: colors.border,
