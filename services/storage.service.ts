@@ -12,9 +12,9 @@ export interface Settings {
 }
 
 const KEYS = {
-  LAST_USER: "magnate_last_user",
-  SETTINGS: "magnate_settings",
-  PIN_ATTEMPTS: "magnate_pin_attempts",
+  LAST_USER: "tecnomind_last_user",
+  SETTINGS: "tecnomind_settings",
+  PIN_ATTEMPTS: "tecnomind_pin_attempts",
 };
 
 export const saveLastUser = async (user: SavedUser): Promise<void> => {

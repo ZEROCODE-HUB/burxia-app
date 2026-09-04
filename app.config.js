@@ -1,7 +1,10 @@
 // app.config.js
 export default {
     expo: {
-        name: "Magnate",
+        name: "TecnoMind",
+        // slug, scheme, bundleIdentifier, package y projectId conservan el
+        // valor com.magnate.* a proposito: son la identidad de release
+        // (firma, push, EAS). Cambiarlos lo decide el cliente.
         slug: "magnate-mobile",
         version: "1.0.9",
         orientation: "portrait",

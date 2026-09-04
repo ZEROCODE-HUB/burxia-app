@@ -12,11 +12,11 @@ export async function getSupportEmail(): Promise<string> {
             .single();
 
         if (error || !data?.email) {
-            return 'soporte@magnate.com';
+            return 'soporte@tecnomind.com';
         }
 
         return data.email as string;
     } catch {
-        return 'soporte@magnate.com';
+        return 'soporte@tecnomind.com';
     }
 }

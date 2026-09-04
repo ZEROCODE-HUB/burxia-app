@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
  */
 export const AppConfig = {
     // Información de la app
-    appName: 'Magnate',
+    appName: 'TecnoMind',
     version: '1.0.0',
 
     // Configuración de Supabase

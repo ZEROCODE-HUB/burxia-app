@@ -94,8 +94,8 @@ interface AliasManagementProps {
 export const AliasManagement: React.FC<AliasManagementProps> = ({ userCuit = "20123456789" }) => {
     const { colors } = useTheme();
     const { account, refreshAccount } = useAuth();
-    const [alias, setAlias] = useState(account?.alias || `magnate.${userCuit}`);
-    const [originalAlias, setOriginalAlias] = useState(account?.alias || `magnate.${userCuit}`);
+    const [alias, setAlias] = useState(account?.alias || `tecnomind.${userCuit}`);
+    const [originalAlias, setOriginalAlias] = useState(account?.alias || `tecnomind.${userCuit}`);
 
     // Sync with external account changes
     useEffect(() => {
@@ -172,7 +172,7 @@ export const AliasManagement: React.FC<AliasManagementProps> = ({ userCuit = "20
                 <Input
                     value={alias}
                     onChangeText={handleAliasChange}
-                    placeholder="magnate.tucuit"
+                    placeholder="tecnomind.tucuit"
                     containerStyle={styles.inputContainer}
                     autoCapitalize="none"
                 />

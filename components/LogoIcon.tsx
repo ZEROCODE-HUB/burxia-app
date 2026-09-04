@@ -6,7 +6,7 @@ interface LogoIconProps {
 }
 
 /**
- * Isotipo SVG de Magnate - Letra M con flecha de crecimiento
+ * Isotipo SVG de TecnoMind - Letra M con flecha de crecimiento
  */
 export const LogoIcon: React.FC<LogoIconProps> = ({ size = 56 }) => {
     return (

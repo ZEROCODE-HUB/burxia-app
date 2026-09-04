@@ -1,5 +1,5 @@
 export const lightColors = {
-    // Brand Colors - Magnate
+    // Brand Colors - TecnoMind
     primary: '#0A2540',
     primaryForeground: '#FFFFFF',
     accent: '#2F80ED',
@@ -63,7 +63,7 @@ export const lightColors = {
 };
 
 export const darkColors = {
-    // Brand Colors - Magnate Dark
+    // Brand Colors - TecnoMind Dark
     primary: '#1E293B',
     primaryForeground: '#F8FAFC',
     accent: '#3B82F6',

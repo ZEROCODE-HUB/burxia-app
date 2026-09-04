@@ -29,14 +29,14 @@ function generateRandomDigits(length: number): string {
  * Genera CBU valido de 22 digitos
  *
  * Estructura CBU:
- * - Posiciones 1-3: Codigo de banco (285 = Magnate ficticio)
+ * - Posiciones 1-3: Codigo de banco (285 = TecnoMind ficticio)
  * - Posiciones 4-7: Codigo de sucursal (0590)
  * - Posicion 8: Digito verificador del primer bloque
  * - Posiciones 9-21: Numero de cuenta (13 digitos)
  * - Posicion 22: Digito verificador del segundo bloque
  */
 export function generateCBU(): string {
-  const bankCode = '285';        // Banco ficticio Magnate
+  const bankCode = '285';        // Banco ficticio TecnoMind
   const branchCode = '0590';     // Sucursal ficticia
 
   // Primer bloque: banco (3) + sucursal (4) = 7 digitos
@@ -71,13 +71,13 @@ function calculateCVUVerifier(block: string): number {
  * Genera CVU valido de 22 digitos
  *
  * Estructura CVU:
- * - Posiciones 1-8: Codigo PSP (00000100 = Magnate)
+ * - Posiciones 1-8: Codigo PSP (00000100 = TecnoMind)
  * - Posicion 9: Digito verificador del primer bloque
  * - Posiciones 10-21: Numero de cuenta virtual (12 digitos)
  * - Posicion 22: Digito verificador del segundo bloque
  */
 export function generateCVU(): string {
-  const pspCode = '00000100';    // PSP Magnate
+  const pspCode = '00000100';    // PSP TecnoMind
 
   // Primer bloque: PSP (8 digitos)
   const firstVerifier = calculateCVUVerifier(pspCode);
@@ -92,11 +92,11 @@ export function generateCVU(): string {
 
 /**
  * Genera alias para cuenta basado en CVU
- * Formato: magnate.XXXXXXXX (ultimos 8 digitos del CVU)
+ * Formato: tecnomind.XXXXXXXX (ultimos 8 digitos del CVU)
  */
 export function generateAlias(cvu: string): string {
   const suffix = cvu.slice(-8);
-  return `magnate.${suffix}`;
+  return `tecnomind.${suffix}`;
 }
 
 /**

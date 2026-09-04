@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius } from '../../theme';
-import { DashboardTransaction } from '../../data/mockTransactions';
+import { DashboardTransaction } from '../../types/dashboard';
 import { useTheme } from '../../context/ThemeContext';
 
 interface TransactionItemProps extends DashboardTransaction {

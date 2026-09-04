@@ -163,7 +163,7 @@ export default function LoginScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <LogoIcon size={40} />
-                        <Text style={styles.headerTitle}>Magnate</Text>
+                        <Text style={styles.headerTitle}>TecnoMind</Text>
                     </View>
 
                     {/* Content */}
@@ -204,7 +204,7 @@ export default function LoginScreen() {
                                         setEmail(text);
                                         // setError(null); // Error state removed
                                     }}
-                                    placeholder="ejemplo@magnate.com"
+                                    placeholder="ejemplo@tecnomind.com"
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoCorrect={false}

@@ -126,3 +126,32 @@ Quitarla del código NO la invalida: la key `ceffd5f8-…` ya está en el histor
 git de `magnate-virtual-wallet` y dentro de los APK/AAB ya compilados. **Hay que
 generar una nueva en ZapSign y revocar la anterior**, y cargar solo la nueva en los
 secrets del servidor.
+
+## ✅ Adaptación al esquema TecnoMind (parcial, 2026-09-04)
+
+- **Marca:** "Magnate" → "TecnoMind" en UI, textos, alias generado, claves de
+  AsyncStorage/SecureStore y `app.config.js` (solo `name`). Menciones de "Magnate"
+  como referencia histórica (comentario de `utils/env.ts`) se dejaron.
+- **Mocks eliminados:** `data/{mockTransactions,mockBalance,statisticsData,allTransactions}.ts`.
+  El tipo `DashboardTransaction` se movió a `types/dashboard.ts` (era lo único que
+  se usaba; los datos de ejemplo no se consumían en ningún lado).
+- **Columnas:** `AuthContext` normaliza `document_number`→`dni` y `tax_id`→`cuit_cuil`
+  al armar el `user`, en un solo punto, así las ~28 lecturas de las pantallas no se
+  tocan. El registro ya manda la metadata correcta al trigger.
+
+### Sigue pendiente
+
+- **`app.config.js`: `slug`, `scheme`, `bundleIdentifier`, `package` y el
+  `projectId` de EAS siguen en `com.magnate.*`.** Es la identidad de release (firma,
+  push OneSignal, vínculo con EAS y la clave de Apple). Cambiarla rompe esas cosas y
+  es **decisión del cliente**: ¿app nueva con bundle `com.tecnomind.*` o se mantiene
+  el bundle existente? No tocar sin confirmar.
+- **Logo:** `components/LogoIcon.tsx` sigue siendo el isotipo "M" de Magnate (SVG), y
+  `assets/{icon,splash-icon,adaptive-icon,favicon}.png` son los de Magnate. Falta el
+  **isotipo cuadrado de TecnoMind** (el logo disponible es apaisado, no sirve de
+  ícono de app). Es un asset de diseño que hay que pedir.
+- **`types/database.types.ts`** sigue hecho a mano y desalineado (da errores `never`
+  en tsc que Metro ignora). Regenerar desde la base de TecnoMind cuando se quiera
+  typecheck limpio.
+- **Verificación en runtime:** nada de esto se probó en emulador/dispositivo (no hay
+  en este entorno). Falta un pase de QA en Android/iOS.

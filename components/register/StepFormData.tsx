@@ -90,7 +90,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
         <Text style={styles.title}>Datos Personales</Text>
         <Text style={styles.subtitle}>
           Completa tu información para configurar tu perfil de inversor en
-          Magnate.
+          TecnoMind.
         </Text>
       </View>
 
@@ -177,7 +177,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
         <Text style={styles.termsText}>
           Al continuar, aceptas los{" "}
           <Text style={styles.link}>Términos de Servicio</Text> y la{" "}
-          <Text style={styles.link}>Política de Privacidad</Text> de Magnate.
+          <Text style={styles.link}>Política de Privacidad</Text> de TecnoMind.
         </Text>
 
         <Button onPress={handlePressContinue} disabled={false} style={styles.button}>

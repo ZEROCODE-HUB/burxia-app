@@ -73,7 +73,7 @@ export default function ForgotPasswordScreen() {
                             {/* Email Input */}
                             <FormInput
                                 label="Correo Electrónico"
-                                placeholder="ejemplo@magnate.com"
+                                placeholder="ejemplo@tecnomind.com"
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"

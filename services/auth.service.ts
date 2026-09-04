@@ -71,7 +71,7 @@ const TEST_ACCOUNT_EMAIL = 'oscarmijaelpg@gmail.com';
  * Obtiene o crea un ID único de dispositivo almacenado localmente.
  */
 export async function getLocalDeviceId(): Promise<string> {
-  const DEVICE_ID_KEY = "MAGNATE_DEVICE_ID";
+  const DEVICE_ID_KEY = "TECNOMIND_DEVICE_ID";
   try {
     let deviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
     if (!deviceId) {

@@ -161,7 +161,7 @@ export default function SuccessScreen() {
               <View style={styles.miniLogo}>
                 <Ionicons name="diamond" size={16} color="white" />
               </View>
-              <Text style={styles.captureBrand}>MAGNATE</Text>
+              <Text style={styles.captureBrand}>TECNOMIND</Text>
             </View>
 
             <View style={styles.cardCapture}>
@@ -214,7 +214,7 @@ export default function SuccessScreen() {
               {/* Watermark/Footer en el capture */}
               <View style={styles.captureFooter}>
                 <Text style={styles.captureFooterText}>
-                  Comprobante oficial Magnate Financial Freedom
+                  Comprobante oficial TecnoMind Financial Freedom
                 </Text>
               </View>
             </View>

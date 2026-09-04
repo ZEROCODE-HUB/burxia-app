@@ -37,7 +37,7 @@ export default function TransferScreen() {
     (AccountLimit & { percentUsed: number }) | null
   >(null);
   const [loadingLimits, setLoadingLimits] = useState(true);
-  const [supportEmail, setSupportEmail] = useState('soporte@magnate.com');
+  const [supportEmail, setSupportEmail] = useState('soporte@tecnomind.com');
 
   // Pre-fill recipient if passed via params (e.g. from QR scan)
   useEffect(() => {
