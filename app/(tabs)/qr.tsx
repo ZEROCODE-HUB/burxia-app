@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -52,9 +52,10 @@ export default function QrScreen() {
         }
     }, [isFocused]);
 
-    if (!permission) return <View style={styles.container} />;
+    const esWeb = Platform.OS === 'web';
+    if (!esWeb && !permission) return <View style={styles.container} />;
 
-    if (!permission.granted) {
+    if (!esWeb && !permission?.granted) {
         return (
             <View style={[styles.container, styles.centerContent]}>
                 <Text style={styles.permissionText}>Necesitamos acceso a la cámara</Text>
@@ -67,7 +68,7 @@ export default function QrScreen() {
 
     return (
         <View style={styles.container}>
-            {isFocused && (
+            {!esWeb && isFocused && (
                 <CameraView
                     style={StyleSheet.absoluteFill}
                     facing="back"
@@ -80,12 +81,22 @@ export default function QrScreen() {
                 />
             )}
 
-            <QRScannerOverlay />
+            {esWeb && (
+                <View style={styles.webPlaceholder}>
+                    <Ionicons name="qr-code-outline" size={72} color={colors.mutedForeground} />
+                    <Text style={styles.webPlaceholderTitle}>Escaneo con cámara no disponible en el navegador</Text>
+                    <Text style={styles.webPlaceholderText}>
+                        Cargá una imagen del código QR con el botón de abajo.
+                    </Text>
+                </View>
+            )}
+
+            {!esWeb && <QRScannerOverlay />}
 
             {/* Custom Bottom Controls over Overlay */}
             {/* The Overlay component handles the visual frame, but we need interactive buttons on top */}
             <View style={styles.bottomContainer}>
-                <Text style={styles.instructions}>Escanea un código QR para pagar</Text>
+                <Text style={styles.instructions}>{esWeb ? 'Cargá una imagen del código QR' : 'Escanea un código QR para pagar'}</Text>
                 <TouchableOpacity onPress={pickImage} style={styles.bottomImageButton}>
                     <Ionicons name="image-outline" size={24} color={colors.foreground} />
                     <Text style={styles.bottomImageText}>Cargar imagen</Text>
@@ -121,6 +132,25 @@ export default function QrScreen() {
 }
 
 const createStyles = (colors: any, insets: any) => StyleSheet.create({
+    webPlaceholder: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 32,
+        gap: 12,
+    },
+    webPlaceholderTitle: {
+        color: colors.foreground,
+        fontSize: 18,
+        fontWeight: '700',
+        textAlign: 'center',
+        marginTop: 8,
+    },
+    webPlaceholderText: {
+        color: colors.mutedForeground,
+        fontSize: 14,
+        textAlign: 'center',
+    },
     container: {
         flex: 1,
         backgroundColor: colors.background,

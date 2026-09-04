@@ -90,3 +90,33 @@ y notificaciones no se pudieron probar en web.
   reales siguen funcionando.
 - El registro de la app lo revisará el cliente más adelante (depende del SMTP —
   Resend — para confirmar el email; hasta entonces el signup público está limitado).
+
+## 🌐 Web responsive — Fase 1+2 y piloto QR (2026-09-04)
+
+Primer avance de la adaptación a web (mismo código Expo).
+
+- **Fundaciones:** `lib/secureStorage.ts` (+ `.web.ts`) — abstrae el almacenamiento
+  del id de dispositivo: `expo-secure-store` en nativo, `localStorage` en web (antes
+  fallaba y caía a "UNKNOWN_DEVICE"). `auth.service` usa el wrapper.
+- **Responsive Nivel A:** `components/WebFrame.tsx` — en web centra la app con ancho
+  máximo de teléfono y pinta los costados; en iOS/Android es passthrough (no cambia
+  nada). Integrado en `app/_layout.tsx`.
+- **Piloto QR (medición del riesgo de cámara web):** confirmado que el navegador
+  ofrece `getUserMedia` pero **no `BarcodeDetector`** (ni Chrome ni Firefox/Safari),
+  así que el escaneo en vivo de `expo-camera` no decodifica en web. `qr.tsx` ahora,
+  en web, no monta la cámara inerte: muestra un aviso y guía a **"Cargá una imagen
+  del código QR"**, que decodifica con `jsqr` (ya existía en `useQRHandler`). En
+  nativo, la cámara sigue igual.
+
+Probado en web end-to-end: login (PIN 6) → dashboard con datos reales → pantalla QR
+con el fallback. tsc en 0.
+
+### Lo que sigue si se continúa la web
+
+- Escaneo QR en vivo por webcam decodificando frames con `jsqr` (opcional; hoy el
+  fallback de subir imagen ya cubre el caso).
+- Alternativas web para: foto de avatar (`expo-image-picker` → input file),
+  descargar/compartir comprobante (`react-native-view-shot` → captura HTML), y el
+  KYC con foto de documento del registro.
+- Revisar el resto de pantallas dentro del `WebFrame` (Nivel A) y decidir si se
+  quiere Nivel B (layout de escritorio con sidebar).

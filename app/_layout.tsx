@@ -11,6 +11,7 @@ import { oneSignalService } from '../services/oneSignalService';
 import { supabase } from '../lib/supabase';
 import { InactivityWrapper } from '../components/InactivityWrapper';
 import { UpdateModal } from '../components/UpdateModal';
+import { WebFrame } from '../components/WebFrame';
 
 function RootLayoutNav() {
     const { session, loading, user, pendingDeviceVerification } = useAuth();
@@ -90,9 +91,11 @@ export default function RootLayout() {
             <ThemeProvider>
                 <AuthProvider>
                     <InactivityWrapper>
-                        <StatusBar style="light" />
-                        <RootLayoutNav />
-                        <UpdateModal />
+                        <WebFrame>
+                            <StatusBar style="light" />
+                            <RootLayoutNav />
+                            <UpdateModal />
+                        </WebFrame>
                     </InactivityWrapper>
                 </AuthProvider>
             </ThemeProvider>

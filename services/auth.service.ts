@@ -16,7 +16,7 @@ import {
   getEndOfMonth,
 } from "../utils/generators";
 import { User } from "../types/database.types";
-import * as SecureStore from "expo-secure-store";
+import * as secureStorage from "../lib/secureStorage";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 
@@ -58,10 +58,10 @@ const TEST_ACCOUNT_EMAIL = 'oscarmijaelpg@gmail.com';
 export async function getLocalDeviceId(): Promise<string> {
   const DEVICE_ID_KEY = "TECNOMIND_DEVICE_ID";
   try {
-    let deviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
+    let deviceId = await secureStorage.getItem(DEVICE_ID_KEY);
     if (!deviceId) {
       deviceId = Crypto.randomUUID();
-      await SecureStore.setItemAsync(DEVICE_ID_KEY, deviceId);
+      await secureStorage.setItem(DEVICE_ID_KEY, deviceId);
     }
     return deviceId;
   } catch (error) {
