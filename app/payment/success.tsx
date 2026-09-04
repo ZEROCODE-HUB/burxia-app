@@ -13,8 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import ViewShot from "react-native-view-shot";
-import * as Sharing from "expo-sharing";
+import { capturarYCompartir } from "../../lib/captura";
 import { Toast } from "../../components/ui";
 import {
   colors,
@@ -99,15 +98,11 @@ export default function SuccessScreen() {
     try {
       setIsDownloading(true);
 
-      // Captured URI
-      const uri = await viewShotRef.current.capture();
-
-      // Comparte el comprobante como archivo imagen
-      // Esto abrirá el menú nativo para guardarlo, enviarlo o compartirlo.
-      await Sharing.shareAsync(uri, {
-        mimeType: "image/png",
-        dialogTitle: "Guardar Comprobante",
+      const res = await capturarYCompartir(viewShotRef, {
+        nombre: `comprobante-${reference_number || 'proxpera'}`,
+        titulo: 'Guardar Comprobante',
       });
+      if (!res.ok && res.error) throw new Error(res.error);
       
     } catch (error) {
       console.error("[SUCCESS] Error downloading receipt:", error);
@@ -147,14 +142,7 @@ export default function SuccessScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Area to Capture */}
-        <ViewShot
-          ref={viewShotRef}
-          options={{
-            format: "png", // Usamos PNG para mejor calidad y soporte de bordes
-            quality: 1,
-            result: "tmpfile",
-          }}
-        >
+        <View ref={viewShotRef} collapsable={false}>
           <View style={styles.captureAreaPrimary}>
             {/* Branding en el comprobante */}
             <View style={styles.captureHeader}>
@@ -219,7 +207,7 @@ export default function SuccessScreen() {
               </View>
             </View>
           </View>
-        </ViewShot>
+        </View>
 
         {/* Actions */}
         <View style={styles.actions}>

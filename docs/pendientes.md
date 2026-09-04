@@ -120,3 +120,28 @@ con el fallback. tsc en 0.
   KYC con foto de documento del registro.
 - Revisar el resto de pantallas dentro del `WebFrame` (Nivel A) y decidir si se
   quiere Nivel B (layout de escritorio con sidebar).
+
+## 🌐 Web Fase 3 — compartir/descargar comprobante (2026-09-04)
+
+- **Compartir/descargar imagen (comprobante y QR):** `react-native-view-shot` y
+  `expo-sharing` no funcionan en web. Se creó `lib/captura.ts` (+ `.web.ts`) con
+  `capturarYCompartir(ref, {nombre, titulo})`: nativo usa view-shot + expo-sharing;
+  web captura el nodo DOM con `html-to-image` y usa Web Share API (si el navegador
+  comparte archivos) o descarga el PNG. `success.tsx` y `share-cvu.tsx` migrados al
+  helper; en `success.tsx` el `<ViewShot>` pasó a `<View>` para unificar.
+- **Avatar (`expo-image-picker`):** no necesitó cambios — en web abre el selector de
+  archivo nativo del navegador. Falta accionarlo en un QA real (el file-picker del
+  SO no se puede automatizar en el entorno de prueba).
+- **Limpieza:** `tsconfig.json` tenía `types: ["reflect-metadata"]` +
+  `experimentalDecorators` (eran del DI de la carpeta `src/` eliminada). Se quitaron.
+- Dependencia nueva **`html-to-image`** (solo entra al bundle web vía `.web.ts`).
+
+Verificado en web: pantalla "Mis Datos de Cuenta" con QR real y datos reales;
+"Descargar QR" corre sin errores (la descarga en sí depende del navegador). tsc: 0.
+
+### Sigue pendiente de la web
+
+- Escaneo QR en vivo por webcam (opcional; el fallback de subir imagen ya cubre).
+- KYC con foto de documento en el registro (Fase 4, la pieza más grande).
+- Repaso de settings, dispositivos, api-config, web-access dentro del marco.
+- Decidir Nivel B (escritorio con sidebar).

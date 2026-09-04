@@ -10,8 +10,8 @@ import {
     Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { captureRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
+
+import { capturarYCompartir } from '../../lib/captura';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -94,15 +94,11 @@ export default function ShareCvuScreen() {
 
     const handleSaveQr = async () => {
         try {
-            const localUri = await captureRef(qrViewRef, {
-                format: 'png',
-                quality: 1,
+            const res = await capturarYCompartir(qrViewRef, {
+                nombre: 'cvu-proxpera',
+                titulo: 'Compartir o Guardar QR',
             });
-
-            await Sharing.shareAsync(localUri, {
-                mimeType: "image/png",
-                dialogTitle: "Compartir o Guardar QR",
-            });
+            if (!res.ok && res.error) throw new Error(res.error);
         } catch (e) {
             showAlert("Error", "No se pudo preparar la imagen.", "destructive");
         }
