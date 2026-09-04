@@ -145,7 +145,7 @@ export async function getAccountInfo(): Promise<AccountWithType | null> {
     throw error;
   }
 
-  return data?.[0] as AccountWithType || null;
+  return (data?.[0] as unknown as AccountWithType) || null;
 }
 
 /**

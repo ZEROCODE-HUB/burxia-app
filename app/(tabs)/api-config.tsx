@@ -87,14 +87,15 @@ export default function ApiConfigScreen() {
     const loadApiAccess = useCallback(async () => {
         try {
             const { data, error } = await supabase.rpc('get_api_access');
+            const apiAccess = data as unknown as ApiAccessData | null;
             if (error) throw error;
 
-            if (data) {
-                setApiData(data);
-                setApiEnabled(data.is_enabled);
-                setWhitelistedIps(data.allowed_ips ?? []);
+            if (apiAccess) {
+                setApiData(apiAccess);
+                setApiEnabled(apiAccess.is_enabled);
+                setWhitelistedIps(apiAccess.allowed_ips ?? []);
                 // Extraer el sufijo del client_id (mag_XXXXXXXX_sufijo → sufijo)
-                const parts = data.client_id?.split('_') ?? [];
+                const parts = apiAccess.client_id?.split('_') ?? [];
                 if (parts.length >= 3) {
                     setUsernameSuffix(parts.slice(2).join('_'));
                 }

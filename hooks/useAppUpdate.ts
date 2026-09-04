@@ -54,7 +54,7 @@ export const useAppUpdate = () => {
 
           setUpdateInfo({
             isUpdateAvailable,
-            isMandatory: data.mandatory,
+            isMandatory: data.mandatory ?? false,
             storeUrl: data.store_url || '',
             latestVersion,
             loading: false,

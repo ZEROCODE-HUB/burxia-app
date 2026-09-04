@@ -81,12 +81,11 @@ y notificaciones no se pudieron probar en web.
 
 ### 🔧 Menor
 
-- `types/database.types.ts`: 10 errores `never` de `tsc` (Metro los ignora, la app
-  corre igual). Causa: el tipo `Database` hecho a mano no cumple el contrato de
-  supabase-js v2 (falta `Relationships` por tabla). Arreglarlo es regenerar el
-  `Database` entero y reconstruir los ~20 alias de dominio que el código consume
-  (`User`, `Account`, `AccountWithType`…): un refactor grande que debe validarse
-  corriendo la app en un dispositivo, así que se hace junto con el QA nativo, no
-  antes. El error de `spacing.xxl` (que era de spacing, no de tipos) ya se corrigió.
+- ✅ ** regenerado (2026-09-04).** El bloque  se
+  reemplazó por el generado desde la base (cumple el contrato de supabase-js v2), y
+  los alias de dominio (, …) se conservaron, con los campos legacy
+  (, , , ) marcados opcionales para no romper el
+  código que los lee. **tsc pasa de 11 a 0 errores.** Re-testeado en web: login +
+  dashboard con datos reales siguen funcionando.
 - El registro de la app lo revisará el cliente más adelante (depende del SMTP —
   Resend — para confirmar el email; hasta entonces el signup público está limitado).

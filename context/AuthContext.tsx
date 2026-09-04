@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             throw error;
           }
-          userData = data;
+          userData = data as unknown as User;
         } catch (innerError: any) {
           // Handle network errors or other non-supabase errors if needed
           if (innerError.code === 'PGRST116') {
