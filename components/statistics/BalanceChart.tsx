@@ -27,7 +27,10 @@ interface ExtendedChartDataPoint {
 
 export const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentBalance, label }) => {
     const { colors } = useTheme();
-    const { width: screenWidth } = useWindowDimensions();
+    const { width: windowWidth } = useWindowDimensions();
+    // En web la ventana puede ser mucho más ancha que el marco (WebFrame, 480).
+    // Se acota para que el gráfico no se desborde; en móvil usa el ancho real.
+    const screenWidth = Math.min(windowWidth, 480);
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const dynamicSpacing = useMemo(() => {

@@ -130,6 +130,10 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
+        // El Modal nativo ocupa toda la ventana; en web (y tablets) el card
+        // se acota para no estirarse y quedar centrado, del ancho del marco.
+        maxWidth: 440,
+        alignSelf: 'center',
         borderRadius: borderRadius.xl,
         borderWidth: 1,
         padding: spacing.xl,
