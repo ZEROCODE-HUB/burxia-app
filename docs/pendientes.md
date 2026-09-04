@@ -199,3 +199,20 @@ Verificado en web: pantalla "Mis Datos de Cuenta" con QR real y datos reales;
 - **PDF de estado de cuenta en web** (`statement.service.web.ts`): el generador de
   HTML se extrajo a `services/statement.template.ts` (neutro) y lo comparten la
   versión nativa (expo-print) y la web (abre ventana + `window.print`).
+
+### QA en web (escritorio, 2026-09-04)
+
+Recorrido completo del layout de escritorio (Inicio, Transferir, Movimientos,
+Estadísticas, Perfil, Compartir CVU, Escanear QR) con navegación por el sidebar y
+resaltado activo. **Cero errores de consola.** Un hallazgo corregido:
+
+- **`BalanceChart`** usaba `min(windowWidth, 480)` y en escritorio quedaba topado a
+  480px dejando vacío el resto de la tarjeta. Ahora mide su contenedor (`onLayout`)
+  y llena el ancho disponible (teléfono ~480 / columna escritorio ~760).
+
+Limitación del entorno: el viewport del navegador de prueba está fijo en 1920px y
+no se puede achicar, así que el **Nivel A angosto** (marco teléfono + tab-bar) no
+se pudo re-capturar acá; se verificó antes en el marco de 480 y su lógica no
+cambió (la tab-bar solo se oculta con ancho ≥ 900). Falta QA con interacción real:
+selector de archivo del avatar / "Cargar imagen" del QR / impresión del estado de
+cuenta (abre diálogo modal del navegador) y el flujo real de ZapSign.
