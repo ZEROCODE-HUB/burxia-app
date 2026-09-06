@@ -5,9 +5,10 @@ import { router } from 'expo-router';
 import { spacing } from '../../theme';
 
 const actions = [
+    { icon: 'arrow-down-outline', label: 'Depositar', path: '/(tabs)/deposit', isPrimary: true },
+    { icon: 'arrow-up-outline', label: 'Retirar', path: '/(tabs)/withdraw', isPrimary: false },
     { icon: 'paper-plane-outline', label: 'Transferir', path: '/(tabs)/transfer', isPrimary: false },
     { icon: 'bar-chart-outline', label: 'Estadísticas', path: '/(tabs)/statistics', isPrimary: false },
-    { icon: 'share-social-outline', label: 'Compartir CVU', path: '/(tabs)/share-cvu', isPrimary: false },
 ] as const;
 
 export const QuickActions = () => {
