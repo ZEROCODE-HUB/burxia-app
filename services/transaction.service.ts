@@ -23,6 +23,9 @@ export const transactionService = {
             `,
       )
       .or(`from_account_id.eq.${accountId},to_account_id.eq.${accountId}`)
+      // Solo movimientos efectivos: excluye reversed/cancelled/failed/pending
+      // (p. ej. un retiro rechazado, que vuelve el saldo, no debe figurar).
+      .eq("status", "completed")
       .order("created_at", { ascending: false })
       .limit(limit);
 
