@@ -122,22 +122,28 @@ export default function SettingsScreen() {
                         <Text style={styles.sectionTitle}>Notificaciones</Text>
                     </View>
                     <View style={styles.sectionCard}>
-                        <SettingRow
-                            icon="notifications-outline"
-                            label="Notificaciones Push"
-                            description="Recibe alertas en tiempo real"
-                            colors={colors}
-                            styles={styles}
-                        >
-                            <Switch
-                                value={pushEnabled}
-                                onValueChange={togglePush}
-                                trackColor={{ false: colors.border, true: colors.accentAlpha[40] }}
-                                thumbColor={pushEnabled ? colors.accent : colors.mutedForeground}
-                            />
-                        </SettingRow>
+                        {/* Push depende de OneSignal (módulos nativos); en web es
+                            no-op, así que no mostramos un toggle que no hace nada. */}
+                        {Platform.OS !== 'web' && (
+                            <>
+                                <SettingRow
+                                    icon="notifications-outline"
+                                    label="Notificaciones Push"
+                                    description="Recibe alertas en tiempo real"
+                                    colors={colors}
+                                    styles={styles}
+                                >
+                                    <Switch
+                                        value={pushEnabled}
+                                        onValueChange={togglePush}
+                                        trackColor={{ false: colors.border, true: colors.accentAlpha[40] }}
+                                        thumbColor={pushEnabled ? colors.accent : colors.mutedForeground}
+                                    />
+                                </SettingRow>
 
-                        <View style={styles.divider} />
+                                <View style={styles.divider} />
+                            </>
+                        )}
 
                         <SettingRow
                             icon="mail-outline"
