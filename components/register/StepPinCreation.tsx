@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '../../theme';
+import { spacing, borderRadius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { PIN_LENGTH } from '../../constants/app';
 
 interface StepPinCreationProps {
@@ -23,6 +24,8 @@ const shuffleArray = (array: number[]): number[] => {
 };
 
 export const StepPinCreation: React.FC<StepPinCreationProps> = ({ onComplete, onBack, loading = false }) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [pin, setPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
     const [isConfirmPhase, setIsConfirmPhase] = useState(false);
@@ -196,7 +199,7 @@ export const StepPinCreation: React.FC<StepPinCreationProps> = ({ onComplete, on
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',

@@ -68,7 +68,7 @@ export default function ConfirmScreen() {
     setIsLoading(true);
 
     try {
-      const method = identifier.length === 22 ? "cbu" : "alias";
+      const method = identifier.length === 22 ? "account_number" : "alias";
 
       const result = await transactionService.transferFunds(
         account.id,
@@ -137,7 +137,7 @@ export default function ConfirmScreen() {
           <View style={styles.divider} />
 
           <View style={styles.cardRow}>
-            <Text style={styles.rowLabel}>CBU/Alias</Text>
+            <Text style={styles.rowLabel}>Número de cuenta/Alias</Text>
             <Text style={styles.rowValue} numberOfLines={1}>
               {recipient}
             </Text>
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
   warningBox: {
-    backgroundColor: "rgba(47, 128, 237, 0.1)", // accent 10
+    backgroundColor: "rgba(139, 123, 214, 0.1)", // accent 10
     padding: spacing.md,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.xl, // Separación con botones

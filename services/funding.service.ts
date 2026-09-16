@@ -14,6 +14,7 @@ export interface PaymentMethod {
   holder_name: string | null;
   account_number: string | null;
   alias: string | null;
+  llave_breb: string | null;
   instructions: string | null;
   is_active: boolean;
   sort_order: number;
@@ -32,6 +33,7 @@ export interface FundingRequest {
   proof_path: string | null;
   user_comment: string | null;
   admin_comment: string | null;
+  transaction_id: string | null;
   created_at: string;
   resolved_at: string | null;
 }
@@ -109,7 +111,7 @@ export async function createWithdrawalRequest(params: {
 export async function getMyRequests(): Promise<FundingRequest[]> {
   const { data, error } = await (supabase as any)
     .from("funding_requests")
-    .select("id, kind, amount, status, payment_method_id, destination, proof_path, user_comment, admin_comment, created_at, resolved_at")
+    .select("id, kind, amount, status, payment_method_id, destination, proof_path, user_comment, admin_comment, transaction_id, created_at, resolved_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as FundingRequest[];

@@ -18,6 +18,14 @@ const APP_ENV = (getEnvVar('EXPO_PUBLIC_APP_ENV') || 'test') as 'test' | 'produc
 export const isTestEnv = APP_ENV === 'test';
 export const isProductionEnv = APP_ENV === 'production';
 
+/**
+ * Mostrar el código OTP en pantalla durante el registro (solo QA). Separado de
+ * `isTestEnv` a propósito: así se puede APAGAR la exposición del código sin
+ * cambiar el resto del entorno de pruebas (ZapSign tolerante, etc.).
+ * Default: OFF. Para reactivarlo en QA: EXPO_PUBLIC_SHOW_SANDBOX_OTP=true.
+ */
+export const showSandboxOtpOnScreen = getEnvVar('EXPO_PUBLIC_SHOW_SANDBOX_OTP') === 'true';
+
 // La configuración de ZapSign (API key, template, base url, tipo de
 // validación) ya no vive acá: se movió a la Edge Function zapsign-proxy,
 // del lado servidor. Nada de eso debe estar en el cliente, porque todo lo

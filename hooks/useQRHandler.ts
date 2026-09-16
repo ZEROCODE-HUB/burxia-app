@@ -56,7 +56,7 @@ export const useQRHandler = ({ setScanned, setProcessing, showAlert }: QRHandler
             if (qrData && qrData.accounts) {
                 identifier = qrData.account_id;
             } else if (parsedJson) {
-                const searchIdentifier = parsedJson.alias || parsedJson.cbu || parsedJson.cvu || parsedJson.account_id;
+                const searchIdentifier = parsedJson.alias || parsedJson.account_number || parsedJson.account_id;
 
                 if (!searchIdentifier) {
                     showAlert("Error", "El código QR no contiene información válida.", "destructive");
@@ -83,7 +83,7 @@ export const useQRHandler = ({ setScanned, setProcessing, showAlert }: QRHandler
                 return;
             }
 
-            const recipient = parsedJson?.account_id || (parsedJson?.alias || parsedJson?.cbu || parsedJson?.cvu) || (qrData?.account_id) || data;
+            const recipient = parsedJson?.account_id || (parsedJson?.alias || parsedJson?.account_number) || (qrData?.account_id) || data;
 
             router.push({
                 pathname: "/(tabs)/transfer",

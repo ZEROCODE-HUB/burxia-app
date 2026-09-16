@@ -27,9 +27,8 @@ export function useAccount() {
   };
 
   const balance = useMemo(() => account?.balance || 0, [account]);
-  const cvu = useMemo(() => account?.cvu || '', [account]);
+  const accountNumber = useMemo(() => account?.account_number || '', [account]);
   const alias = useMemo(() => account?.alias || '', [account]);
-  const cbu = useMemo(() => account?.cbu || '', [account]);
   const accountId = useMemo(() => account?.id || '', [account]);
   const status = useMemo(() => account?.status || 'active', [account]);
   const currency = useMemo(() => account?.account_types?.currency || 'ARS', [account]);
@@ -40,9 +39,8 @@ export function useAccount() {
     loadingLimits,
     accountId,
     balance,
-    cvu,
+    accountNumber,
     alias,
-    cbu,
     status,
     currency,
     refreshBalance: () => {

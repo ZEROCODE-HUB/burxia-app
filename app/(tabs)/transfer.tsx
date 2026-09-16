@@ -13,10 +13,13 @@ import { spacing } from "../../theme";
 import { SUPPORT_EMAIL } from "../../constants/brand";
 import { ScreenHeader } from "../../components/layout";
 import { AmountInput, RecipientInput } from "../../components/transfer";
+import { DesktopTransfer } from "../../components/transfer/DesktopTransfer";
 import { Input, Button } from "../../components/ui";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useIsDesktop } from "../../hooks/useIsDesktop";
+import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { transactionService } from "../../services/transaction.service";
 import { getAccountLimits } from "../../services/account.service";
 import { AccountLimit } from "../../types/database.types";
@@ -27,6 +30,8 @@ export default function TransferScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { account } = useAuth();
+  const isDesktop = useIsDesktop();
+  useAccountRefreshOnFocus();
   const router = useRouter();
   const params = useLocalSearchParams();
   const [recipient, setRecipient] = useState("");
@@ -151,6 +156,32 @@ export default function TransferScreen() {
     }
   };
 
+  if (isDesktop) {
+    return (
+      <DesktopTransfer
+        recipient={recipient}
+        setRecipient={setRecipient}
+        onValidationChange={handleValidationChange}
+        amount={amount}
+        setAmount={setAmount}
+        concept={concept}
+        setConcept={setConcept}
+        balance={account?.balance || 0}
+        accountNumber={(account as any)?.account_number}
+        alias={(account as any)?.alias}
+        monthlyAvailable={monthlyAvailable}
+        dailyAvailable={dailyAvailable}
+        perTransactionMax={perTransactionMax}
+        limitError={limitError}
+        numericAmount={numericAmount}
+        isLimitExhausted={isLimitExhausted}
+        canTransfer={canTransfer}
+        isLoading={isLoading}
+        onTransfer={handleTransfer}
+      />
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
@@ -172,6 +203,8 @@ export default function TransferScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <View style={isDesktop ? styles.desktopRow : undefined}>
+          <View style={isDesktop ? styles.formCol : undefined}>
           <RecipientInput
             value={recipient}
             onChangeText={setRecipient}
@@ -236,6 +269,21 @@ export default function TransferScreen() {
                     : "Completa los campos para continuar"}
               </Text>
             )}
+          </View>{/* /formCol */}
+
+          {isDesktop && (
+            <View style={styles.sideCol}>
+              <View style={styles.sideCard}>
+                <Text style={styles.sideTitle}>Tu cuenta</Text>
+                <View style={styles.sumRow}><Text style={styles.sumK}>Saldo disponible</Text><Text style={styles.sumVStrong}>{formatCurrency(account?.balance || 0)}</Text></View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.sumRow}><Text style={styles.sumK}>Límite mensual disp.</Text><Text style={styles.sumV}>{Number.isFinite(monthlyAvailable) ? formatCurrency(monthlyAvailable) : "—"}</Text></View>
+                <View style={styles.sumRow}><Text style={styles.sumK}>Límite diario disp.</Text><Text style={styles.sumV}>{Number.isFinite(dailyAvailable) ? formatCurrency(dailyAvailable) : "—"}</Text></View>
+                <View style={styles.sumRow}><Text style={styles.sumK}>Por operación</Text><Text style={styles.sumV}>{Number.isFinite(perTransactionMax) ? formatCurrency(perTransactionMax) : "—"}</Text></View>
+              </View>
+            </View>
+          )}
+          </View>{/* /desktopRow */}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -252,6 +300,20 @@ const createStyles = (colors: any) =>
       padding: spacing.lg,
       paddingBottom: spacing.xl * 2,
     },
+    // Escritorio: 2 columnas (form | panel Tu cuenta)
+    desktopRow: { flexDirection: "row", gap: spacing.xl, alignItems: "flex-start" },
+    formCol: { flex: 1.2, minWidth: 0, maxWidth: 520 },
+    sideCol: { flex: 1, minWidth: 0 },
+    sideCard: {
+      backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+      padding: spacing.lg,
+    },
+    sideTitle: { fontSize: 17, fontWeight: "700", color: colors.foreground, marginBottom: spacing.md },
+    sumRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 5, gap: spacing.md },
+    sumK: { fontSize: 13, color: colors.mutedForeground },
+    sumV: { fontSize: 13, fontWeight: "600", color: colors.foreground },
+    sumVStrong: { fontSize: 18, fontWeight: "800", color: colors.foreground },
+    summaryDivider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.sm },
     inputContainer: {
       marginBottom: spacing.lg,
     },

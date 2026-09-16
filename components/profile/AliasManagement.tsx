@@ -173,7 +173,7 @@ export const AliasManagement: React.FC<AliasManagementProps> = ({ userCuit = "20
                 <Input
                     value={alias}
                     onChangeText={handleAliasChange}
-                    placeholder={`${ALIAS_PREFIX}.tucuit`}
+                    placeholder={`${ALIAS_PREFIX}.tunombre`}
                     containerStyle={styles.inputContainer}
                     autoCapitalize="none"
                 />

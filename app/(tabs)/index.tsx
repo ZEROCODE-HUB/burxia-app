@@ -12,12 +12,17 @@ import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useAccount } from '../../hooks/useAccount';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
+import { DesktopDashboard } from '../../components/dashboard/DesktopDashboard';
 
 export default function DashboardScreen() {
     const { colors, isDark } = useTheme();
     const insets = useSafeAreaInsets();
     const { user, refreshUser } = useAuth();
     const { refreshBalance } = useAccount();
+    const isDesktop = useIsDesktop();
+  useAccountRefreshOnFocus();
     const [refreshing, setRefreshing] = useState(false);
 
     const onRefresh = useCallback(async () => {
@@ -25,6 +30,15 @@ export default function DashboardScreen() {
         await Promise.all([refreshUser(), refreshBalance()]);
         setRefreshing(false);
     }, [refreshUser, refreshBalance]);
+
+    if (isDesktop) {
+        return (
+            <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+                <StatusBar style={isDark ? "light" : "dark"} />
+                <DesktopDashboard />
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>

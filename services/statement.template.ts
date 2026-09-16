@@ -1,6 +1,7 @@
 import { formatCurrency, formatBalance } from '../utils/formatters';
 import { AccountMovement, TransactionStatus } from '../types/database.types';
 import { BRAND_NAME } from '../constants/brand';
+import { SolicitudItem } from './solicitudes.service';
 
 /**
  * Generador de HTML del estado de cuenta — módulo NEUTRO (sin expo-print ni
@@ -35,6 +36,14 @@ const STATUS_LABELS: Record<TransactionStatus, string> = {
     failed: 'Fallida',
     cancelled: 'Cancelada',
     reversed: 'Reversada',
+};
+
+// Estados de las solicitudes (depósitos/retiros/OTC) tal como los ve el cliente.
+const SOL_STATUS_LABELS: Record<string, string> = {
+    pending: 'Procesando',
+    approved: 'Aprobada',
+    rejected: 'Rechazada',
+    completed: 'Completada',
 };
 
 const escapeHtml = (value: string): string =>
@@ -79,39 +88,68 @@ export const buildStatementHtml = (params: {
     accountHolderName: string;
     balance: number;
     movements: AccountMovement[];
+    solicitudes?: SolicitudItem[];
     filters?: StatementFilters;
 }): string => {
-    const { accountHolderName, balance, movements, filters } = params;
+    const { accountHolderName, balance, movements, solicitudes = [], filters } = params;
 
     let totalIncome = 0;
     let totalExpense = 0;
 
-    const rows = movements
-        .map((m) => {
-            const isIncome = m.movement_type === 'income';
-            if (isIncome) totalIncome += m.amount;
-            else if (m.movement_type === 'expense') totalExpense += m.amount;
+    interface FilaPdf { at: string; detail: string; type: string; status: string; isIncome: boolean; amountText: string; }
 
-            const typeLabel = isIncome
-                ? 'Ingreso'
-                : m.movement_type === 'expense'
-                    ? 'Egreso'
-                    : 'Otro';
-            const description = m.counterpart_name || m.concept || m.transaction_type_name || 'Movimiento';
-            const statusLabel = STATUS_LABELS[m.status] || m.status;
-            const amountText = isIncome
-                ? `+${formatCurrency(m.amount)}`
-                : `-${formatCurrency(Math.abs(m.amount))}`;
+    // 1) Movimientos ya liquidados (mueven saldo). Suman a los totales.
+    const movRows: FilaPdf[] = movements.map((m) => {
+        const isIncome = m.movement_type === 'income';
+        if (isIncome) totalIncome += m.amount;
+        else if (m.movement_type === 'expense') totalExpense += m.amount;
+        return {
+            at: m.created_at,
+            detail: m.counterpart_name || m.concept || m.transaction_type_name || 'Movimiento',
+            // Nombre real de la operación (Depósito, Retiro, Compra USDT, Transferencia…).
+            type: m.transaction_type_name || (isIncome ? 'Ingreso' : m.movement_type === 'expense' ? 'Egreso' : 'Otro'),
+            status: STATUS_LABELS[m.status] || m.status,
+            isIncome,
+            amountText: isIncome ? `+${formatCurrency(m.amount)}` : `-${formatCurrency(Math.abs(m.amount))}`,
+        };
+    });
 
-            return `
-            <tr>
-                <td class="date">${formatDate(m.created_at)}</td>
-                <td>${escapeHtml(description)}</td>
-                <td class="type">${typeLabel}</td>
-                <td class="status">${statusLabel}</td>
-                <td class="amount ${isIncome ? 'income' : 'expense'}">${amountText}</td>
-            </tr>`;
+    // 2) Solicitudes en curso o rechazadas (aún no liquidadas). NO suman a los
+    //    totales, pero se listan con su estado para que el estado de cuenta
+    //    refleje las mismas operaciones que ve el cliente. Se deduplican contra
+    //    los movimientos (una aprobada ya aparece como movimiento).
+    const movTxIds = new Set(movements.map((m) => m.transaction_id));
+    const solRows: FilaPdf[] = solicitudes
+        .filter((s) => (s.status === 'pending' || s.status === 'rejected'))
+        .filter((s) => !(s.transactionId && movTxIds.has(s.transactionId)))
+        .filter((s) => {
+            if (filters?.type === 'income' && !s.isIncome) return false;
+            if (filters?.type === 'expense' && s.isIncome) return false;
+            if (filters?.startDate && new Date(s.createdAt) < filters.startDate) return false;
+            if (filters?.endDate && new Date(s.createdAt) > filters.endDate) return false;
+            return true;
         })
+        .map((s) => ({
+            at: s.createdAt,
+            detail: s.subtitle ? `${s.title} · ${s.subtitle}` : s.title,
+            type: s.title,
+            status: SOL_STATUS_LABELS[s.status] || s.status,
+            isIncome: s.isIncome,
+            amountText: s.isIncome ? `+${formatCurrency(s.amountFiat)}` : `-${formatCurrency(s.amountFiat)}`,
+        }));
+
+    const allRows = [...movRows, ...solRows].sort((a, b) => (a.at < b.at ? 1 : -1));
+    const totalFilas = allRows.length;
+
+    const rows = allRows
+        .map((r) => `
+            <tr>
+                <td class="date">${formatDate(r.at)}</td>
+                <td>${escapeHtml(r.detail)}</td>
+                <td class="type">${escapeHtml(r.type)}</td>
+                <td class="status">${escapeHtml(r.status)}</td>
+                <td class="amount ${r.isIncome ? 'income' : 'expense'}">${r.amountText}</td>
+            </tr>`)
         .join('');
 
     const generatedAt = new Date().toLocaleString('es-ES', {
@@ -122,7 +160,7 @@ export const buildStatementHtml = (params: {
         minute: '2-digit',
     });
 
-    const balanceLabel = movements.length > 0 ? 'Saldo al cierre' : 'Saldo disponible';
+    const balanceLabel = totalFilas > 0 ? 'Saldo al cierre' : 'Saldo disponible';
 
     return `
         <!DOCTYPE html>
@@ -133,14 +171,14 @@ export const buildStatementHtml = (params: {
                 * { box-sizing: border-box; }
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                    color: #0A2540;
+                    color: #2D2154;
                     margin: 0;
                     padding: 32px;
                     font-size: 13px;
                     line-height: 1.5;
                 }
                 .brand {
-                    color: #2F80ED;
+                    color: #5A4F9D;
                     font-size: 22px;
                     font-weight: 800;
                     letter-spacing: 4px;
@@ -149,7 +187,7 @@ export const buildStatementHtml = (params: {
                 .title {
                     font-size: 26px;
                     font-weight: 800;
-                    color: #0A2540;
+                    color: #2D2154;
                     margin-top: 4px;
                 }
                 .subtitle {
@@ -167,7 +205,7 @@ export const buildStatementHtml = (params: {
                     justify-content: space-between;
                 }
                 .meta div span { color: #64748B; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-                .meta div strong { display: block; font-size: 14px; color: #0A2540; margin-top: 2px; }
+                .meta div strong { display: block; font-size: 14px; color: #2D2154; margin-top: 2px; }
                 .summary {
                     margin-top: 20px;
                     display: flex;
@@ -182,11 +220,11 @@ export const buildStatementHtml = (params: {
                 .summary-card .value { font-size: 20px; font-weight: 800; margin-top: 4px; }
                 .summary-income { background: #ECFDF5; color: #047857; }
                 .summary-expense { background: #FEF2F2; color: #B91C1C; }
-                .summary-balance { background: #EFF6FF; color: #1D4ED8; }
+                .summary-balance { background: #F0EDFA; color: #5A4F9D; }
                 h2 {
                     font-size: 15px;
                     font-weight: 700;
-                    color: #0A2540;
+                    color: #2D2154;
                     margin: 28px 0 12px;
                 }
                 table {
@@ -254,9 +292,9 @@ export const buildStatementHtml = (params: {
                 </div>
             </div>
 
-            <h2>Movimientos (${movements.length})</h2>
+            <h2>Movimientos (${totalFilas})</h2>
 
-            ${movements.length === 0
+            ${totalFilas === 0
                 ? '<div class="empty">No hay movimientos para el período seleccionado.</div>'
                 : `
                 <table>

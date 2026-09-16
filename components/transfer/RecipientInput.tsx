@@ -75,7 +75,7 @@ export const RecipientInput: React.FC<RecipientInputProps> = ({
                         style={styles.input}
                         value={value}
                         onChangeText={onChangeText}
-                        placeholder="Ingresá CBU, CVU o Alias"
+                        placeholder="Ingresá número de cuenta o alias"
                         placeholderTextColor={colors.mutedForeground}
                         autoCapitalize="none"
                     />

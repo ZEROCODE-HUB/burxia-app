@@ -5,40 +5,72 @@ export default {
         // (BRAND_NAME) para el runtime. Estos identificadores nativos (name,
         // slug, scheme, bundleIdentifier, package) los consume el build de
         // Expo/EAS y se declaran acá; si cambia la marca, actualizá ambos lados.
-        name: "Bruxia",
+        name: "Burxia",
         // NOTA DE RELEASE: el projectId de EAS (extra.eas.projectId más abajo)
         // sigue siendo el de la cuenta original. Antes del primer build bajo la
         // cuenta EAS de Bruxia hay que correr `eas init` para regenerarlo; el
         // slug se ajustará a ese proyecto. Ver docs/pendientes.md.
         slug: "bruxia-mobile",
-        version: "1.0.9",
+        version: "1.0.10",
         orientation: "portrait",
         icon: "./assets/icon.png",
         scheme: "bruxia",
         userInterfaceStyle: "dark",
         newArchEnabled: true,
 
+        // ── OTA (expo-updates, self-hosted en Cloudflare) ──────────────────
+        // runtimeVersion = version de la app: un update JS solo cae en un APK
+        // con la MISMA version. Cuando cambie algo NATIVO (permisos, módulos,
+        // subir de SDK), subí `version` y recompilá el APK.
+        runtimeVersion: { policy: "appVersion" },
+        updates: {
+            enabled: true,
+            // Update-on-launch NATIVO: el runtime, durante el splash, chequea y
+            // descarga el update y lanza el bundle nuevo SOLO (sin reloadAsync de
+            // JS, que se trababa en MIUI). Espera hasta fallbackToCacheTimeout ms;
+            // si no llega a tiempo, abre con el bundle actual y aplica al próximo
+            // arranque. Nunca se cuelga. El "estado de carga" es el splash (BX).
+            checkAutomatically: "ON_LOAD",
+            fallbackToCacheTimeout: 10000,
+            // URL del Worker de Cloudflare (endpoint /manifest). Se inyecta por
+            // env al compilar; el placeholder es solo para dev. NO es secreto.
+            url: process.env.EXPO_PUBLIC_OTA_URL || "https://REEMPLAZAR.workers.dev/manifest",
+            // Firma de código: el APK embebe el certificado PÚBLICO y RECHAZA
+            // cualquier update cuyo manifiesto no venga firmado con la clave
+            // privada (que vive solo en la PC, como el keystore). Ver ota/README.
+            codeSigningCertificate: "./ota/codesigning/certs/certificate.pem",
+            codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" },
+        },
+
         splash: {
             image: "./assets/splash-icon.png",
             resizeMode: "contain",
-            backgroundColor: "#0f172a"
+            backgroundColor: "#2D2154"
         },
 
         ios: {
             supportsTablet: true,
             bundleIdentifier: "com.bruxia.app",
             infoPlist: {
-                ITSAppUsesNonExemptEncryption: false
+                ITSAppUsesNonExemptEncryption: false,
+                NSCameraUsageDescription:
+                    "Burxia usa la cámara para la verificación de identidad (KYC) y para adjuntar comprobantes.",
+                NSMicrophoneUsageDescription:
+                    "Burxia usa el micrófono durante la verificación de identidad por video.",
+                NSPhotoLibraryUsageDescription:
+                    "Burxia accede a tus fotos para adjuntar comprobantes de pago."
             }
         },
         android: {
             adaptiveIcon: {
                 foregroundImage: "./assets/adaptive-icon.png",
-                backgroundColor: "#0F172A"
+                backgroundColor: "#2D2154"
             },
-            permissions: ["CAMERA", "RECORD_AUDIO"],
+            // CAMERA + RECORD_AUDIO: verificación biométrica (KYC ZapSign).
+            // POST_NOTIFICATIONS: notificaciones push (OneSignal, Android 13+).
+            permissions: ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS"],
             package: "com.bruxia.app",
-             versionCode: 9 
+             versionCode: 10
         },
 
         web: {
@@ -59,6 +91,13 @@ export default {
                 }
             ],
             "expo-secure-store",
+            [
+                "expo-image-picker",
+                {
+                    photosPermission:
+                        "Burxia accede a tus fotos para adjuntar comprobantes de pago."
+                }
+            ],
             [
                 "onesignal-expo-plugin",
                 {

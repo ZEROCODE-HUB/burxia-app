@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert, Text } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenHeader } from '../../components/layout';
 import { ProgressIndicator } from '../../components/register/ProgressIndicator';
@@ -8,14 +9,10 @@ import { StepFormData } from '../../components/register/StepFormData';
 import { StepEmailVerification } from '../../components/register/StepEmailVerification';
 import { StepPinCreation } from '../../components/register/StepPinCreation';
 import { StepConfirmation } from '../../components/register/StepConfirmation';
-import { colors } from '../../theme';
-import { registerUser } from '../../services/auth.service';
-import { useAuth } from '../../context/AuthContext';
-import { isTestEnv } from '../../config/environment';
+import { useTheme } from '../../context/ThemeContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 import {
     validateEmail,
-    validateDNI,
-    validateCUITCUIL,
     validatePhone,
     validateName
 } from '../../utils/validators';
@@ -34,10 +31,12 @@ interface FormData {
 
 export default function RegisterScreen() {
     const insets = useSafeAreaInsets();
-    const { login } = useAuth();
+    const isDesktop = useIsDesktop();
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<FormData>({
-    nombres: '', apellidos: '', email: '', telefono: '+54', dni: '', cuit: '',
+    nombres: '', apellidos: '', email: '', telefono: '+57', dni: '', cuit: '',
     // zapsign_doc_token y zapsign_contract_url se setean al firmar
 });
     const [pin, setPin] = useState('');
@@ -48,15 +47,14 @@ export default function RegisterScreen() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const isCuitValid = isTestEnv ? true : validateCUITCUIL(formData.cuit);
-
+    // Ya no se pide CUIT/CUIL; el documento de identidad hace de identificador
+    // fiscal (se usa como tax_id en el backend).
     const isFormValid =
         validateName(formData.nombres) &&
         validateName(formData.apellidos) &&
         validateEmail(formData.email) &&
         validatePhone(formData.telefono) &&
-        validateDNI(formData.dni) &&
-        isCuitValid;
+        formData.dni.replace(/\D/g, '').length >= 5;
 
     const handleContinueToEmail = () => {
         if (isFormValid) {
@@ -91,6 +89,49 @@ export default function RegisterScreen() {
         }
     };
 
+    const stepContent = (
+        <>
+            {step === 1 && (
+                <StepFormData
+                    formData={formData}
+                    onChange={handleChange}
+                    onContinue={handleContinueToEmail}
+                    isValid={isFormValid}
+                />
+            )}
+            {step === 2 && (
+                <StepEmailVerification email={formData.email} onVerified={handleEmailVerified} />
+            )}
+            {step === 3 && (
+                <StepPinCreation onComplete={handlePinComplete} onBack={() => setStep(1)} loading={loading} />
+            )}
+            {step === 4 && <StepConfirmation data={formData} pin={pin} />}
+        </>
+    );
+
+    // Escritorio: shell propio (sin el header de móvil) dentro del panel de auth.
+    if (isDesktop) {
+        return (
+            <View style={styles.dtRoot}>
+                <View style={styles.dtHeader}>
+                    {step < 4 && (
+                        <TouchableOpacity style={styles.dtBack} onPress={handleBack} hitSlop={8} activeOpacity={0.7}>
+                            <Ionicons name="arrow-back" size={18} color={colors.mutedForeground} />
+                            <Text style={styles.dtBackText}>{step === 1 ? 'Volver a iniciar sesión' : 'Atrás'}</Text>
+                        </TouchableOpacity>
+                    )}
+                    <Text style={styles.dtTitle}>{getStepTitle()}</Text>
+                    <Text style={styles.dtSubtitle}>Paso {Math.min(step, 4)} de 4</Text>
+                    {step < 4 && <ProgressIndicator currentStep={step} totalSteps={4} />}
+                    {error && step === 2 && (
+                        <View style={styles.errorBanner}><Text style={styles.errorText}>{error}</Text></View>
+                    )}
+                </View>
+                <View style={styles.content}>{stepContent}</View>
+            </View>
+        );
+    }
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <ScreenHeader
@@ -115,41 +156,13 @@ export default function RegisterScreen() {
                     </View>
                 )}
 
-                <View style={styles.content}>
-                    {step === 1 && (
-                        <StepFormData
-                            formData={formData}
-                            onChange={handleChange}
-                            onContinue={handleContinueToEmail}
-                            isValid={isFormValid}
-                        />
-                    )}
-
-                    {step === 2 && (
-                        <StepEmailVerification
-                            email={formData.email}
-                            onVerified={handleEmailVerified}
-                        />
-                    )}
-
-                    {step === 3 && (
-                        <StepPinCreation
-                            onComplete={handlePinComplete}
-                            onBack={() => setStep(1)}
-                            loading={loading}
-                        />
-                    )}
-
-                    {step === 4 && (
-                        <StepConfirmation data={formData} pin={pin} />
-                    )}
-                </View>
+                <View style={styles.content}>{stepContent}</View>
             </KeyboardAvoidingView>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
@@ -157,6 +170,13 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
     },
+    // --- Escritorio ---
+    dtRoot: { flex: 1, backgroundColor: 'transparent' },
+    dtHeader: { paddingTop: 36, paddingHorizontal: 24, gap: 10 },
+    dtBack: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+    dtBackText: { color: colors.mutedForeground, fontSize: 14, fontWeight: '600' },
+    dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
+    dtSubtitle: { fontSize: 14, color: colors.mutedForeground },
     errorBanner: {
         backgroundColor: colors.destructive + '20',
         padding: 12,

@@ -8,19 +8,19 @@
  */
 
 /** Nombre visible de la app (títulos, logo, textos, comprobantes, PDF). */
-export const BRAND_NAME = 'Bruxia';
+export const BRAND_NAME = 'Burxia';
 
 /** Bajada/eslogan que acompaña al nombre en el comprobante y material. */
 export const BRAND_TAGLINE = 'Financial Freedom';
 
 /** Email de soporte por defecto (se puede sobreescribir desde settings). */
-export const SUPPORT_EMAIL = 'soporte@bruxia.com';
+export const SUPPORT_EMAIL = 'soporte@burxia.com';
 
 /** Placeholder de ejemplo para los campos de email. */
-export const EMAIL_PLACEHOLDER = `ejemplo@bruxia.com`;
+export const EMAIL_PLACEHOLDER = `ejemplo@burxia.com`;
 
 /**
  * Prefijo del alias de CVU (formato `<prefijo>.XXXXXXXX`). Es visible para el
  * usuario y parte del identificador de la cuenta.
  */
-export const ALIAS_PREFIX = 'bruxia';
+export const ALIAS_PREFIX = 'burxia';

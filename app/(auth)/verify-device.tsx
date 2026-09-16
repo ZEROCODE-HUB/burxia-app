@@ -8,9 +8,11 @@ import { colors, spacing, borderRadius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { verifyVerificationOtp, registerCurrentDevice, sendVerificationOtp } from '../../services/auth.service';
 import { LogoIcon } from '../../components/LogoIcon';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 export default function VerifyDeviceScreen() {
     const router = useRouter();
+    const isDesktop = useIsDesktop();
     const { setPendingDeviceVerification } = useAuth();
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +71,7 @@ export default function VerifyDeviceScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, isDesktop && { backgroundColor: 'transparent' }]}>
             <Toast
                 visible={toast.visible}
                 message={toast.message}

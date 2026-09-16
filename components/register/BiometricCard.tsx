@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import WebView from 'react-native-webview';
-import { colors, spacing, borderRadius } from '../../theme';
-import { createZapSignDocument, getSignerUrl, verifyZapSignIdentity, ZapSignBiometric } from '../../services/zapsign.service';
-import { Camera } from 'expo-camera';
-import { supabase } from '@/lib/supabase';
+import * as WebBrowser from 'expo-web-browser';
+import { spacing, borderRadius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { ZapSignBiometric } from '../../services/zapsign.service';
+import { supabase } from '../../lib/supabase';
 
+// Link PÚBLICO del modelo de ZapSign (verificación de identidad). Es la vía WEB
+// (no API): funciona con el plan Web. Se abre en un Custom Tab; el usuario llena
+// el formulario + hace la verificación de identidad (documento/selfie/video) ahí
+// dentro. Si cambia el modelo, se actualiza por OTA.
+const KYC_PUBLIC_LINK = 'https://app.zapsign.co/verificar/doc/b23ddd4b-6af3-4613-9a83-17a2a1ade26f';
+
+// Deep link al que ZapSign debe redirigir al terminar la firma (se configura en
+// la plantilla → "redirect después de firmar"). Si está configurado, la app
+// detecta el fin automáticamente vía openAuthSessionAsync.
+const KYC_REDIRECT_URL = 'bruxia://kyc-done';
 
 type ScanStatus = 'idle' | 'creating' | 'waiting_signature' | 'success' | 'error';
 
@@ -18,161 +27,73 @@ interface BiometricCardProps {
 }
 
 export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmail, onSignatureSuccess }) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [status, setStatus] = useState<ScanStatus>('idle');
-    const [docToken, setDocToken] = useState<string | null>(null);
-    const [signUrl, setSignUrl] = useState<string | null>(null);
-    const [isWebViewOpen, setIsWebViewOpen] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
-    const handleScan = async () => {
-        console.log('[BiometricCard] handleScan start');
+    // Abre el link público de ZapSign en un Custom Tab (Chrome embebido → la
+    // cámara funciona, sin salir de la app).
+    //
+    // Detección de "completado": usamos openAuthSessionAsync con el deep link
+    // `bruxia://kyc-done`. Si la plantilla tiene configurado el "redirect después
+    // de firmar" a esa URL, al terminar ZapSign redirige, el tab se cierra SOLO y
+    // marcamos completado AUTOMÁTICAMENTE. Si no hay redirect (o el usuario cierra
+    // a mano), queda en waiting_signature con el botón manual de fallback.
+    const abrirVerificacion = async () => {
         if (!userName || !userEmail) {
             setErrorMsg('Completa tu nombre y email primero');
             setStatus('error');
             setTimeout(() => setStatus('idle'), 3000);
             return;
         }
-
-        if (status !== 'idle' && status !== 'error') return;
-
         try {
-            // Solicitar permiso de cámara antes de abrir WebView
-            const camPerm = await Camera.requestCameraPermissionsAsync();
-            console.log('[BiometricCard] Camera permission status:', camPerm);
-            if (!camPerm.granted) {
-                setErrorMsg('Permiso de cámara denegado. Habilítalo en Ajustes.');
-                setStatus('error');
-                setTimeout(() => setStatus('idle'), 3000);
-                return;
-            }
-
-            setStatus('creating');
-            
-            // Creamos documento usando el Template ID
-            const res = await createZapSignDocument(
-                userName, 
-                userEmail
-            );
-            console.log('[BiometricCard] createZapSignDocument response:', res);
-
-            if (!res.success || !res.signUrl || !res.docToken) {
-                setStatus('error');
-                setErrorMsg(res.error || 'Error al crear contrato');
-                setTimeout(() => setStatus('idle'), 3000);
-                return;
-            }
-
-            setDocToken(res.docToken);
-            let finalSignUrl = res.signUrl || '';
-            if (!finalSignUrl) {
-                console.log('[BiometricCard] signUrl vacío, intentando obtener desde /docs/{token}');
-                const signerRes = await getSignerUrl(res.docToken);
-                if (signerRes.success && signerRes.signUrl) {
-                    finalSignUrl = signerRes.signUrl;
-                } else {
-                    console.error('[BiometricCard] No se pudo obtener signUrl:', signerRes.error);
-                }
-            }
-            setSignUrl(finalSignUrl);
-            
-            // Quedamos en estado de espera en la tarjeta trasera
+            setErrorMsg('');
             setStatus('waiting_signature');
-            
-            // Re-habilitamos el modal de WebView a pedido del usuario.
-            if (finalSignUrl) {
-                setIsWebViewOpen(true);
-            } else {
-                setStatus('error');
-                setErrorMsg('No se pudo abrir el flujo de firma. Intente nuevamente.');
-                setTimeout(() => setStatus('idle'), 3000);
+            const result = await WebBrowser.openAuthSessionAsync(
+                KYC_PUBLIC_LINK,
+                KYC_REDIRECT_URL,
+                { showTitle: true, toolbarColor: '#2D2154' },
+            );
+            if (result.type === 'success') {
+                // ZapSign redirigió tras completar → verificamos contra el servidor.
+                verificarEnServidor();
             }
-            
+            // Si el usuario cerró el tab sin redirect, seguimos en waiting_signature.
         } catch (error) {
-            console.error('[BiometricCard] handleScan error:', error);
+            console.error('[BiometricCard] abrirVerificacion error:', error);
             setStatus('error');
-            setErrorMsg('Error de red');
+            setErrorMsg('No se pudo abrir la verificación. Intente nuevamente.');
             setTimeout(() => setStatus('idle'), 3000);
         }
     };
 
-    const handleVerifySignature = async () => {
-    if (!docToken) return;
-
-    setStatus('creating');
-    const identity = await verifyZapSignIdentity(docToken);
-
-    if (!identity.signed) {
-        setStatus('waiting_signature');
-        console.log('[ZapSign] Aún no firmado.');
-        setErrorMsg('Aún no has finalizado la firma.');
-        setTimeout(() => setErrorMsg(''), 3000);
-        return;
-    }
-
-    if (!identity.verified) {
-        setStatus('waiting_signature');
-        console.log('[ZapSign] Verificación biométrica no superada:', identity.biometric);
-        setErrorMsg(
-            identity.strict
-                ? 'La verificación biométrica no se completó correctamente. Intenta de nuevo.'
-                : 'No pudimos confirmar la verificación de identidad.',
-        );
-        setTimeout(() => setErrorMsg(''), 3000);
-        return;
-    }
-
-    // Contrato firmado y (en su caso) biometría validada: subir PDF a Supabase Storage
-    let permanentUrl: string | null = null;
-
-    if (identity.signedFileUrl) {
+    // Verificación REAL contra el servidor: consulta si el WEBHOOK de ZapSign ya
+    // registró que ESTE email completó la firma. No es auto-declaración: si el
+    // webhook no lo confirmó, no avanza. Reintenta un par de veces porque el
+    // webhook es asíncrono (puede tardar unos segundos tras firmar).
+    const verificarEnServidor = async (intentosRestantes = 3) => {
+        setStatus('creating');
         try {
-            const pdfResponse = await fetch(identity.signedFileUrl);
-            if (pdfResponse.ok) {
-                const blob = await pdfResponse.blob();
-                const arrayBuffer = await new Response(blob).arrayBuffer();
-                const fileName = `contracts/presignup/${docToken}.pdf`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('documents')
-                    .upload(fileName, arrayBuffer, {
-                        contentType: 'application/pdf',
-                        upsert: true,
-                    });
-
-                if (!uploadError) {
-                    const { data: urlData } = supabase.storage
-                        .from('documents')
-                        .getPublicUrl(fileName);
-                    permanentUrl = urlData.publicUrl;
-                    console.log('[BiometricCard] PDF guardado en storage:', permanentUrl);
-                } else {
-                    console.error('[BiometricCard] Error subiendo PDF:', uploadError);
-                }
+            const { data, error } = await (supabase.rpc as any)('email_completo_kyc', {
+                p_email: (userEmail || '').trim(),
+            });
+            if (!error && data === true) {
+                setStatus('success');
+                onSignatureSuccess?.(`kyc-${Date.now()}`, null);
+                return;
             }
-        } catch (err) {
-            console.error('[BiometricCard] Error descargando/subiendo PDF:', err);
-        }
-    }
-
-    setStatus('success');
-    if (onSignatureSuccess) {
-        onSignatureSuccess(docToken, permanentUrl, identity.biometric);
-    }
-};
-
-    const handleWebViewClose = () => {
-        setIsWebViewOpen(false);
-        // Cuando el usuario cierra el WebView manualmente, intentamos verificar si terminó
-        handleVerifySignature();
-    };
-
-    const onNavigationStateChange = (navState: any) => {
-        console.log('[BiometricCard] WebView nav change:', navState?.url);
-        // ZapSign suele redirigir a URLs específicas o cerrar el flow al terminar.
-        // Si detectamos que la URL cambió a una de éxito o el sandbox finalizó, auto-cerramos:
-        if (navState.url && (navState.url.includes('/concluido') || navState.url.includes('/success') || navState.url.includes('/finalizado'))) {
-             setIsWebViewOpen(false);
-             handleVerifySignature();
+            if (intentosRestantes > 1) {
+                setTimeout(() => verificarEnServidor(intentosRestantes - 1), 2500);
+                return;
+            }
+            setStatus('waiting_signature');
+            setErrorMsg('Todavía no confirmamos tu verificación. Si ya la completaste, esperá unos segundos y tocá "Verificar".');
+            setTimeout(() => setErrorMsg(''), 7000);
+        } catch (e) {
+            setStatus('waiting_signature');
+            setErrorMsg('No pudimos verificar. Reintentá en unos segundos.');
+            setTimeout(() => setErrorMsg(''), 5000);
         }
     };
 
@@ -190,11 +111,19 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
                 <View style={{ width: '100%', gap: 8 }}>
                     <TouchableOpacity
                         style={[styles.button, styles.buttonScanning]}
-                        onPress={handleVerifySignature}
+                        onPress={() => verificarEnServidor()}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="refresh-outline" size={18} color={colors.accent} style={{ marginRight: 8 }} />
-                        <Text style={styles.buttonTextScanning}>Ya firmé (Verificar)</Text>
+                        <Ionicons name="shield-checkmark-outline" size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                        <Text style={styles.buttonTextScanning}>Verificar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.button, styles.buttonIdle]}
+                        onPress={abrirVerificacion}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="finger-print-outline" size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                        <Text style={styles.buttonTextIdle}>Continuar verificación</Text>
                     </TouchableOpacity>
                     {errorMsg ? <Text style={{ color: colors.destructive, fontSize: 12, textAlign: 'center' }}>{errorMsg}</Text> : null}
                 </View>
@@ -212,7 +141,7 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
             <View style={{ width: '100%', alignItems: 'center' }}>
                 <TouchableOpacity
                     style={[styles.button, status === 'error' ? { borderColor: colors.destructive } : styles.buttonIdle]}
-                    onPress={handleScan}
+                    onPress={abrirVerificacion}
                     activeOpacity={0.7}
                 >
                     <Ionicons name="scan-outline" size={18} color={status === 'error' ? colors.destructive : colors.accent} style={{ marginRight: 8 }} />
@@ -260,63 +189,14 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
                 </Text>
             </View>
 
-            {/* Modal para el WebView de ZapSign */}
-            <Modal
-                visible={isWebViewOpen}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={handleWebViewClose}
-            >
-                <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
-                    <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={handleWebViewClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={colors.foreground} />
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Verificar Identidad (ZapSign)</Text>
-                        <View style={{ width: 44 }} />
-                    </View>
-                    {signUrl ? (
-                         <View style={{ flex: 1, backgroundColor: '#fff' }}>
-                             <WebView
-                                source={{ uri: signUrl as string }}
-                                style={{ flex: 1 }}
-                                onNavigationStateChange={onNavigationStateChange}
-                                javaScriptEnabled={true}
-                                domStorageEnabled={true}
-                                mixedContentMode="always"
-                                allowsInlineMediaPlayback
-                                mediaPlaybackRequiresUserAction={false}
-                                onPermissionRequest={(event: any) => {
-                                    try {
-                                        console.log('[BiometricCard] onPermissionRequest resources:', event?.resources);
-                                        // Concede permisos solicitados por el contenido (cámara, micrófono)
-                                        event.grant(event.resources);
-                                    } catch (e) {
-                                        console.error('[BiometricCard] onPermissionRequest error:', e);
-                                        // Si falla, denegar para evitar estados raros
-                                        event.deny?.();
-                                    }
-                                }}
-                                startInLoadingState={true}
-                                renderLoading={() => (
-                                    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-                                        <ActivityIndicator size="large" color={colors.accent} />
-                                    </View>
-                                )}
-                            />
-                         </View>
-                    ) : null}
-                </SafeAreaView>
-            </Modal>
-
             {renderButton()}
         </View>
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
-        backgroundColor: 'rgba(0,0,0,0.02)', // Light gray
+        backgroundColor: 'rgba(0,0,0,0.02)',
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: borderRadius.xl,
@@ -406,22 +286,4 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-        backgroundColor: colors.card,
-    },
-    closeButton: {
-        padding: 4,
-    },
-    modalTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.foreground,
-    }
 });

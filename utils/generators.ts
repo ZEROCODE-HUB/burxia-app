@@ -78,7 +78,7 @@ function calculateCVUVerifier(block: string): number {
  * - Posiciones 10-21: Numero de cuenta virtual (12 digitos)
  * - Posicion 22: Digito verificador del segundo bloque
  */
-export function generateCVU(): string {
+export function generateAccountNumber(): string {
   const pspCode = '00000100';    // PSP Bruxia
 
   // Primer bloque: PSP (8 digitos)

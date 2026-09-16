@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { spacing } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 
 interface ProgressIndicatorProps {
     currentStep: number;
@@ -8,6 +9,8 @@ interface ProgressIndicatorProps {
 }
 
 export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentStep, totalSteps }) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     return (
         <View style={styles.container}>
             <View style={styles.barBackground}>
@@ -22,7 +25,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentSte
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.md,

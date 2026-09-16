@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Platform, StyleSheet, View } from "react-native";
-import { colors } from "../theme";
+import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { useIsDesktop } from "../hooks/useIsDesktop";
 import { DesktopSidebar } from "./layout/DesktopSidebar";
+import { AuthBrandPanel } from "./layout/AuthBrandPanel";
 
 /**
  * Marco responsivo de la web.
@@ -19,7 +20,6 @@ import { DesktopSidebar } from "./layout/DesktopSidebar";
  * escritorio): las pantallas no se tocan una por una.
  */
 const MAX_ANCHO = 480;
-const DESKTOP_CONTENT_MAX = 760;
 
 export function WebFrame({ children }: { children: React.ReactNode }) {
   if (Platform.OS !== "web") {
@@ -30,6 +30,8 @@ export function WebFrame({ children }: { children: React.ReactNode }) {
 
 function WebFrameInner({ children }: { children: React.ReactNode }) {
   const isDesktop = useIsDesktop();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, user, pendingDeviceVerification } = useAuth();
   const enApp = !!session && !!user && !pendingDeviceVerification;
 
@@ -37,8 +39,19 @@ function WebFrameInner({ children }: { children: React.ReactNode }) {
     return (
       <View style={styles.desktopRoot}>
         <DesktopSidebar />
-        <View style={styles.desktopContent}>
-          <View style={styles.desktopColumn}>{children}</View>
+        <View style={styles.desktopContent}>{children}</View>
+      </View>
+    );
+  }
+
+  if (isDesktop && !enApp) {
+    return (
+      <View style={styles.authSplit}>
+        <View style={styles.authBrand}>
+          <AuthBrandPanel />
+        </View>
+        <View style={styles.authFormPanel}>
+          <View style={styles.authFormInner}>{children}</View>
         </View>
       </View>
     );
@@ -51,20 +64,20 @@ function WebFrameInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   // --- Nivel A: marco tipo teléfono ---
   exterior: {
     flex: 1,
     flexDirection: "row",
     justifyContent: "center",
-    backgroundColor: "#0b1220",
+    backgroundColor: colors.muted,
   },
   interior: {
     flex: 1,
     width: "100%",
     maxWidth: MAX_ANCHO,
     backgroundColor: colors.background,
-    boxShadow: "0 0 24px rgba(0,0,0,0.4)",
+    boxShadow: "0 0 24px rgba(0,0,0,0.25)",
   },
   // --- Nivel B: escritorio con sidebar ---
   desktopRoot: {
@@ -74,14 +87,27 @@ const styles = StyleSheet.create({
   },
   desktopContent: {
     flex: 1,
-    alignItems: "center",
-    backgroundColor: "#0b1220",
+    backgroundColor: colors.background,
+    overflow: "hidden",
   },
-  desktopColumn: {
+  // Auth (pre-login) en escritorio: pantalla partida marca | formulario
+  authSplit: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: colors.background,
+  },
+  authBrand: {
+    flex: 1,
+  },
+  authFormPanel: {
+    width: 600,
+    flexShrink: 0,
+    backgroundColor: colors.card,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
+  },
+  authFormInner: {
     flex: 1,
     width: "100%",
-    maxWidth: DESKTOP_CONTENT_MAX,
-    backgroundColor: colors.background,
-    boxShadow: "0 0 24px rgba(0,0,0,0.35)",
   },
 });

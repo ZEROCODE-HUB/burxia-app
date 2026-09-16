@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { spacing } from "../../theme";
-import { BRAND_NAME } from "../../constants/brand";
 import { ScreenHeader } from "../../components/layout";
 import {
   ProfileHero,
@@ -20,8 +19,10 @@ import {
   OperationalLimitsCard,
   MenuSection,
 } from "../../components/profile";
-import { Button, AlertDialog } from "../../components/ui";
+import { Button, AlertDialog, VersionTag } from "../../components/ui";
+import { DesktopProfile } from "../../components/profile/DesktopProfile";
 import { useTheme } from "../../context/ThemeContext";
+import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAuth } from "../../context/AuthContext";
 import * as accountService from "../../services/account.service";
 import { supabase } from "../../lib/supabase";
@@ -62,6 +63,7 @@ const createStyles = (colors: any) =>
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const isDesktop = useIsDesktop();
   const { user, account, logout, session } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -234,6 +236,47 @@ export default function ProfileScreen() {
     },
   ];
 
+  if (isDesktop) {
+    return (
+      <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+        <DesktopProfile
+          currentUser={currentUser}
+          avatarUrl={avatarUrl}
+          isUploading={isUploading}
+          onAvatarUpload={handleAvatarUpload}
+          monthlyLimit={limits?.monthlyLimit ?? 800000}
+          amountOperated={limits?.amountOperated ?? 0}
+          securityItems={securityItems}
+          onLogout={() => setShowLogoutAlert(true)}
+        />
+        <AlertDialog
+          visible={showLogoutAlert}
+          title="Cerrar Sesión"
+          description="¿Estás seguro que quieres salir de tu cuenta?"
+          confirmLabel="Salir"
+          cancelLabel="Cancelar"
+          variant="destructive"
+          icon="log-out-outline"
+          loading={isLoggingOut}
+          onConfirm={handleLogout}
+          onClose={() => !isLoggingOut && setShowLogoutAlert(false)}
+        />
+        <AlertDialog
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          description={alertConfig.description}
+          variant={alertConfig.variant}
+          confirmLabel="Entendido"
+          onConfirm={() => {
+            alertConfig.onConfirm?.();
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+          }}
+          onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
@@ -269,14 +312,13 @@ export default function ProfileScreen() {
             dailySpent={limits?.dailySpent}
             perTransactionLimit={limits?.perTransactionLimit}*/}
           {/* Alias Management */}
-          <AliasManagement userCuit={currentUser.cuit.replace(/-/g, "")} />
+          <AliasManagement userCuit={currentUser.dni.replace(/\D/g, "")} />
 
           {/* Identity */}
           <InfoCard
             title="Identidad"
             fields={[
-              { label: "DNI", value: currentUser.dni },
-              { label: "CUIT", value: currentUser.cuit },
+              { label: "Número de documento", value: currentUser.dni },
             ]}
           />
 
@@ -311,7 +353,7 @@ export default function ProfileScreen() {
             >
               Cerrar Sesión
             </Button>
-            <Text style={styles.versionText}>{BRAND_NAME} v2.4.0 (Build 892)</Text>
+            <VersionTag style={styles.versionText} />
           </View>
         </View>
       </ScrollView>

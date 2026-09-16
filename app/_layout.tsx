@@ -3,10 +3,9 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider } from '../context/ThemeContext';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { LogoIcon } from '../components/LogoIcon';
-import { colors } from '../theme';
 import { oneSignalService } from '../services/oneSignalService';
 import { supabase } from '../lib/supabase';
 import { InactivityWrapper } from '../components/InactivityWrapper';
@@ -15,6 +14,7 @@ import { WebFrame } from '../components/WebFrame';
 
 function RootLayoutNav() {
     const { session, loading, user, pendingDeviceVerification } = useAuth();
+    const { colors } = useTheme();
     const segments = useSegments();
     const router = useRouter();
 
@@ -42,9 +42,9 @@ function RootLayoutNav() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
                 <LogoIcon size={80} />
-                <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+                <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
             </View>
         );
     }
@@ -89,6 +89,9 @@ export default function RootLayout() {
     return (
         <SafeAreaProvider>
             <ThemeProvider>
+                {/* El update-on-launch lo maneja el runtime nativo de expo-updates
+                    durante el splash (checkAutomatically: ON_LOAD + LAUNCH_WAIT_MS),
+                    sin reloadAsync de JS. Ver app.config.js / AndroidManifest. */}
                 <AuthProvider>
                     <InactivityWrapper>
                         <WebFrame>
@@ -108,7 +111,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.background,
     },
     loader: {
         marginTop: 20,

@@ -20,6 +20,8 @@ import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius, typography } from '../../theme';
 import { BRAND_NAME } from '../../constants/brand';
 import { useTheme } from '../../context/ThemeContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { DesktopPage, DesktopGrid, DesktopCol } from '../../components/layout/DesktopPage';
 import { useAuth } from '../../context/AuthContext';
 import QRCode from 'react-native-qrcode-svg';
 import { supabase } from '../../lib/supabase';
@@ -27,6 +29,7 @@ import { supabase } from '../../lib/supabase';
 export default function ShareCvuScreen() {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
+    const isDesktop = useIsDesktop();
     const { user, account } = useAuth();
 
     const [alertConfig, setAlertConfig] = useState<{
@@ -72,19 +75,19 @@ export default function ShareCvuScreen() {
 
     const accountData = {
         titular: user ? `${user.first_name} ${user.last_name}` : `Usuario ${BRAND_NAME}`,
-        cvu: account?.cvu || "0000000000000000000000",
+        accountNumber: account?.account_number || "0000000000000000000000",
         alias: account?.alias || "sin.alias.asignado",
     };
 
     const handleCopyData = async () => {
-        const textToCopy = `Titular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
+        const textToCopy = `Titular: ${accountData.titular}\nNúmero de cuenta: ${accountData.accountNumber}\nAlias: ${accountData.alias}`;
         await Clipboard.setStringAsync(textToCopy);
         showAlert("Copiado", "Los datos de tu cuenta han sido copiados al portapapeles.");
     };
 
     const handleShare = async () => {
         try {
-            const textToShare = `Mis datos de cuenta ${BRAND_NAME}:\n\nTitular: ${accountData.titular}\nCVU: ${accountData.cvu}\nAlias: ${accountData.alias}`;
+            const textToShare = `Mis datos de cuenta ${BRAND_NAME}:\n\nTitular: ${accountData.titular}\nNúmero de cuenta: ${accountData.accountNumber}\nAlias: ${accountData.alias}`;
             await Share.share({
                 message: textToShare,
             });
@@ -104,6 +107,69 @@ export default function ShareCvuScreen() {
             showAlert("Error", "No se pudo preparar la imagen.", "destructive");
         }
     };
+
+    if (isDesktop) {
+        return (
+            <View style={styles.container}>
+                <DesktopPage title="Mis Datos de Cuenta" subtitle="Compartí tu cuenta para recibir dinero" maxWidth={960}>
+                    <DesktopGrid>
+                        <DesktopCol flex={1} minWidth={300}>
+                            <View style={styles.qrCard} ref={qrViewRef} collapsable={false}>
+                                <View style={styles.qrContainer}>
+                                    <View style={styles.qrPattern}>
+                                        {qrValue ? (
+                                            <QRCode value={qrValue} size={180} color={colors.foreground} backgroundColor={colors.card} />
+                                        ) : (
+                                            <ActivityIndicator size="large" color={colors.primary} />
+                                        )}
+                                    </View>
+                                </View>
+                                <TouchableOpacity style={styles.downloadButton} onPress={handleSaveQr}>
+                                    <Ionicons name="download-outline" size={20} color={colors.mutedForeground} />
+                                    <Text style={styles.downloadText}>Descargar QR</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </DesktopCol>
+                        <DesktopCol flex={1.1} minWidth={320}>
+                            <View style={styles.detailsCard}>
+                                <View style={styles.detailsHeader}>
+                                    <View style={styles.detailItem}>
+                                        <Text style={styles.detailLabel}>TITULAR</Text>
+                                        <Text style={styles.detailValue}>{accountData.titular}</Text>
+                                    </View>
+                                    <View style={styles.detailItem}>
+                                        <Text style={styles.detailLabel}>Número de cuenta</Text>
+                                        <Text style={[styles.detailValue, styles.fontMono]}>{accountData.accountNumber}</Text>
+                                    </View>
+                                    <View style={styles.detailItem}>
+                                        <Text style={styles.detailLabel}>ALIAS</Text>
+                                        <Text style={[styles.detailValue, styles.aliasValue]}>{accountData.alias}</Text>
+                                    </View>
+                                </View>
+                                <Button onPress={handleCopyData} style={styles.copyButton}>
+                                    <Ionicons name="copy-outline" size={20} color="white" />
+                                    <Text style={styles.buttonText}>Copiar Datos</Text>
+                                </Button>
+                            </View>
+                            <TouchableOpacity style={styles.shareOuterButton} onPress={handleShare}>
+                                <Ionicons name="share-social-outline" size={20} color={colors.foreground} />
+                                <Text style={styles.shareText}>Compartir</Text>
+                            </TouchableOpacity>
+                        </DesktopCol>
+                    </DesktopGrid>
+                </DesktopPage>
+
+                <AlertDialog
+                    visible={alertConfig.visible}
+                    title={alertConfig.title}
+                    description={alertConfig.description}
+                    variant={alertConfig.variant}
+                    onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                    onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                />
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -154,8 +220,8 @@ export default function ShareCvuScreen() {
                         </View>
 
                         <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>CVU</Text>
-                            <Text style={[styles.detailValue, styles.fontMono]}>{accountData.cvu}</Text>
+                            <Text style={styles.detailLabel}>Número de cuenta</Text>
+                            <Text style={[styles.detailValue, styles.fontMono]}>{accountData.accountNumber}</Text>
                         </View>
 
                         <View style={styles.detailItem}>

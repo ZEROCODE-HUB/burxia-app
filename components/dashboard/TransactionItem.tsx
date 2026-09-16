@@ -71,7 +71,9 @@ const createStyles = (colors: any, isIncome: boolean) => StyleSheet.create({
         borderRadius: borderRadius.xl,
         borderWidth: 1,
         borderColor: colors.border,
-        marginBottom: spacing.sm,
+        // Sin marginBottom: el espaciado entre filas lo define SOLO el contenedor
+        // (gap en el dashboard / ItemSeparator en Movimientos). Así el hueco es
+        // idéntico entre movimientos y solicitudes (antes se sumaban y quedaba disparejo).
     },
     leftContent: {
         flexDirection: 'row',

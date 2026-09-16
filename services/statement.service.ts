@@ -1,6 +1,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { transactionService } from './transaction.service';
+import { getMySolicitudes } from './solicitudes.service';
 import {
     buildStatementHtml,
     sumMovements,
@@ -20,9 +21,12 @@ export const statementService = {
     async generateAndShare(params: GenerateStatementParams): Promise<StatementResult> {
         const { accountId, accountHolderName, balance, filters } = params;
 
-        const movements = await transactionService.getAccountMovements(accountId, 2000, 0, filters);
+        const [movements, solicitudes] = await Promise.all([
+            transactionService.getAccountMovements(accountId, 2000, 0, filters),
+            getMySolicitudes().catch(() => []),
+        ]);
 
-        const html = buildStatementHtml({ accountHolderName, balance, movements, filters });
+        const html = buildStatementHtml({ accountHolderName, balance, movements, solicitudes, filters });
         const { uri } = await Print.printToFileAsync({ html });
 
         if (!(await Sharing.isAvailableAsync())) {

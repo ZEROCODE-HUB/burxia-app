@@ -12,16 +12,31 @@ import Constants from "expo-constants";
  * Ahora falla fuerte y temprano. Es preferible no arrancar a arrancar
  * apuntando a otro lado.
  */
+// El `extra` de app.config.js expone las credenciales con nombres camelCase
+// (supabaseUrl, ...), no con el nombre completo EXPO_PUBLIC_*. Este mapa traduce
+// la clave EXPO_PUBLIC_* pedida a la clave real dentro de `extra`, para que en
+// un build nativo (donde Metro puede no incrustar process.env) igual se resuelva
+// desde el manifest embebido.
+const EXTRA_KEY_ALIASES: Record<string, string> = {
+  EXPO_PUBLIC_SUPABASE_URL: "supabaseUrl",
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: "supabaseAnonKey",
+  EXPO_PUBLIC_ONESIGNAL_APP_ID: "oneSignalAppId",
+};
+
 export const getEnvVar = (key: string): string => {
   // En desarrollo web y en el bundler, las EXPO_PUBLIC_* llegan por acá.
   if (process.env[key]) {
     return process.env[key] as string;
   }
 
-  // En un build nativo llegan por el `extra` de app.config.js.
-  const extra = Constants.expoConfig?.extra?.[key];
+  // En un build nativo llegan por el `extra` de app.config.js. Se prueba tanto
+  // la clave tal cual como su alias camelCase (supabaseUrl, etc.).
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
   if (extra) {
-    return extra as string;
+    const direct = extra[key];
+    if (direct) return direct as string;
+    const alias = EXTRA_KEY_ALIASES[key];
+    if (alias && extra[alias]) return extra[alias] as string;
   }
 
   return "";

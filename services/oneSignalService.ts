@@ -17,19 +17,40 @@ class OneSignalService {
     private isInitialized = false;
 
     /**
+     * Lee el OneSignal App ID. Estrategia de credenciales remotas: primero se
+     * busca en la tabla pública `app_config` de Supabase (así se puede cargar
+     * DESPUÉS del build, sin recompilar); si no hay valor, cae al valor local
+     * de `app.config.js` (extra.oneSignalAppId, vía .env). El App ID de
+     * OneSignal es una clave pública de cliente, no un secreto.
+     */
+    private async resolveAppId(): Promise<string | null> {
+        try {
+            // Lista blanca en el servidor (public_runtime_config): app_config no
+            // es legible por el cliente; esta RPC solo devuelve claves públicas.
+            const { data, error } = await supabase.rpc('public_runtime_config' as any, { p_key: 'onesignal_app_id' });
+            const remote = typeof data === 'string' ? data.trim() : '';
+            if (!error && remote) return remote;
+        } catch {
+            /* sin conexión / tabla ausente: se usa el fallback local */
+        }
+        const local = Constants.expoConfig?.extra?.oneSignalAppId;
+        return local ? String(local) : null;
+    }
+
+    /**
      * Inicializa OneSignal
      * Llamar una sola vez al inicio de la app
      */
-    initialize() {
+    async initialize() {
         if (this.isInitialized) {
             console.log('OneSignal ya está inicializado');
             return;
         }
 
-        const appId = Constants.expoConfig?.extra?.oneSignalAppId;
+        const appId = await this.resolveAppId();
 
         if (!appId) {
-            console.error('⚠️ ONESIGNAL_APP_ID no está configurado en .env');
+            console.log('ℹ️ OneSignal App ID no configurado (Supabase app_config ni .env); push deshabilitado.');
             return;
         }
 
@@ -110,6 +131,13 @@ class OneSignalService {
      * Llamar después del login exitoso
      */
     async loginUser(userId: string) {
+        if (!this.isInitialized) {
+            // Sin App ID (no configurado en app_config ni .env) OneSignal no se
+            // inicializó; llamar a login() aquí crashea con "Must call
+            // 'initWithContext' before 'login'". Se omite silenciosamente.
+            console.log('ℹ️ OneSignal no inicializado; se omite loginUser.');
+            return;
+        }
         try {
             console.log('🔗 Vinculando usuario a OneSignal:', userId);
             await OneSignal.login(userId);
@@ -131,6 +159,9 @@ class OneSignalService {
      * Llamar al hacer logout
      */
     async logoutUser() {
+        if (!this.isInitialized) {
+            return;
+        }
         try {
             console.log('🔓 Desvinculando usuario de OneSignal');
             await OneSignal.logout();
@@ -244,6 +275,10 @@ class OneSignalService {
      * Activa/desactiva las notificaciones push en este dispositivo
      */
     async togglePushNotifications(enabled: boolean) {
+        if (!this.isInitialized) {
+            console.log('ℹ️ OneSignal no inicializado; no se puede cambiar el estado de push.');
+            return;
+        }
         try {
             if (enabled) {
                 await OneSignal.Notifications.requestPermission(true);
@@ -277,6 +312,9 @@ class OneSignalService {
      * Obtiene el estado actual de las notificaciones
      */
     async getPushSubscriptionState() {
+        if (!this.isInitialized) {
+            return { playerId: null, token: null, optedIn: false };
+        }
         return {
             playerId: await OneSignal.User.pushSubscription.getIdAsync(),
             token: await OneSignal.User.pushSubscription.getTokenAsync(),

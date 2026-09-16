@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Animated } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Animated, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { spacing } from '../../theme';
 import { LogoIcon } from '../LogoIcon';
@@ -61,10 +61,13 @@ export const LoginProcessingModal = () => {
 const createStyles = (colors: any) => StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: colors.background + '80', // Backdrop dim
+        // En web el login vive en una columna (panel derecho), así que un
+        // `absolute` solo cubriría ese panel. `fixed` lo lleva a TODO el viewport.
+        ...(Platform.OS === 'web' ? ({ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 } as any) : {}),
+        backgroundColor: colors.background + 'CC', // Backdrop dim
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 50,
+        zIndex: 9999,
     },
     content: {
         backgroundColor: colors.card,

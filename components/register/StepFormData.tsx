@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { FormInput } from "./FormInput";
 import { Button } from "../ui/Button";
-import { colors, spacing, typography, borderRadius } from "../../theme";
+import { spacing, typography, borderRadius } from "../../theme";
+import { useTheme } from "../../context/ThemeContext";
 import { BRAND_NAME } from "../../constants/brand";
 import { BiometricCard } from "./BiometricCard";
-import { formatCUITCUIL, formatDNI, validateEmail, validatePhone, validateDNI, validateName, validateCUITCUIL } from "../../utils/validators";
+import { validateEmail, validatePhone, validateName } from "../../utils/validators";
 import { AlertDialog } from "../ui/AlertDialog";
-import { isTestEnv } from "../../config/environment";
 
 interface FormData {
   nombres: string;
@@ -41,6 +41,8 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
   onContinue,
   isValid,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [alertVisible, setAlertVisible] = React.useState(false);
   const [alertMessage, setAlertMessage] = React.useState("");
 
@@ -48,8 +50,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
   const localLastNameValid = validateName(formData.apellidos);
   const localEmailValid = validateEmail(formData.email);
   const localPhoneValid = validatePhone(formData.telefono);
-  const localDniValid = validateDNI(formData.dni);
-  const localCuitValid = isTestEnv ? true : validateCUITCUIL(formData.cuit);
+  const localDniValid = formData.dni.replace(/\D/g, "").length >= 5; // documento de identidad
   const docVerified = !!formData.zapsign_doc_token; // requerido en sandbox y producción
   const localFormValid =
     localNameValid &&
@@ -57,7 +58,6 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
     localEmailValid &&
     localPhoneValid &&
     localDniValid &&
-    localCuitValid &&
     docVerified;
 
   const handlePressContinue = () => {
@@ -70,8 +70,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
     if (!localLastNameValid) unmet.push("Apellido inválido");
     if (!localEmailValid) unmet.push("Email inválido");
     if (!localPhoneValid) unmet.push("Teléfono inválido");
-    if (!localDniValid) unmet.push("DNI inválido");
-    if (!localCuitValid) unmet.push("CUIT/CUIL inválido");
+    if (!localDniValid) unmet.push("Documento de identidad inválido");
     if (!docVerified) unmet.push("Verificación de identidad pendiente");
     const message = `Revisa los siguientes puntos:\n• ${unmet.join("\n• ")}`;
     setAlertMessage(message);
@@ -129,33 +128,24 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
           label="Teléfono Móvil"
           icon="phone-portrait-outline"
           keyboardType="phone-pad"
-          placeholder="+54 9 11 1234 5678"
+          placeholder="+57 300 123 4567"
           value={formData.telefono}
           onChangeText={(text) => onChange("telefono", text)}
         />
 
         <FormInput
-          label="DNI"
-          placeholder="00.000.000"
+          label="Documento de Identidad"
+          placeholder="Número de documento"
           keyboardType="numeric"
-          maxLength={10} // XX.XXX.XXX
+          maxLength={15}
           value={formData.dni}
-          onChangeText={(text) => onChange("dni", formatDNI(text))}
+          onChangeText={(text) => onChange("dni", text.replace(/[^0-9]/g, ""))}
           rightElement={
             <View style={styles.secureBadge}>
               <Ionicons name="lock-closed" size={12} color={colors.accent} />
               <Text style={styles.secureText}>Seguro</Text>
             </View>
           }
-        />
-
-        <FormInput
-          label="CUIT / CUIL"
-          placeholder="00-00000000-0"
-          keyboardType="numeric"
-          maxLength={13} // XX-XXXXXXXX-X
-          value={formData.cuit}
-          onChangeText={(text) => onChange("cuit", formatCUITCUIL(text))}
         />
 
         <View style={styles.divider} />
@@ -206,7 +196,7 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     paddingBottom: spacing.xl,
   },
@@ -262,7 +252,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(47, 128, 237, 0.1)",
+    backgroundColor: "rgba(139, 123, 214, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },

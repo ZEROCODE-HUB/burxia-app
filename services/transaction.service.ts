@@ -123,7 +123,7 @@ export const transactionService = {
     toIdentifier: string,
     amount: number,
     concept: string = "",
-    paymentMethod: "alias" | "cbu" | "cvu" = "alias",
+    paymentMethod: "alias" | "account_number" = "alias",
   ): Promise<any> {
     const { data, error } = await supabase.rpc("process_transfer", {
       p_from_account_id: fromAccountId,

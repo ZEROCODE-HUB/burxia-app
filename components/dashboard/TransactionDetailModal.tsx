@@ -33,7 +33,9 @@ interface TransactionDetailModalProps {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
     completed: { label: 'Completada', color: colors.success, bg: 'rgba(34, 197, 94, 0.12)', icon: 'checkmark-circle' },
+    approved: { label: 'Aprobada', color: colors.success, bg: 'rgba(34, 197, 94, 0.12)', icon: 'checkmark-circle' },
     pending: { label: 'Pendiente', color: colors.warning, bg: 'rgba(245, 158, 11, 0.12)', icon: 'time' },
+    rejected: { label: 'Rechazada', color: colors.destructive, bg: 'rgba(239, 68, 68, 0.12)', icon: 'close-circle' },
     processing: { label: 'En proceso', color: colors.accent, bg: 'rgba(59, 130, 246, 0.12)', icon: 'sync' },
     failed: { label: 'Fallida', color: colors.destructive, bg: 'rgba(239, 68, 68, 0.12)', icon: 'close-circle' },
     cancelled: { label: 'Cancelada', color: colors.mutedForeground, bg: 'rgba(100, 116, 139, 0.12)', icon: 'ban' },
@@ -42,8 +44,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     alias: 'Alias',
-    cvu: 'CVU',
-    cbu: 'CBU',
+    account_number: 'Número de cuenta',
+    cvu: 'Número de cuenta', // tx antiguas
+    cbu: 'Número de cuenta', // tx antiguas
     qr: 'Código QR',
 };
 
@@ -116,7 +119,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         },
         {
             label: 'Tipo',
-            value: isIncome ? 'Ingreso' : 'Egreso',
+            value: transaction.transaction_type_name || (isIncome ? 'Ingreso' : 'Egreso'),
             icon: isIncome ? 'arrow-down-outline' : 'arrow-up-outline',
         },
         {

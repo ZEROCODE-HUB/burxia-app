@@ -8,10 +8,8 @@ bcrypt.setRandomFallback((len) => {
   return Array.from(randomBytes);
 });
 
-import { sendOtpEmail } from "./email.service";
 import {
-  generateCBU,
-  generateCVU,
+  generateAccountNumber,
   generateAlias,
   getEndOfMonth,
 } from "../utils/generators";
@@ -39,7 +37,6 @@ export interface RegisterData {
 }
 
 // Global state for manual OTP (Resend flow)
-let tempOtp: { code: string; email: string; expires: number } | null = null;
 
 export interface AuthResult {
   success: boolean;
@@ -48,7 +45,7 @@ export interface AuthResult {
   requireDeviceVerification?: boolean;
 }
 // Cuenta de prueba de Play Store — siempre bypassa verificación de dispositivo
-const TEST_ACCOUNT_EMAIL = 'oscarmijaelpg@gmail.com';
+const TEST_ACCOUNT_EMAIL = 'demo@tecnomind.app';
 /**
  * Login con email + PIN
  */
@@ -220,9 +217,20 @@ export async function loginWithPin(
       return { success: false, error: "Esta cuenta se encuentra suspendida." };
     }
 
-    // Verificación de dispositivo (la cuenta de prueba la bypassa).
-    const deviceKnown = await isDeviceKnown(userId, normalizedEmail);
-    if (!deviceKnown) {
+    // Verificación de dispositivo: SOLO si está activada desde el backoffice
+    // (global o por usuario, RPC device_verification_requerida). En web se
+    // omite (sin módulos nativos); la cuenta de prueba la bypassa dentro de
+    // isDeviceKnown. Arranca apagada: exigir un OTP que hoy no se entrega
+    // (sin SMTP) dejaría fuera a cualquier dispositivo nuevo.
+    let requireVerification = false;
+    if (Platform.OS !== 'web') {
+      const { data: mustVerify } = await supabase.rpc('device_verification_requerida' as any);
+      if (mustVerify === true) {
+        const known = await isDeviceKnown(userId, normalizedEmail);
+        requireVerification = !known;
+      }
+    }
+    if (requireVerification) {
       await sendVerificationOtp();
       return { success: true, userId, requireDeviceVerification: true };
     }
@@ -257,7 +265,9 @@ export async function registerUser(data: RegisterData): Promise<AuthResult> {
   try {
     const normalizedEmail = data.email.toLowerCase().trim();
     const cleanDni = data.dni.replace(/\D/g, "");
-    const cleanCuit = data.cuit.replace(/\D/g, "");
+    // Ya no se pide CUIT/CUIL: el documento de identidad hace de identificador
+    // fiscal (tax_id) para satisfacer la unicidad del backend.
+    const cleanCuit = (data.cuit && data.cuit.trim() ? data.cuit : data.dni).replace(/\D/g, "");
     const cleanPhone = data.telefono.trim();
 
     // Chequeo previo con can_register(): responde si el email, el documento
@@ -294,8 +304,8 @@ export async function registerUser(data: RegisterData): Promise<AuthResult> {
           telefono: cleanPhone,
           dni: cleanDni,
           cuit: cleanCuit,
-          tipo_documento: "DNI",
-          pais: "AR",
+          tipo_documento: "CC",
+          pais: "CO",
           // Si el KYC de ZapSign ya corrió, se pasa para que el trigger lo
           // registre en kyc_verifications.
           zapsign_verification_id: data.zapsign_doc_token || null,
@@ -365,17 +375,15 @@ async function createDefaultAccount(userId: string): Promise<AuthResult> {
       return { success: false, error: "No se pudo determinar tipo de cuenta" };
     }
 
-    // 2. Generar CBU, CVU y alias
-    const cbu = generateCBU();
-    const cvu = generateCVU();
-    const alias = generateAlias(cvu);
+    // 2. Generar número de cuenta y alias
+    const accountNumber = generateAccountNumber();
+    const alias = generateAlias(accountNumber);
 
     // 3. Insertar cuenta
     const accountInsert = {
       user_id: userId,
       account_type_id: accountTypeId,
-      cbu,
-      cvu,
+      account_number: accountNumber,
       alias,
       balance: 0,
       status: "active" as const,
@@ -454,30 +462,29 @@ export async function verifyPin(pin: string): Promise<boolean> {
 /**
  * Send OTP using Resend instead of Supabase
  */
+// Verificación de dispositivo por OTP REAL del lado servidor (migración 00035:
+// otp_solicitar / otp_verificar). El código se genera, hashea, expira y limita
+// intentos en la base; la app nunca lo ve ni lo compara. El envío por correo lo
+// hace el worker (Resend). Propósito 'device' para no cruzarse con transferencias.
+const OTP_PURPOSE_DEVICE = "device";
+
 export async function sendVerificationOtp(): Promise<AuthResult> {
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user || !user.email)
-      return { success: false, error: "Usuario no autenticado" };
+    const { data, error } = await supabase.rpc("otp_solicitar" as any, {
+      p_proposito: OTP_PURPOSE_DEVICE,
+    });
+    if (error) return { success: false, error: error.message };
 
-    // 1. Generar código de 6 dígitos
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const row = Array.isArray(data) ? (data as any)[0] : (data as any);
+    if (row?.enviado) return { success: true };
 
-    // 2. Guardar temporalmente para verificación (10 minutos exp)
-    tempOtp = {
-      code,
-      email: user.email,
-      expires: Date.now() + 10 * 60 * 1000,
-    };
-
-    // 3. Enviar notificación (se encargará el worker de Supabase)
-    const res = await sendOtpEmail(user.id, code);
-
-    if (!res.success) throw new Error(res.error);
-
-    return { success: true };
+    // No se envió: se traduce el motivo del servidor a algo legible.
+    const motivo = row?.motivo as string | undefined;
+    if (motivo === "sin_canal")
+      return { success: false, error: "La verificación por correo no está disponible por ahora." };
+    if (motivo === "demasiados_intentos")
+      return { success: false, error: "Pediste demasiados códigos. Esperá un momento e intentá de nuevo." };
+    return { success: false, error: "No se pudo enviar el código de verificación." };
   } catch (error: any) {
     console.error("[AUTH] Error al solicitar OTP:", error);
     return {
@@ -488,28 +495,29 @@ export async function sendVerificationOtp(): Promise<AuthResult> {
 }
 
 /**
- * Verify the manual OTP code
+ * Verifica el OTP contra el hash guardado en la base (otp_verificar).
  */
 export async function verifyVerificationOtp(
   token: string,
 ): Promise<AuthResult> {
   try {
-    if (!tempOtp) {
-      return { success: false, error: "No hay un código pendiente" };
-    }
+    const { data, error } = await supabase.rpc("otp_verificar" as any, {
+      p_codigo: token,
+      p_proposito: OTP_PURPOSE_DEVICE,
+    });
+    if (error) return { success: false, error: error.message };
 
-    if (Date.now() > tempOtp.expires) {
-      tempOtp = null;
-      return { success: false, error: "El código ha expirado" };
-    }
+    const row = Array.isArray(data) ? (data as any)[0] : (data as any);
+    if (row?.valido) return { success: true };
 
-    if (tempOtp.code !== token) {
-      return { success: false, error: "Código incorrecto" };
-    }
-
-    // Código válido, limpiar
-    tempOtp = null;
-    return { success: true };
+    const motivo = row?.motivo as string | undefined;
+    const mapa: Record<string, string> = {
+      no_solicitado: "No hay un código pendiente. Pedí uno nuevo.",
+      expirado: "El código expiró. Pedí uno nuevo.",
+      bloqueado: "Demasiados intentos. Pedí un código nuevo.",
+      incorrecto: "Código incorrecto.",
+    };
+    return { success: false, error: (motivo && mapa[motivo]) || "Código incorrecto" };
   } catch (error: any) {
     return { success: false, error: "Error al verificar el código" };
   }

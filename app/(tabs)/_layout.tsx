@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { shadows } from "../../theme";
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { QrTabBarButton } from "../../components/layout/TabBarButtons";
+import { OtcTabBarButton } from "../../components/layout/TabBarButtons";
 import { useTheme } from "../../context/ThemeContext";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 
@@ -18,6 +18,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: colors.background },
         tabBarStyle: isDesktop ? { display: "none" } : {
           backgroundColor: colors.card,
           borderTopWidth: 1,
@@ -75,13 +76,13 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 3. QR (Botón Central) */}
+      {/* 3. OTC — Comprar/Vender USDT (Botón Central) */}
       <Tabs.Screen
-        name="qr"
+        name="otc"
         options={{
           title: "",
           tabBarButton: (props) => (
-            <QrTabBarButton
+            <OtcTabBarButton
               {...props}
               onPress={() => props.onPress?.(undefined as any)}
             />
@@ -164,6 +165,11 @@ export default function TabsLayout() {
         name="requests"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="qr"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }
+

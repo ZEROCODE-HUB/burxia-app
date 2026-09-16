@@ -24,6 +24,12 @@ export const useAppUpdate = () => {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
+        // En web no hay actualización de app de tienda; además consultar
+        // platform=android con .single() sin filas devolvía 406 en consola.
+        if (Platform.OS === 'web') {
+          setUpdateInfo(prev => ({ ...prev, loading: false }));
+          return;
+        }
         const platform = Platform.OS === 'ios' ? 'ios' : 'android';
         
         // Fetch the latest version for the current platform

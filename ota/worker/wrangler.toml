@@ -1,0 +1,13 @@
+name = "burxia-ota"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# Si tu login de wrangler tiene UNA sola cuenta, no hace falta. Si tenés varias,
+# descomentá y pegá tu Account ID (dashboard de Cloudflare, panel derecho):
+# account_id = "REEMPLAZAR_ACCOUNT_ID"
+
+# Binding al bucket R2 donde viven los updates. El `bucket_name` debe coincidir
+# con el bucket que creaste en Cloudflare (R2 → Create bucket).
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "burxia-ota"

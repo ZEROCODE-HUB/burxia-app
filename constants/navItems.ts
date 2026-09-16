@@ -41,9 +41,9 @@ export const NAV_ITEMS: NavItem[] = [
   // Acciones rápidas
   { icon: 'arrow-down-circle-outline', activeIcon: 'arrow-down-circle', label: 'Depositar', description: 'Cargar saldo a tu cuenta', path: '/deposit', group: 'acciones' },
   { icon: 'arrow-up-circle-outline', activeIcon: 'arrow-up-circle', label: 'Retirar', description: 'Retirar dinero de tu cuenta', path: '/withdraw', group: 'acciones' },
-  { icon: 'documents-outline', activeIcon: 'documents', label: 'Mis solicitudes', description: 'Estado de depósitos y retiros', path: '/requests', group: 'acciones' },
+  { icon: 'swap-vertical-outline', activeIcon: 'swap-vertical', label: 'Comprar / Vender USDT', description: 'Operar USDT (OTC)', path: '/otc', group: 'acciones' },
   { icon: 'qr-code-outline', activeIcon: 'qr-code', label: 'Escanear QR', description: 'Pagar con código QR', path: '/qr', group: 'acciones' },
-  { icon: 'share-social-outline', activeIcon: 'share-social', label: 'Compartir CVU', description: 'Compartir tu información', path: '/share-cvu', group: 'acciones' },
+  { icon: 'share-social-outline', activeIcon: 'share-social', label: 'Compartir cuenta', description: 'Compartir tu información', path: '/share-cvu', group: 'acciones' },
   { icon: 'phone-portrait-outline', activeIcon: 'phone-portrait', label: 'Dispositivos', description: 'Dispositivos vinculados', path: '/profile/devices', group: 'acciones' },
 
   // Ajustes

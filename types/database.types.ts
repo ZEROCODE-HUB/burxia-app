@@ -243,14 +243,12 @@ export type Database = {
       }
       accounts: {
         Row: {
-          account_number: number | null
           account_type_id: string
           alias: string
           balance: number | null
-          cbu: string
           closed_at: string | null
           created_at: string | null
-          cvu: string
+          account_number: string
           id: string
           is_primary: boolean | null
           status: string | null
@@ -259,14 +257,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          account_number?: number | null
           account_type_id: string
           alias: string
           balance?: number | null
-          cbu: string
           closed_at?: string | null
           created_at?: string | null
-          cvu: string
+          account_number: string
           id?: string
           is_primary?: boolean | null
           status?: string | null
@@ -275,14 +271,12 @@ export type Database = {
           user_id: string
         }
         Update: {
-          account_number?: number | null
           account_type_id?: string
           alias?: string
           balance?: number | null
-          cbu?: string
           closed_at?: string | null
           created_at?: string | null
-          cvu?: string
+          account_number?: string
           id?: string
           is_primary?: boolean | null
           status?: string | null
@@ -1666,8 +1660,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           external_alias: string | null
-          external_cbu: string | null
-          external_cvu: string | null
+          external_account_number: string | null
           external_holder_name: string | null
           failed_at: string | null
           failure_reason: string | null
@@ -1694,8 +1687,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           external_alias?: string | null
-          external_cbu?: string | null
-          external_cvu?: string | null
+          external_account_number?: string | null
           external_holder_name?: string | null
           failed_at?: string | null
           failure_reason?: string | null
@@ -1722,8 +1714,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           external_alias?: string | null
-          external_cbu?: string | null
-          external_cvu?: string | null
+          external_account_number?: string | null
           external_holder_name?: string | null
           failed_at?: string | null
           failure_reason?: string | null
@@ -2073,7 +2064,7 @@ export type Database = {
           alias: string | null
           balance_calculated: number | null
           balance_materialized: number | null
-          cvu: string | null
+          account_number: string | null
           difference: number | null
           last_balance_update: string | null
           status: string | null
@@ -2085,7 +2076,7 @@ export type Database = {
           alias?: string | null
           balance_calculated?: never
           balance_materialized?: number | null
-          cvu?: string | null
+          account_number?: string | null
           difference?: never
           last_balance_update?: string | null
           status?: never
@@ -2097,7 +2088,7 @@ export type Database = {
           alias?: string | null
           balance_calculated?: never
           balance_materialized?: number | null
-          cvu?: string | null
+          account_number?: string | null
           difference?: never
           last_balance_update?: string | null
           status?: never
@@ -2195,8 +2186,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           external_alias: string | null
-          external_cbu: string | null
-          external_cvu: string | null
+          external_account_number: string | null
           external_holder_name: string | null
           failed_at: string | null
           failure_reason: string | null
@@ -2305,13 +2295,12 @@ export type Database = {
           account_status_reason: string | null
           alias: string | null
           balance: number | null
-          cbu: string | null
           compliance_notes: string | null
           compliance_reviewed_at: string | null
           compliance_status: string | null
           country_code: string | null
           created_at: string | null
-          cvu: string | null
+          account_number: string | null
           document_number: string | null
           document_type: string | null
           email: string | null
@@ -2343,7 +2332,7 @@ export type Database = {
           failure_reason: string | null
           from_account_id: string | null
           from_alias: string | null
-          from_cvu: string | null
+          from_account_number: string | null
           from_user_document: string | null
           from_user_email: string | null
           from_user_id: string | null
@@ -2358,7 +2347,7 @@ export type Database = {
           status: string | null
           to_account_id: string | null
           to_alias: string | null
-          to_cvu: string | null
+          to_account_number: string | null
           to_user_document: string | null
           to_user_email: string | null
           to_user_id: string | null
@@ -2559,8 +2548,7 @@ export type Database = {
       }
       generate_static_qr: { Args: { p_account_id: string }; Returns: string }
       generate_unique_alias: { Args: never; Returns: string }
-      generate_unique_cbu: { Args: never; Returns: string }
-      generate_unique_cvu: { Args: never; Returns: string }
+      generate_unique_account_number: { Args: never; Returns: string }
       get_account_holder_name: {
         Args: { p_account_id: string }
         Returns: string
@@ -2571,9 +2559,8 @@ export type Database = {
           account_id: string
           alias: string
           balance: number
-          cbu: string
           created_at: string
-          cvu: string
+          account_number: string
           daily_limit: number
           daily_spent: number
           is_primary: boolean
@@ -2608,7 +2595,7 @@ export type Database = {
           alias: string
           balance_calculated: number
           balance_materialized: number
-          cvu: string
+          account_number: string
           difference: number
           status: string
           total_transactions: number
@@ -2771,7 +2758,7 @@ export type Database = {
         Returns: {
           account_id: string
           account_status: string
-          cvu: string
+          account_number: string
           holder_name: string
           is_valid: boolean
         }[]
@@ -2927,7 +2914,7 @@ export type TransactionStatus =
   | "failed"
   | "reversed"
   | "cancelled";
-export type PaymentMethod = "alias" | "cvu" | "cbu" | "qr";
+export type PaymentMethod = "alias" | "account_number" | "qr";
 export type TransactionCategory = "income" | "expense" | "internal";
 export type QRType = "static" | "dynamic";
 export type DeviceStatus = "active" | "inactive" | "revoked";
@@ -2962,14 +2949,12 @@ export interface Account {
   id: string;
   user_id: string;
   account_type_id: string;
-  cbu: string;
-  cvu: string;
+  account_number: string;
   alias: string;
   balance: number;
   status: AccountStatus;
   status_reason: string | null;
   is_primary: boolean;
-  account_number: number;
   created_at: string;
   updated_at: string;
   closed_at: string | null;
@@ -2992,8 +2977,7 @@ export interface Transaction {
   transaction_type_id: string;
   from_account_id: string | null;
   to_account_id: string | null;
-  external_cvu: string | null;
-  external_cbu: string | null;
+  external_account_number: string | null;
   external_alias: string | null;
   external_holder_name: string | null;
   amount: number;

@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import { colors, spacing, borderRadius, typography } from "../../theme";
 import { PIN_LENGTH } from "../../constants/app";
 import { ScreenHeader } from "../../components/layout";
+import { useIsDesktop } from "../../hooks/useIsDesktop";
 import {
   logout,
   updatePin,
@@ -38,6 +39,7 @@ const shuffleArray = (array: number[]): number[] => {
 };
 
 export default function ChangePinScreen() {
+  const isDesktop = useIsDesktop();
   const [step, setStep] = useState<Step>("current");
   const [currentPin, setCurrentPin] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -263,14 +265,20 @@ export default function ChangePinScreen() {
         { backgroundColor: colors.background, paddingTop: insets.top },
       ]}
     >
-      <ScreenHeader
-        title="Cambiar PIN"
-        showBackButton={true}
-        onBack={() => router.back()}
-      />
+      {!isDesktop && (
+        <ScreenHeader
+          title="Cambiar PIN"
+          showBackButton={true}
+          onBack={() => router.back()}
+        />
+      )}
 
       <View
-        style={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
+        style={[
+          styles.content,
+          { paddingBottom: insets.bottom + spacing.xl },
+          isDesktop && styles.contentDesktop,
+        ]}
       >
         {/* Icon */}
         <View style={styles.iconContainer}>
@@ -411,11 +419,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
   },
+  contentDesktop: {
+    width: "100%",
+    maxWidth: 460,
+    alignSelf: "center",
+    paddingTop: spacing.xl * 2.5,
+  },
   iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.accentAlpha?.["10"] || "rgba(47, 128, 237, 0.1)",
+    backgroundColor: colors.accentAlpha?.["10"] || "rgba(139, 123, 214, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: spacing.base,

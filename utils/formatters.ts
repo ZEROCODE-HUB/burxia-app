@@ -20,7 +20,7 @@ export const formatCurrency = (
         }
     }
 
-    const formatted = new Intl.NumberFormat("es-AR", {
+    const formatted = new Intl.NumberFormat("es-CO", {
         minimumFractionDigits: decimals ? 2 : 0,
         maximumFractionDigits: decimals ? 2 : 0,
     }).format(value);
@@ -29,10 +29,10 @@ export const formatCurrency = (
 };
 
 /**
- * Formatea un saldo con 2 decimales siempre (estándar es-AR)
+ * Formatea un saldo con 2 decimales siempre (estándar es-CO)
  */
 export const formatBalance = (value: number): string => {
-    return `$ ${new Intl.NumberFormat("es-AR", {
+    return `$ ${new Intl.NumberFormat("es-CO", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(value)}`;

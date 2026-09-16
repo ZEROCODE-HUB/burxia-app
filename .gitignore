@@ -45,3 +45,13 @@ yarn-error.*
 # Local build artifacts
 magnatebuilds/
 magnate-debug.apk
+credentials/
+credentials.json
+*.keystore
+android/app/bruxia-upload-key.keystore
+
+# --- build artefacts locales (no versionar) ---
+dist-apk/
+build-*.log
+build-*.status
+*.bak

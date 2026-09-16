@@ -1,0 +1,7 @@
+.export/
+.tmp/
+.tmp-rollback/
+
+# Clave PRIVADA de firma de código OTA: NUNCA versionar (como el keystore).
+# El certificado público (certs/) sí puede ir al repo: se embebe en el APK.
+codesigning/keys/

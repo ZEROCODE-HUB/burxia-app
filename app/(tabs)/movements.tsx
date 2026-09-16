@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
@@ -10,22 +10,51 @@ import { ScreenHeader } from '../../components/layout';
 import { SearchBar, FilterChips, FilterType, DateRangeFilter } from '../../components/movements';
 import { TransactionItem } from '../../components/dashboard';
 import { TransactionDetailModal } from '../../components/dashboard';
+import { SolicitudRow } from '../../components/funding/SolicitudRow';
 import { formatBalance } from '../../utils/formatters';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
+import { DesktopBackground } from '../../components/layout/DesktopPage';
 import { transactionService } from '../../services/transaction.service';
 import { statementService } from '../../services/statement.service';
+import { getMySolicitudes, enCurso, SolicitudItem } from '../../services/solicitudes.service';
+
+type FeedItem =
+    | { kind: 'mov'; key: string; created_at: string; mov: any }
+    | { kind: 'sol'; key: string; created_at: string; sol: SolicitudItem };
+
+// Mapea una solicitud (depósito/retiro/OTC en curso) al shape que consume el
+// comprobante (TransactionDetailModal), para que al tocarla abra su detalle
+// igual que un movimiento completado.
+const solToDetail = (s: SolicitudItem) => ({
+    transaction_id: s.transactionId || s.id,
+    created_at: s.createdAt,
+    amount: s.amountFiat,
+    movement_type: (s.isIncome ? 'income' : 'expense') as 'income' | 'expense',
+    status: s.status as any,
+    transaction_type_name: s.title,
+    concept: s.adminComment ? `Operador: ${s.adminComment}` : s.subtitle || undefined,
+    counterpart_name: s.subtitle || undefined,
+    title: s.title,
+    description: s.subtitle || s.title,
+    category: s.kind,
+});
 
 export default function MovementsScreen() {
     const { colors, isDark } = useTheme();
     const insets = useSafeAreaInsets();
     const { account, user } = useAuth();
+    const isDesktop = useIsDesktop();
+  useAccountRefreshOnFocus();
     const [activeFilter, setActiveFilter] = useState<FilterType>('todos');
     const [searchQuery, setSearchQuery] = useState('');
     const [showBalance, setShowBalance] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState(false);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [solicitudes, setSolicitudes] = useState<SolicitudItem[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
 
     const [showDateFilter, setShowDateFilter] = useState(false);
@@ -33,22 +62,14 @@ export default function MovementsScreen() {
 
     const styles = useMemo(() => createStyles(colors), [colors]);
 
-    React.useEffect(() => {
-        loadMovements();
-    }, [account, activeFilter, dateRange]);
-
-    const loadMovements = async () => {
+    const loadMovements = useCallback(async () => {
         if (!account) return;
         setIsLoading(true);
         try {
             const filters: any = {};
             if (activeFilter === 'ingresos') filters.type = 'income';
             if (activeFilter === 'egresos') filters.type = 'expense';
-            if (dateRange) {
-                filters.startDate = dateRange.from;
-                filters.endDate = dateRange.to;
-            }
-
+            if (dateRange) { filters.startDate = dateRange.from; filters.endDate = dateRange.to; }
             const data = await transactionService.getAccountMovements(account.id, 50, 0, filters);
             setTransactions(data);
         } catch (error) {
@@ -56,15 +77,23 @@ export default function MovementsScreen() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [account, activeFilter, dateRange]);
+
+    const loadSolicitudes = useCallback(async () => {
+        try {
+            setSolicitudes(await getMySolicitudes());
+        } catch (e) {
+            console.error('[movements] solicitudes', e);
+        }
+    }, []);
+
+    React.useEffect(() => { loadMovements(); }, [loadMovements]);
+    // Refresca al volver a la pantalla (p.ej. tras crear un depósito/retiro/OTC).
+    useFocusEffect(useCallback(() => { loadSolicitudes(); }, [loadSolicitudes]));
 
     const handleFilterChange = (filter: FilterType) => {
-        if (filter === 'fechas') {
-            setShowDateFilter(true);
-        } else {
-            setActiveFilter(filter);
-            setDateRange(null);
-        }
+        if (filter === 'fechas') setShowDateFilter(true);
+        else { setActiveFilter(filter); setDateRange(null); }
     };
 
     const applyDateFilter = (range: { from: Date; to: Date }) => {
@@ -80,208 +109,131 @@ export default function MovementsScreen() {
             const filters: { type?: 'income' | 'expense'; startDate?: Date; endDate?: Date } = {};
             if (activeFilter === 'ingresos') filters.type = 'income';
             if (activeFilter === 'egresos') filters.type = 'expense';
-            if (dateRange) {
-                filters.startDate = dateRange.from;
-                filters.endDate = dateRange.to;
-            }
-
+            if (dateRange) { filters.startDate = dateRange.from; filters.endDate = dateRange.to; }
             const result = await statementService.generateAndShare({
                 accountId: account.id,
                 accountHolderName: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Usuario',
                 balance: account.balance,
                 filters,
             });
-
-            Alert.alert(
-                'Estado de cuenta',
-                `PDF generado con ${result.count} movimientos.\n\nIngresos: ${formatBalance(result.income)}\nEgresos: ${formatBalance(result.expense)}`,
-            );
+            Alert.alert('Estado de cuenta', `PDF generado con ${result.count} movimientos.\n\nIngresos: ${formatBalance(result.income)}\nEgresos: ${formatBalance(result.expense)}`);
         } catch (error: any) {
             console.error('Error generando estado de cuenta:', error);
-            Alert.alert(
-                'Error',
-                error?.message || 'No se pudo generar el estado de cuenta. Intente nuevamente.',
-            );
+            Alert.alert('Error', error?.message || 'No se pudo generar el estado de cuenta. Intente nuevamente.');
         } finally {
             setIsDownloading(false);
         }
     };
 
-    // Procesar datos para la lista (agrupar y filtrar por búsqueda localmente por ahora)
+    const dateKeyOf = (iso: string) => {
+        const date = new Date(iso);
+        const today = new Date();
+        if (date.toDateString() === today.toDateString()) return 'Hoy';
+        const day = date.getDate();
+        const month = date.toLocaleString('es-ES', { month: 'short' });
+        return `${day} ${month.charAt(0).toUpperCase() + month.slice(1)}`;
+    };
+
+    // Feed único: movimientos (completados) + solicitudes en curso, interleaved.
     const sections = useMemo(() => {
-        // 1. Filtrar por búsqueda
-        let data = transactions;
+        // 1) Movimientos, con filtro de búsqueda local
+        let movs = transactions;
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            data = data.filter(t => {
+            movs = movs.filter((t) => {
                 const concept = (t.concept || t.transaction_type_name || '').toLowerCase();
-                const amount = t.amount.toString();
-                return concept.includes(query) || amount.includes(query);
+                return concept.includes(query) || t.amount.toString().includes(query);
             });
         }
+        const movItems: FeedItem[] = movs.map((t) => ({ kind: 'mov', key: `m_${t.transaction_id}`, created_at: t.created_at, mov: t }));
 
-        // 2. Agrupar por fecha
-        const groups: Record<string, any[]> = {};
+        // 2) Solicitudes en curso (solo sin filtros activos; se deduplican contra
+        //    los movimientos: una solicitud que ya generó su transacción se ve
+        //    como movimiento, no dos veces).
+        const filtering = activeFilter !== 'todos' || !!dateRange || !!searchQuery.trim();
+        let solItems: FeedItem[] = [];
+        if (!filtering) {
+            const movTxIds = new Set(transactions.map((t) => t.transaction_id));
+            solItems = enCurso(solicitudes)
+                .filter((s) => !(s.transactionId && movTxIds.has(s.transactionId)))
+                .map((s) => ({ kind: 'sol', key: s.id, created_at: s.createdAt, sol: s }));
+        }
 
-        data.forEach(t => {
-            const date = new Date(t.created_at);
-            const today = new Date();
-            let dateKey = "";
+        const all = [...movItems, ...solItems].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
-            if (date.toDateString() === today.toDateString()) {
-                dateKey = "Hoy";
-            } else {
-                // Format: "24 Oct"
-                const day = date.getDate();
-                const month = date.toLocaleString('es-ES', { month: 'short' });
-                dateKey = `${day} ${month.charAt(0).toUpperCase() + month.slice(1)}`;
-            }
-
-            if (!groups[dateKey]) {
-                groups[dateKey] = [];
-            }
-
-            // Map to TransactionItem props
-            groups[dateKey].push({
-                id: t.transaction_id,
-                title: t.counterpart_name || t.transaction_type_name,
-                description: t.concept || t.transaction_type_name,
-                amount: formatBalance(t.amount),
-                type: t.movement_type === 'income' ? 'income' : 'expense',
-                iconName: t.movement_type === 'income' ? 'arrow-down' : 'arrow-up',
-                date: t.created_at
-            });
+        const linear: { title: string; data: FeedItem[] }[] = [];
+        let current: { title: string; data: FeedItem[] } | null = null;
+        all.forEach((it) => {
+            const dk = dateKeyOf(it.created_at);
+            if (!current || current.title !== dk) { current = { title: dk, data: [] }; linear.push(current); }
+            current.data.push(it);
         });
-
-        const result: { title: string, data: any[] }[] = [];
-        Object.keys(groups).forEach(date => {
-            result.push({ title: date, data: groups[date] });
-        });
-
-        // Sort by date desc (though object keys might not preserve order appropriately, list is already sorted by date desc)
-        // Better to iterate the original list to maintain order of groups?
-        // Simple approach: we rely on data being sorted by date, so we can build sections linearly.
-
-        const linearSections: { title: string, data: any[] }[] = [];
-        let currentSection: { title: string, data: any[] } | null = null;
-
-        data.forEach(t => {
-            const date = new Date(t.created_at);
-            const today = new Date();
-            let dateKey = "";
-
-            if (date.toDateString() === today.toDateString()) {
-                dateKey = "Hoy";
-            } else {
-                const day = date.getDate();
-                const month = date.toLocaleString('es-ES', { month: 'short' });
-                dateKey = `${day} ${month.charAt(0).toUpperCase() + month.slice(1)}`;
-            }
-
-            if (!currentSection || currentSection.title !== dateKey) {
-                currentSection = { title: dateKey, data: [] };
-                linearSections.push(currentSection);
-            }
-
-            currentSection.data.push({
-                id: t.transaction_id,
-                title: t.counterpart_name || t.transaction_type_name,
-                description: t.concept || t.transaction_type_name,
-                amount: formatBalance(t.amount),
-                type: t.movement_type === 'income' ? 'income' : 'expense',
-                iconName: t.movement_type === 'income' ? 'arrow-down' : 'arrow-up',
-                date: t.created_at,
-                transaction: t
-            });
-        });
-
-        return linearSections;
-
-    }, [transactions, searchQuery]);
+        return linear;
+    }, [transactions, solicitudes, searchQuery, activeFilter, dateRange]);
 
     const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-        <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{title}</Text>
-        </View>
+        <View style={styles.sectionHeader}><Text style={styles.sectionHeaderText}>{title}</Text></View>
     );
 
-    const renderItem = ({ item }: { item: any }) => (
-        <TransactionItem
-            {...item}
-            onPress={() => setSelectedTransaction(item.transaction || item)}
-        />
-    );
+    const renderItem = ({ item }: { item: FeedItem }) => {
+        if (item.kind === 'sol') return <SolicitudRow item={item.sol} onPress={() => setSelectedTransaction(solToDetail(item.sol))} />;
+        const t = item.mov;
+        const props: any = {
+            id: t.transaction_id,
+            title: t.counterpart_name || t.transaction_type_name,
+            description: t.concept || t.transaction_type_name,
+            amount: formatBalance(t.amount),
+            type: t.movement_type === 'income' ? 'income' : 'expense',
+            iconName: t.movement_type === 'income' ? 'arrow-down' : 'arrow-up',
+        };
+        return <TransactionItem {...props} onPress={() => setSelectedTransaction(t)} />;
+    };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar style={isDark ? "light" : "dark"} />
-
-            <ScreenHeader
-                variant="simple"
-                title="Movimientos"
-                showBackButton={true}
-                showAvatar={true}
-            />
+        <View style={[styles.container, isDesktop ? { backgroundColor: 'transparent' } : { paddingTop: insets.top }]}>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+            {isDesktop && <DesktopBackground />}
+            {!isDesktop && <ScreenHeader variant="simple" title="Movimientos" showBackButton showAvatar />}
 
             <SectionList
                 sections={sections}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item) => item.key}
                 renderItem={renderItem}
                 renderSectionHeader={renderSectionHeader}
                 stickySectionHeadersEnabled={false}
-                contentContainerStyle={[
-                    styles.listContent,
-                    { paddingBottom: insets.bottom + 90 }
-                ]}
+                ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }, isDesktop && styles.desktopCentered]}
                 showsVerticalScrollIndicator={false}
                 refreshing={isLoading}
-                onRefresh={loadMovements}
+                onRefresh={() => { loadMovements(); loadSolicitudes(); }}
                 ListHeaderComponent={
                     <>
+                        {isDesktop && (
+                            <View style={styles.dtHeader}>
+                                <Text style={styles.dtTitle}>Movimientos</Text>
+                                <Text style={styles.dtSub}>Historial de tu actividad y solicitudes</Text>
+                            </View>
+                        )}
                         <View style={styles.balanceSection}>
                             <View>
                                 <Text style={styles.balanceLabel}>Saldo disponible</Text>
                                 <Text style={styles.balanceAmount}>
-                                    {showBalance ? formatBalance(account?.balance || 0) : "••••••"}
+                                    {showBalance ? formatBalance(account?.balance || 0) : '••••••'}
                                 </Text>
                             </View>
-                            <TouchableOpacity
-                                onPress={() => setShowBalance(!showBalance)}
-                                style={styles.eyeButton}
-                            >
-                                <Ionicons
-                                    name={showBalance ? "eye-off-outline" : "eye-outline"}
-                                    size={24}
-                                    color={colors.mutedForeground}
-                                />
+                            <TouchableOpacity onPress={() => setShowBalance(!showBalance)} style={styles.eyeButton}>
+                                <Ionicons name={showBalance ? 'eye-off-outline' : 'eye-outline'} size={24} color={colors.mutedForeground} />
                             </TouchableOpacity>
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.statementButton}
-                            onPress={handleDownloadStatement}
-                            disabled={isDownloading}
-                            activeOpacity={0.7}
-                        >
-                            {isDownloading ? (
-                                <ActivityIndicator size="small" color={colors.accent} />
-                            ) : (
-                                <Ionicons name="download-outline" size={20} color={colors.accent} />
-                            )}
-                            <Text style={styles.statementButtonText}>
-                                {isDownloading ? 'Generando PDF...' : 'Descargar estado de cuenta'}
-                            </Text>
+                        <TouchableOpacity style={styles.statementButton} onPress={handleDownloadStatement} disabled={isDownloading} activeOpacity={0.7}>
+                            {isDownloading ? <ActivityIndicator size="small" color={colors.accent} /> : <Ionicons name="download-outline" size={20} color={colors.accent} />}
+                            <Text style={styles.statementButtonText}>{isDownloading ? 'Generando PDF...' : 'Descargar estado de cuenta'}</Text>
                         </TouchableOpacity>
 
                         <View style={styles.filtersSection}>
-                            <SearchBar
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                            <FilterChips
-                                activeFilter={activeFilter}
-                                onFilterChange={handleFilterChange}
-                            />
+                            <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+                            <FilterChips activeFilter={activeFilter} onFilterChange={handleFilterChange} />
                         </View>
                     </>
                 }
@@ -292,8 +244,8 @@ export default function MovementsScreen() {
                             <Text style={styles.emptyTitle}>Sin movimientos</Text>
                             <Text style={styles.emptyText}>
                                 {searchQuery || activeFilter !== 'todos'
-                                    ? "No encontramos resultados con esos filtros"
-                                    : "Aún no tienes movimientos registrados"}
+                                    ? 'No encontramos resultados con esos filtros'
+                                    : 'Aún no tenés movimientos ni solicitudes'}
                             </Text>
                         </View>
                     ) : null
@@ -301,100 +253,37 @@ export default function MovementsScreen() {
                 ListFooterComponent={<View style={{ height: 80 }} />}
             />
 
-            <DateRangeFilter
-                visible={showDateFilter}
-                onClose={() => setShowDateFilter(false)}
-                onApply={applyDateFilter}
-            />
-
-            <TransactionDetailModal
-                visible={!!selectedTransaction}
-                onClose={() => setSelectedTransaction(null)}
-                transaction={selectedTransaction}
-            />
+            <DateRangeFilter visible={showDateFilter} onClose={() => setShowDateFilter(false)} onApply={applyDateFilter} />
+            <TransactionDetailModal visible={!!selectedTransaction} onClose={() => setSelectedTransaction(null)} transaction={selectedTransaction} />
         </View>
     );
 }
 
 const createStyles = (colors: any) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
-    listContent: {
-        paddingHorizontal: spacing.lg,
-    },
+    container: { flex: 1, backgroundColor: colors.background },
+    listContent: { paddingHorizontal: spacing.lg },
+    desktopCentered: { width: '100%', maxWidth: 860, alignSelf: 'center' },
+    dtHeader: { marginBottom: spacing.lg, paddingTop: spacing.md },
+    dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
+    dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
     balanceSection: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: spacing.md,
-        backgroundColor: colors.card,
-        borderRadius: borderRadius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: spacing.md,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        padding: spacing.md, backgroundColor: colors.card, borderRadius: borderRadius.lg,
+        borderWidth: 1, borderColor: colors.border, marginBottom: spacing.md,
     },
-    balanceLabel: {
-        fontSize: typography.sizes.sm,
-        color: colors.mutedForeground,
-        marginBottom: 4,
-    },
-    balanceAmount: {
-        fontSize: typography.sizes.xl,
-        fontWeight: '700',
-        color: colors.foreground,
-    },
-    eyeButton: {
-        padding: 8,
-        borderRadius: borderRadius.full,
-        backgroundColor: colors.mutedAlpha[20],
-    },
+    balanceLabel: { fontSize: typography.sizes.sm, color: colors.mutedForeground, marginBottom: 4 },
+    balanceAmount: { fontSize: typography.sizes.xl, fontWeight: '700', color: colors.foreground },
+    eyeButton: { padding: 8, borderRadius: borderRadius.full, backgroundColor: colors.mutedAlpha[20] },
     statementButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: spacing.sm,
-        paddingVertical: spacing.base,
-        borderRadius: borderRadius.lg,
-        borderWidth: 1.5,
-        borderColor: colors.border,
-        backgroundColor: colors.card,
-        marginBottom: spacing.md,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
+        paddingVertical: spacing.base, borderRadius: borderRadius.lg, borderWidth: 1.5,
+        borderColor: colors.border, backgroundColor: colors.card, marginBottom: spacing.md,
     },
-    statementButtonText: {
-        fontSize: typography.sizes.base,
-        fontWeight: '600',
-        color: colors.accent,
-    },
-    filtersSection: {
-        gap: spacing.md,
-        marginBottom: spacing.md,
-    },
-    sectionHeader: {
-        paddingVertical: spacing.sm,
-        backgroundColor: colors.background,
-        marginBottom: spacing.xs,
-    },
-    sectionHeaderText: {
-        fontSize: typography.sizes.sm,
-        fontWeight: '600',
-        color: colors.mutedForeground,
-        textTransform: 'uppercase',
-    },
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: spacing['3xl'],
-        gap: spacing.sm,
-    },
-    emptyTitle: {
-        fontSize: typography.sizes.lg,
-        fontWeight: '600',
-        color: colors.foreground,
-    },
-    emptyText: {
-        color: colors.mutedForeground,
-        textAlign: 'center',
-    },
+    statementButtonText: { fontSize: typography.sizes.base, fontWeight: '600', color: colors.accent },
+    filtersSection: { gap: spacing.md, marginBottom: spacing.md },
+    sectionHeader: { paddingVertical: spacing.sm, backgroundColor: 'transparent', marginBottom: spacing.xs },
+    sectionHeaderText: { fontSize: typography.sizes.sm, fontWeight: '600', color: colors.mutedForeground, textTransform: 'uppercase' },
+    emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing['3xl'], gap: spacing.sm },
+    emptyTitle: { fontSize: typography.sizes.lg, fontWeight: '600', color: colors.foreground },
+    emptyText: { color: colors.mutedForeground, textAlign: 'center' },
 });
