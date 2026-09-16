@@ -25,21 +25,48 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
     const [status, setStatus] = useState<ScanStatus>('idle');
     const [errorMsg, setErrorMsg] = useState('');
 
-    const abrirVerificacion = () => {
+    // Igual que en móvil: intenta el flujo API (reutiliza doc por email); si el
+    // servidor no puede, cae al link público.
+    const obtenerUrlVerificacion = async (): Promise<string> => {
+        try {
+            const { data, error } = await supabase.functions.invoke('zapsign-proxy', {
+                body: {
+                    action: 'create-or-get-doc',
+                    name: userName.trim(),
+                    email: userEmail.trim().toLowerCase(),
+                },
+            });
+            const signUrl = (data as any)?.signUrl;
+            if (!error && typeof signUrl === 'string' && signUrl) return signUrl;
+        } catch (e) {
+            console.warn('[BiometricCard.web] fallback a link público:', e);
+        }
+        return KYC_PUBLIC_LINK;
+    };
+
+    const abrirVerificacion = async () => {
         if (!userName || !userEmail) {
             setErrorMsg('Completa tu nombre y email primero');
             setStatus('error');
             setTimeout(() => setStatus('idle'), 3000);
             return;
         }
-        const win = window.open(KYC_PUBLIC_LINK, '_blank', 'noopener,noreferrer');
+        // Abrimos la pestaña YA (con el gesto del usuario, para no gatillar el
+        // bloqueo de popups) y la redirigimos a la URL real cuando la tengamos.
+        const win = window.open('', '_blank');
         if (!win) {
             setErrorMsg('El navegador bloqueó la ventana. Permití las ventanas emergentes y reintentá.');
             setTimeout(() => setErrorMsg(''), 4000);
             return;
         }
+        try {
+            win.document.write('<p style="font-family:sans-serif;padding:24px;color:#2D2154">Preparando verificación…</p>');
+        } catch { /* noop */ }
         setErrorMsg('');
+        setStatus('creating');
+        const url = await obtenerUrlVerificacion();
         setStatus('waiting_signature');
+        try { win.location.href = url; } catch { (win as any).location = url; }
     };
 
     // Verificación REAL contra el servidor (webhook de ZapSign), no auto-declaración.

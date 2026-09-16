@@ -36,7 +36,7 @@ export const showSandboxOtpOnScreen = getEnvVar('EXPO_PUBLIC_SHOW_SANDBOX_OTP') 
 // cuenta SANDBOX (gratis, no gasta créditos reales); en release, la de prod.
 // Cambiar de una a otra = cambiar EXPO_PUBLIC_APP_ENV, sin tocar código.
 export const KYC_PUBLIC_LINK = isTestEnv
-    ? 'https://sandbox.app.zapsign.com.br/verificar/doc/efe0e05a-d331-451f-a1c8-bae0f90f894d'
+    ? 'https://sandbox.app.zapsign.com.br/verificar/doc/2e555468-834b-4277-b39f-2585a845a12d'
     : 'https://app.zapsign.co/verificar/doc/b23ddd4b-6af3-4613-9a83-17a2a1ade26f';
 
 /**

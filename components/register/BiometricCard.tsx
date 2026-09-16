@@ -40,6 +40,27 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
     // de firmar" a esa URL, al terminar ZapSign redirige, el tab se cierra SOLO y
     // marcamos completado AUTOMÁTICAMENTE. Si no hay redirect (o el usuario cierra
     // a mano), queda en waiting_signature con el botón manual de fallback.
+    // Obtiene la URL de verificación. Intenta el flujo por API (create-or-get-doc):
+    // el servidor REUTILIZA el documento de ese email si ya existe, así no se crea
+    // (ni cobra) uno nuevo por cada reintento. Si el servidor no puede (p.ej. prod
+    // sin API Plan → 402/503, o error de red), cae al link público de siempre.
+    const obtenerUrlVerificacion = async (): Promise<string> => {
+        try {
+            const { data, error } = await supabase.functions.invoke('zapsign-proxy', {
+                body: {
+                    action: 'create-or-get-doc',
+                    name: userName.trim(),
+                    email: userEmail.trim().toLowerCase(),
+                },
+            });
+            const signUrl = (data as any)?.signUrl;
+            if (!error && typeof signUrl === 'string' && signUrl) return signUrl;
+        } catch (e) {
+            console.warn('[BiometricCard] fallback a link público:', e);
+        }
+        return KYC_PUBLIC_LINK;
+    };
+
     const abrirVerificacion = async () => {
         if (!userName || !userEmail) {
             setErrorMsg('Completa tu nombre y email primero');
@@ -49,9 +70,11 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
         }
         try {
             setErrorMsg('');
+            setStatus('creating'); // preparando el documento (o reutilizando)
+            const url = await obtenerUrlVerificacion();
             setStatus('waiting_signature');
             const result = await WebBrowser.openAuthSessionAsync(
-                KYC_PUBLIC_LINK,
+                url,
                 KYC_REDIRECT_URL,
                 { showTitle: true, toolbarColor: '#2D2154' },
             );
