@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { TransactionItem } from './TransactionItem';
@@ -49,7 +49,12 @@ const solToDetail = (s: SolicitudItem) => ({
     category: s.kind,
 });
 
-export const TransactionsList = () => {
+export interface TransactionsListHandle {
+    /** Recarga la lista bajo demanda (p.ej. desde el pull-to-refresh del Dashboard). */
+    refresh: () => Promise<void>;
+}
+
+export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref) => {
     const { colors } = useTheme();
     const { account } = useAuth();
     const styles = useMemo(() => createStyles(colors), [colors]);
@@ -64,6 +69,11 @@ export const TransactionsList = () => {
             loadFeed();
         }, [account?.id])
     );
+
+    // Permite que el Dashboard dispare la recarga de la lista en su pull-to-refresh.
+    // Sin esto, el gesto de refrescar solo actualizaba el saldo y el estado de las
+    // solicitudes quedaba viejo (ej: "Pendiente" ya aprobado).
+    useImperativeHandle(ref, () => ({ refresh: async () => { await loadFeed(); } }));
 
     // "Últimos Movimientos" = transacciones completadas + solicitudes EN CURSO
     // (pendientes/rechazadas), unificadas y deduplicadas, igual que la pantalla
@@ -140,7 +150,8 @@ export const TransactionsList = () => {
             <TransactionDetailModal visible={!!selected} onClose={() => setSelected(null)} transaction={selected} />
         </View>
     );
-};
+});
+TransactionsList.displayName = 'TransactionsList';
 
 const createStyles = (colors: any) => StyleSheet.create({
     container: {

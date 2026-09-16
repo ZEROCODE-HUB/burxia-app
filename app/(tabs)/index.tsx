@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../components/layout';
@@ -7,6 +7,7 @@ import {
     QuickActions,
     TransactionsList
 } from '../../components/dashboard';
+import type { TransactionsListHandle } from '../../components/dashboard/TransactionsList';
 import { spacing } from '../../theme';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,10 +25,18 @@ export default function DashboardScreen() {
     const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
     const [refreshing, setRefreshing] = useState(false);
+    const listRef = useRef<TransactionsListHandle>(null);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await Promise.all([refreshUser(), refreshBalance()]);
+        // Refrescar saldo + usuario Y la lista (movimientos/solicitudes). Antes solo
+        // se refrescaba el saldo, por eso el estado de una solicitud ya aprobada
+        // seguía mostrándose "Pendiente" tras deslizar para recargar.
+        await Promise.all([
+            refreshUser(),
+            refreshBalance(),
+            listRef.current?.refresh() ?? Promise.resolve(),
+        ]);
         setRefreshing(false);
     }, [refreshUser, refreshBalance]);
 
@@ -66,7 +75,7 @@ export default function DashboardScreen() {
 
                 <QuickActions />
 
-                <TransactionsList />
+                <TransactionsList ref={listRef} />
 
                 {/* Padding final para scroll */}
                 <View style={{ height: 80 }} />
