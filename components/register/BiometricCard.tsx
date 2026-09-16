@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, AppState } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { spacing, borderRadius } from '../../theme';
@@ -31,6 +31,25 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [status, setStatus] = useState<ScanStatus>('idle');
     const [errorMsg, setErrorMsg] = useState('');
+
+    // Refs para que el listener de AppState (creado una sola vez) siempre vea el
+    // estado y la verificación más recientes, sin quedar con closures viejos.
+    const statusRef = useRef(status);
+    statusRef.current = status;
+    const verifyRef = useRef<() => void>(() => {});
+
+    // En MIUI y algunos Android, openAuthSessionAsync no cierra el Custom Tab tras
+    // el redirect y el deep link bruxia://kyc-done trae la app al frente por otro
+    // camino. Este listener cubre TODOS los casos: cuando la app vuelve a primer
+    // plano y estábamos esperando la firma, verificamos contra el servidor.
+    useEffect(() => {
+        const sub = AppState.addEventListener('change', (next) => {
+            if (next === 'active' && statusRef.current === 'waiting_signature') {
+                verifyRef.current();
+            }
+        });
+        return () => sub.remove();
+    }, []);
 
     // Abre el link público de ZapSign en un Custom Tab (Chrome embebido → la
     // cámara funciona, sin salir de la app).
@@ -119,6 +138,8 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
             setTimeout(() => setErrorMsg(''), 5000);
         }
     };
+    // Mantener la ref apuntando a la última versión (captura el email actual).
+    verifyRef.current = () => verificarEnServidor();
 
     const renderButton = () => {
         if (status === 'creating') {

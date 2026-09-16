@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius } from '../../theme';
@@ -24,6 +24,19 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [status, setStatus] = useState<ScanStatus>('idle');
     const [errorMsg, setErrorMsg] = useState('');
+
+    // Al volver el foco a la pestaña de la app (tras verificar en la pestaña de
+    // ZapSign), verificamos solo contra el servidor si estábamos esperando.
+    const statusRef = useRef(status);
+    statusRef.current = status;
+    const verifyRef = useRef<() => void>(() => {});
+    useEffect(() => {
+        const onFocus = () => {
+            if (statusRef.current === 'waiting_signature') verifyRef.current();
+        };
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, []);
 
     // Igual que en móvil: intenta el flujo API (reutiliza doc por email); si el
     // servidor no puede, cae al link público.
@@ -94,6 +107,7 @@ export const BiometricCard: React.FC<BiometricCardProps> = ({ userName, userEmai
             setTimeout(() => setErrorMsg(''), 5000);
         }
     };
+    verifyRef.current = () => verificarEnServidor();
 
     const renderButton = () => {
         if (status === 'creating') {
