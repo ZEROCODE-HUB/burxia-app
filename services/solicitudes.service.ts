@@ -1,5 +1,7 @@
-import { getMyRequests, FundingRequest } from "./funding.service";
-import { getMyOtcOrders, OtcOrder } from "./otc.service";
+import { getMyRequests, type FundingRequest } from "./funding.service";
+import { getMyOtcOrders, type OtcOrder } from "./otc.service";
+export type { FundingRequest } from "./funding.service";
+export type { OtcOrder } from "./otc.service";
 
 /**
  * Vista unificada de "solicitudes" del usuario: depósitos/retiros (fondeo) +
@@ -21,7 +23,8 @@ export interface SolicitudItem {
   adminComment: string | null;
   createdAt: string;
   isIncome: boolean; // entra dinero al saldo (para ícono/color)
-  rawOtc?: OtcOrder; // orden OTC cruda: permite abrir el comprobante rico (OperationVoucher)
+  rawOtc?: OtcOrder; // orden OTC cruda: para el comprobante rico
+  rawFunding?: FundingRequest; // solicitud de fondeo cruda: para el comprobante rico
 }
 
 const fmtCrypto = (n: number) => n.toLocaleString("es-CO", { maximumFractionDigits: 6 });
@@ -41,6 +44,7 @@ function fromFunding(r: FundingRequest): SolicitudItem {
     adminComment: r.admin_comment,
     createdAt: r.created_at,
     isIncome: isDeposit,
+    rawFunding: r,
   };
 }
 

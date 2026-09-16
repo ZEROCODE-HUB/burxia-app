@@ -2,10 +2,9 @@ import React, { useMemo, useCallback, forwardRef, useImperativeHandle } from 're
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { TransactionItem } from './TransactionItem';
-import { TransactionDetailModal } from './TransactionDetailModal';
-import { OperationVoucher } from '../OperationVoucher';
 import { SolicitudRow } from '../funding/SolicitudRow';
-import type { OtcOrder } from '../../services/otc.service';
+import { Voucher, type VoucherModel } from '../Voucher';
+import { buildOtcVoucher, buildFundingVoucher, buildTxVoucher } from '../voucher.builders';
 import { spacing, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -18,38 +17,11 @@ type FeedItem =
     | { kind: 'mov'; key: string; createdAt: string; mov: MovProps; raw: any }
     | { kind: 'sol'; key: string; createdAt: string; sol: SolicitudItem };
 
-// Mapea una transacción cruda / una solicitud al shape del comprobante
-// (TransactionDetailModal), para abrir el detalle al tocar cualquier fila.
-const txToDetail = (t: any, accountId?: string) => {
-    const isIncome = t.to_account_id === accountId;
-    return {
-        transaction_id: t.id,
-        created_at: t.created_at,
-        amount: t.amount,
-        movement_type: (isIncome ? 'income' : 'expense') as 'income' | 'expense',
-        status: t.status as any,
-        transaction_type_name: t.transaction_types?.name,
-        concept: t.concept || undefined,
-        counterpart_name: t.external_holder_name || undefined,
-        reference_number: t.reference_number,
-        payment_method: t.payment_method,
-        title: t.external_holder_name || t.transaction_types?.name || 'Movimiento',
-        description: t.concept || t.transaction_types?.name || '',
-    };
-};
-const solToDetail = (s: SolicitudItem) => ({
-    transaction_id: s.transactionId || s.id,
-    created_at: s.createdAt,
-    amount: s.amountFiat,
-    movement_type: (s.isIncome ? 'income' : 'expense') as 'income' | 'expense',
-    status: s.status as any,
-    transaction_type_name: s.title,
-    concept: s.adminComment ? `Operador: ${s.adminComment}` : s.subtitle || undefined,
-    counterpart_name: s.subtitle || undefined,
-    title: s.title,
-    description: s.subtitle || s.title,
-    category: s.kind,
-});
+// Comprobante ÚNICO para cualquier solicitud (OTC / depósito / retiro).
+const solToVoucher = (s: SolicitudItem, user: any): VoucherModel =>
+    s.source === 'otc' && s.rawOtc
+        ? buildOtcVoucher(s.rawOtc, user)
+        : buildFundingVoucher(s.rawFunding as any, user);
 
 export interface TransactionsListHandle {
     /** Recarga la lista bajo demanda (p.ej. desde el pull-to-refresh del Dashboard). */
@@ -58,18 +30,19 @@ export interface TransactionsListHandle {
 
 export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref) => {
     const { colors } = useTheme();
-    const { account } = useAuth();
+    const { account, user } = useAuth();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [feed, setFeed] = React.useState<FeedItem[]>([]);
     const [loading, setLoading] = React.useState(true);
-    const [selected, setSelected] = React.useState<any | null>(null);
-    const [otcOrder, setOtcOrder] = React.useState<OtcOrder | null>(null);
+    const [voucher, setVoucher] = React.useState<VoucherModel | null>(null);
+    const solsRef = React.useRef<SolicitudItem[]>([]);
 
-    // Abre el comprobante correcto: para OTC, el rico OperationVoucher (igual que
-    // al crear la operación); para depósito/retiro, el detalle genérico.
-    const abrirComprobante = (sol: SolicitudItem) => {
-        if (sol.source === 'otc' && sol.rawOtc) setOtcOrder(sol.rawOtc);
-        else setSelected(solToDetail(sol));
+    // Al tocar un movimiento (transacción): si corresponde a una solicitud
+    // (OTC/fondeo) ya resuelta, mostramos SU comprobante rico; si no, el de
+    // transacción. Así el MISMO comprobante y campos se ven en todos lados.
+    const abrirMov = (t: any) => {
+        const sol = solsRef.current.find((s) => s.transactionId && s.transactionId === t.id);
+        setVoucher(sol ? solToVoucher(sol, user) : buildTxVoucher(t, account?.id, user));
     };
 
     // Refresca al montar y CADA VEZ que la pantalla recupera foco (así se ve el
@@ -95,6 +68,7 @@ export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref)
                 transactionService.getRecentTransactions(account.id),
                 getMySolicitudes().catch(() => [] as SolicitudItem[]),
             ]);
+            solsRef.current = sols; // para vincular una transacción con su solicitud
 
             const txIds = new Set(txs.map((t: any) => t.id));
             const movItems: FeedItem[] = txs.map((t: any) => {
@@ -151,14 +125,13 @@ export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref)
                 ) : (
                     feed.map((item) =>
                         item.kind === 'sol'
-                            ? <SolicitudRow key={item.key} item={item.sol} onPress={() => abrirComprobante(item.sol)} />
-                            : <TransactionItem key={item.key} {...(item.mov as any)} onPress={() => setSelected(txToDetail(item.raw, account?.id))} />
+                            ? <SolicitudRow key={item.key} item={item.sol} onPress={() => setVoucher(solToVoucher(item.sol, user))} />
+                            : <TransactionItem key={item.key} {...(item.mov as any)} onPress={() => abrirMov(item.raw)} />
                     )
                 )}
             </View>
 
-            <TransactionDetailModal visible={!!selected} onClose={() => setSelected(null)} transaction={selected} />
-            <OperationVoucher order={otcOrder} visible={!!otcOrder} onClose={() => setOtcOrder(null)} />
+            <Voucher model={voucher} visible={!!voucher} onClose={() => setVoucher(null)} />
         </View>
     );
 });

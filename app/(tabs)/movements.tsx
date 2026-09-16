@@ -9,10 +9,9 @@ import { spacing, typography, borderRadius } from '../../theme';
 import { ScreenHeader } from '../../components/layout';
 import { SearchBar, FilterChips, FilterType, DateRangeFilter } from '../../components/movements';
 import { TransactionItem } from '../../components/dashboard';
-import { TransactionDetailModal } from '../../components/dashboard';
-import { OperationVoucher } from '../../components/OperationVoucher';
-import type { OtcOrder } from '../../services/otc.service';
 import { SolicitudRow } from '../../components/funding/SolicitudRow';
+import { Voucher, type VoucherModel } from '../../components/Voucher';
+import { buildOtcVoucher, buildFundingVoucher, buildTxVoucher } from '../../components/voucher.builders';
 import { formatBalance } from '../../utils/formatters';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -27,22 +26,11 @@ type FeedItem =
     | { kind: 'mov'; key: string; created_at: string; mov: any }
     | { kind: 'sol'; key: string; created_at: string; sol: SolicitudItem };
 
-// Mapea una solicitud (depósito/retiro/OTC en curso) al shape que consume el
-// comprobante (TransactionDetailModal), para que al tocarla abra su detalle
-// igual que un movimiento completado.
-const solToDetail = (s: SolicitudItem) => ({
-    transaction_id: s.transactionId || s.id,
-    created_at: s.createdAt,
-    amount: s.amountFiat,
-    movement_type: (s.isIncome ? 'income' : 'expense') as 'income' | 'expense',
-    status: s.status as any,
-    transaction_type_name: s.title,
-    concept: s.adminComment ? `Operador: ${s.adminComment}` : s.subtitle || undefined,
-    counterpart_name: s.subtitle || undefined,
-    title: s.title,
-    description: s.subtitle || s.title,
-    category: s.kind,
-});
+// Comprobante ÚNICO para cualquier solicitud (OTC / depósito / retiro).
+const solToVoucher = (s: SolicitudItem, user: any): VoucherModel =>
+    s.source === 'otc' && s.rawOtc
+        ? buildOtcVoucher(s.rawOtc, user)
+        : buildFundingVoucher(s.rawFunding as any, user);
 
 export default function MovementsScreen() {
     const { colors, isDark } = useTheme();
@@ -57,8 +45,14 @@ export default function MovementsScreen() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [solicitudes, setSolicitudes] = useState<SolicitudItem[]>([]);
-    const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
-    const [otcOrder, setOtcOrder] = useState<OtcOrder | null>(null);
+    const [voucher, setVoucher] = useState<VoucherModel | null>(null);
+
+    // Al tocar un movimiento: si corresponde a una solicitud (OTC/fondeo) resuelta,
+    // muestra SU comprobante rico; si no, el de transacción.
+    const abrirMov = (t: any) => {
+        const sol = solicitudes.find((s) => s.transactionId && s.transactionId === t.transaction_id);
+        setVoucher(sol ? solToVoucher(sol, user) : buildTxVoucher(t, account?.id, user));
+    };
 
     const [showDateFilter, setShowDateFilter] = useState(false);
     const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
@@ -179,11 +173,7 @@ export default function MovementsScreen() {
     );
 
     const renderItem = ({ item }: { item: FeedItem }) => {
-        if (item.kind === 'sol') return <SolicitudRow item={item.sol} onPress={() => {
-            // OTC: comprobante rico (igual que al crear). Fondeo: detalle genérico.
-            if (item.sol.source === 'otc' && item.sol.rawOtc) setOtcOrder(item.sol.rawOtc);
-            else setSelectedTransaction(solToDetail(item.sol));
-        }} />;
+        if (item.kind === 'sol') return <SolicitudRow item={item.sol} onPress={() => setVoucher(solToVoucher(item.sol, user))} />;
         const t = item.mov;
         const props: any = {
             id: t.transaction_id,
@@ -193,7 +183,7 @@ export default function MovementsScreen() {
             type: t.movement_type === 'income' ? 'income' : 'expense',
             iconName: t.movement_type === 'income' ? 'arrow-down' : 'arrow-up',
         };
-        return <TransactionItem {...props} onPress={() => setSelectedTransaction(t)} />;
+        return <TransactionItem {...props} onPress={() => abrirMov(t)} />;
     };
 
     return (
@@ -261,8 +251,7 @@ export default function MovementsScreen() {
             />
 
             <DateRangeFilter visible={showDateFilter} onClose={() => setShowDateFilter(false)} onApply={applyDateFilter} />
-            <TransactionDetailModal visible={!!selectedTransaction} onClose={() => setSelectedTransaction(null)} transaction={selectedTransaction} />
-            <OperationVoucher order={otcOrder} visible={!!otcOrder} onClose={() => setOtcOrder(null)} />
+            <Voucher model={voucher} visible={!!voucher} onClose={() => setVoucher(null)} />
         </View>
     );
 }
