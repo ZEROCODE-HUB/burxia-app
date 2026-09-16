@@ -6,12 +6,12 @@ import { spacing, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { ZapSignBiometric } from '../../services/zapsign.service';
 import { supabase } from '../../lib/supabase';
+import { KYC_PUBLIC_LINK } from '../../config/environment';
 
-// Link PÚBLICO del modelo de ZapSign (verificación de identidad). Es la vía WEB
-// (no API): funciona con el plan Web. Se abre en un Custom Tab; el usuario llena
-// el formulario + hace la verificación de identidad (documento/selfie/video) ahí
-// dentro. Si cambia el modelo, se actualiza por OTA.
-const KYC_PUBLIC_LINK = 'https://app.zapsign.co/verificar/doc/b23ddd4b-6af3-4613-9a83-17a2a1ade26f';
+// KYC_PUBLIC_LINK: link PÚBLICO del modelo de ZapSign (verificación de identidad),
+// vía WEB (no API). Se abre en un Custom Tab; el usuario llena el formulario + hace
+// la verificación de identidad (documento/selfie/video) ahí dentro. El valor sale
+// de config/environment.ts según el entorno (sandbox en QA, prod en release).
 
 // Deep link al que ZapSign debe redirigir al terminar la firma (se configura en
 // la plantilla → "redirect después de firmar"). Si está configurado, la app

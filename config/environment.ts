@@ -26,10 +26,18 @@ export const isProductionEnv = APP_ENV === 'production';
  */
 export const showSandboxOtpOnScreen = getEnvVar('EXPO_PUBLIC_SHOW_SANDBOX_OTP') === 'true';
 
-// La configuración de ZapSign (API key, template, base url, tipo de
-// validación) ya no vive acá: se movió a la Edge Function zapsign-proxy,
-// del lado servidor. Nada de eso debe estar en el cliente, porque todo lo
-// EXPO_PUBLIC_ queda incrustado en el binario. Ver services/zapsign.service.ts.
+// La configuración SECRETA de ZapSign (API key, tipo de validación) ya no vive
+// acá: se movió a la Edge Function zapsign-proxy, del lado servidor. Nada de eso
+// debe estar en el cliente, porque todo lo EXPO_PUBLIC_ queda incrustado en el
+// binario. Ver services/zapsign.service.ts.
+//
+// El LINK público de la plantilla NO es secreto (es una URL pública de firma),
+// así que sí puede vivir en el cliente. Se elige por entorno: en QA usamos la
+// cuenta SANDBOX (gratis, no gasta créditos reales); en release, la de prod.
+// Cambiar de una a otra = cambiar EXPO_PUBLIC_APP_ENV, sin tocar código.
+export const KYC_PUBLIC_LINK = isTestEnv
+    ? 'https://sandbox.app.zapsign.com.br/verificar/doc/efe0e05a-d331-451f-a1c8-bae0f90f894d'
+    : 'https://app.zapsign.co/verificar/doc/b23ddd4b-6af3-4613-9a83-17a2a1ade26f';
 
 /**
  * Validate CUIT/CUIL formula

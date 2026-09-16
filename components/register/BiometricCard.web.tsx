@@ -5,10 +5,11 @@ import { spacing, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { ZapSignBiometric } from '../../services/zapsign.service';
 import { supabase } from '../../lib/supabase';
+import { KYC_PUBLIC_LINK } from '../../config/environment';
 
-// Link PÚBLICO del modelo de ZapSign (vía WEB, sin API). En web lo abrimos en una
-// pestaña nueva. Si cambia el modelo, se actualiza por OTA.
-const KYC_PUBLIC_LINK = 'https://app.zapsign.co/verificar/doc/b23ddd4b-6af3-4613-9a83-17a2a1ade26f';
+// KYC_PUBLIC_LINK (vía WEB, sin API): en web lo abrimos en una pestaña nueva. El
+// valor sale de config/environment.ts según el entorno (sandbox en QA, prod en
+// release).
 
 type ScanStatus = 'idle' | 'creating' | 'waiting_signature' | 'success' | 'error';
 
