@@ -21,6 +21,7 @@ export interface SolicitudItem {
   adminComment: string | null;
   createdAt: string;
   isIncome: boolean; // entra dinero al saldo (para ícono/color)
+  rawOtc?: OtcOrder; // orden OTC cruda: permite abrir el comprobante rico (OperationVoucher)
 }
 
 const fmtCrypto = (n: number) => n.toLocaleString("es-CO", { maximumFractionDigits: 6 });
@@ -57,6 +58,7 @@ function fromOtc(o: OtcOrder): SolicitudItem {
     adminComment: o.admin_comment,
     createdAt: o.created_at,
     isIncome: !isBuy, // la venta acredita fiat
+    rawOtc: o,
   };
 }
 

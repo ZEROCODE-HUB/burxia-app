@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { TransactionItem } from './TransactionItem';
 import { TransactionDetailModal } from './TransactionDetailModal';
+import { OperationVoucher } from '../OperationVoucher';
 import { SolicitudRow } from '../funding/SolicitudRow';
+import type { OtcOrder } from '../../services/otc.service';
 import { spacing, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -61,6 +63,14 @@ export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref)
     const [feed, setFeed] = React.useState<FeedItem[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [selected, setSelected] = React.useState<any | null>(null);
+    const [otcOrder, setOtcOrder] = React.useState<OtcOrder | null>(null);
+
+    // Abre el comprobante correcto: para OTC, el rico OperationVoucher (igual que
+    // al crear la operación); para depósito/retiro, el detalle genérico.
+    const abrirComprobante = (sol: SolicitudItem) => {
+        if (sol.source === 'otc' && sol.rawOtc) setOtcOrder(sol.rawOtc);
+        else setSelected(solToDetail(sol));
+    };
 
     // Refresca al montar y CADA VEZ que la pantalla recupera foco (así se ve el
     // saldo/movimientos frescos y se auto-recupera si una carga quedó a medias).
@@ -141,13 +151,14 @@ export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref)
                 ) : (
                     feed.map((item) =>
                         item.kind === 'sol'
-                            ? <SolicitudRow key={item.key} item={item.sol} onPress={() => setSelected(solToDetail(item.sol))} />
+                            ? <SolicitudRow key={item.key} item={item.sol} onPress={() => abrirComprobante(item.sol)} />
                             : <TransactionItem key={item.key} {...(item.mov as any)} onPress={() => setSelected(txToDetail(item.raw, account?.id))} />
                     )
                 )}
             </View>
 
             <TransactionDetailModal visible={!!selected} onClose={() => setSelected(null)} transaction={selected} />
+            <OperationVoucher order={otcOrder} visible={!!otcOrder} onClose={() => setOtcOrder(null)} />
         </View>
     );
 });

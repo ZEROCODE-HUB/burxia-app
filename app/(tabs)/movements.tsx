@@ -10,6 +10,8 @@ import { ScreenHeader } from '../../components/layout';
 import { SearchBar, FilterChips, FilterType, DateRangeFilter } from '../../components/movements';
 import { TransactionItem } from '../../components/dashboard';
 import { TransactionDetailModal } from '../../components/dashboard';
+import { OperationVoucher } from '../../components/OperationVoucher';
+import type { OtcOrder } from '../../services/otc.service';
 import { SolicitudRow } from '../../components/funding/SolicitudRow';
 import { formatBalance } from '../../utils/formatters';
 import { useTheme } from '../../context/ThemeContext';
@@ -56,6 +58,7 @@ export default function MovementsScreen() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [solicitudes, setSolicitudes] = useState<SolicitudItem[]>([]);
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+    const [otcOrder, setOtcOrder] = useState<OtcOrder | null>(null);
 
     const [showDateFilter, setShowDateFilter] = useState(false);
     const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | null>(null);
@@ -176,7 +179,11 @@ export default function MovementsScreen() {
     );
 
     const renderItem = ({ item }: { item: FeedItem }) => {
-        if (item.kind === 'sol') return <SolicitudRow item={item.sol} onPress={() => setSelectedTransaction(solToDetail(item.sol))} />;
+        if (item.kind === 'sol') return <SolicitudRow item={item.sol} onPress={() => {
+            // OTC: comprobante rico (igual que al crear). Fondeo: detalle genérico.
+            if (item.sol.source === 'otc' && item.sol.rawOtc) setOtcOrder(item.sol.rawOtc);
+            else setSelectedTransaction(solToDetail(item.sol));
+        }} />;
         const t = item.mov;
         const props: any = {
             id: t.transaction_id,
@@ -255,6 +262,7 @@ export default function MovementsScreen() {
 
             <DateRangeFilter visible={showDateFilter} onClose={() => setShowDateFilter(false)} onApply={applyDateFilter} />
             <TransactionDetailModal visible={!!selectedTransaction} onClose={() => setSelectedTransaction(null)} transaction={selectedTransaction} />
+            <OperationVoucher order={otcOrder} visible={!!otcOrder} onClose={() => setOtcOrder(null)} />
         </View>
     );
 }

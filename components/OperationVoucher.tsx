@@ -10,8 +10,10 @@ import { formatCurrency } from '../utils/formatters';
 import { capturarYCompartir } from '../lib/captura';
 import type { OtcOrder } from '../services/otc.service';
 
+// Etiquetas unificadas con el resto de la app (dashboard/movimientos): el mismo
+// estado se lee igual en todos lados.
 const STATUS_LABEL: Record<string, string> = {
-  pending: 'Procesando', completed: 'Aprobada', rejected: 'Rechazada',
+  pending: 'Pendiente', completed: 'Completada', rejected: 'Rechazada',
 };
 const fmtCrypto = (n: number) => Number(n).toLocaleString('es-CO', { maximumFractionDigits: 6 });
 const fmtDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—');

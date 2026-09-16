@@ -88,8 +88,11 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     }, [transaction]);
 
     const status = useMemo(() => {
-        const key = transaction?.status || 'completed';
-        const config = STATUS_CONFIG[key] || STATUS_CONFIG.completed;
+        // NUNCA caer a 'completed' ante un estado ausente/desconocido: mostraría
+        // "Completada" (verde) para algo que no lo está (bug de correctitud en OTC).
+        // Ante la duda, el estado seguro es "Pendiente".
+        const key = transaction?.status || 'pending';
+        const config = STATUS_CONFIG[key] || STATUS_CONFIG.pending;
         return {
             label: config.label,
             color: config.color,

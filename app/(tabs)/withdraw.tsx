@@ -122,7 +122,11 @@ export default function WithdrawScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {!isDesktop && <ScreenHeader title="Retirar" showBackButton showAvatar={false} />}
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        style={{ flex: 1 }}
+      >
         <ScrollView
           contentContainerStyle={[styles.content, isDesktop && styles.contentDesktop, { paddingBottom: insets.bottom + 90 }]}
           keyboardShouldPersistTaps="handled"

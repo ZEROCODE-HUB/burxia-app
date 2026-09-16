@@ -9,6 +9,7 @@ import { LogoIcon } from '../components/LogoIcon';
 import { oneSignalService } from '../services/oneSignalService';
 import { supabase } from '../lib/supabase';
 import { InactivityWrapper } from '../components/InactivityWrapper';
+import { AppLock } from '../components/AppLock';
 import { UpdateModal } from '../components/UpdateModal';
 import { WebFrame } from '../components/WebFrame';
 
@@ -96,8 +97,10 @@ export default function RootLayout() {
                     <InactivityWrapper>
                         <WebFrame>
                             <StatusBar style="light" />
-                            <RootLayoutNav />
-                            <UpdateModal />
+                            <AppLock>
+                                <RootLayoutNav />
+                                <UpdateModal />
+                            </AppLock>
                         </WebFrame>
                     </InactivityWrapper>
                 </AuthProvider>
