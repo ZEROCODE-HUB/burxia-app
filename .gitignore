@@ -55,3 +55,6 @@ dist-apk/
 build-*.log
 build-*.status
 *.bak
+
+# El certificado PÚBLICO de code signing OTA sí va al repo (lo embebe el binario)
+!ota/codesigning/certs/certificate.pem
