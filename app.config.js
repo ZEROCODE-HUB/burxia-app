@@ -39,7 +39,7 @@ export default {
             fallbackToCacheTimeout: 10000,
             // URL del Worker de Cloudflare (endpoint /manifest). Se inyecta por
             // env al compilar; el placeholder es solo para dev. NO es secreto.
-            url: process.env.EXPO_PUBLIC_OTA_URL || "https://REEMPLAZAR.workers.dev/manifest",
+            url: process.env.EXPO_PUBLIC_OTA_URL || "https://burxia-ota.oscarmijael7w7.workers.dev/manifest",
             // Firma de código: el APK embebe el certificado PÚBLICO y RECHAZA
             // cualquier update cuyo manifiesto no venga firmado con la clave
             // privada (que vive solo en la PC, como el keystore). Ver ota/README.
@@ -115,10 +115,13 @@ export default {
             eas: {
                 projectId: "0ac05162-1c51-4217-9c25-9dfd3a8087fa"
             },
-            // Variables de entorno de forma segura
-            supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-            supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-            oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
+            // Fallbacks PÚBLICOS: en builds de CI (EAS) no hay .env, así que sin
+            // esto el binario saldría sin config (no conecta a Supabase). Son
+            // valores públicos (el anon key va embebido en cualquier APK, protegido
+            // por RLS). En dev local, .env (process.env) tiene prioridad.
+            supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || "https://spieokzbbwmgkcdigsxo.supabase.co",
+            supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwaWVva3piYndtZ2tjZGlnc3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMTQwMjIsImV4cCI6MjEwMDU5MDAyMn0._fJJdOgvkiaC3pqSmq_Pc4AEahNx18kH9VA7Og_18m0",
+            oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || "60292b2a-10ce-4172-acc8-1ff41c598590",
             // El KYC de ZapSign pasa por la Edge Function zapsign-proxy: la API
             // key vive en el servidor, no en el binario. Acá NO va ninguna
             // clave de ZapSign (todo lo EXPO_PUBLIC_ queda dentro del APK).
