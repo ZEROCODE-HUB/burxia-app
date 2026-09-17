@@ -10,7 +10,12 @@ export default {
         // sigue siendo el de la cuenta original. Antes del primer build bajo la
         // cuenta EAS de Bruxia hay que correr `eas init` para regenerarlo; el
         // slug se ajustará a ese proyecto. Ver docs/pendientes.md.
-        slug: "bruxia-mobile",
+        // slug: debe coincidir con el proyecto EAS del projectId de abajo. El
+        // proyecto EAS todavía se llama "magnate-mobile" (heredado); la MARCA de la
+        // app es "Burxia" (name), no este slug (identificador interno de expo.dev,
+        // invisible al usuario). Para limpiarlo: renombrar el proyecto en expo.dev a
+        // "bruxia-mobile" y volver a poner ese slug acá.
+        slug: "magnate-mobile",
         version: "1.0.10",
         orientation: "portrait",
         icon: "./assets/icon.png",
