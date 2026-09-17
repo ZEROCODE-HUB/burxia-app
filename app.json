@@ -1,34 +1,42 @@
 {
   "expo": {
-    "name": "Magnate",
-    "slug": "Magnate",
-    "version": "1.0.9",
+    "name": "Burxia",
+    "slug": "Burxia",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "magnate",
+    "scheme": "burxia",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "owner": "nocodehero",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0F172A"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.burxia.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.magnate.mobile",
-      "versionCode": 9,
+      "package": "com.burxia.app",
+      "versionCode": 1,
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -51,12 +59,37 @@
         }
       ],
       "expo-secure-store",
-      "onesignal-expo-plugin"
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production",
+          "devTeam": "9BWTN3CAXU"
+        }
+      ]
     ],
     "extra": {
-      "eas": {},
-      "EXPO_PUBLIC_SUPABASE_URL": "https://mzxhyjgbbabnughknrxc.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16eGh5amdiYmFibnVnaGtucnhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0OTk1NzYsImV4cCI6MjA4NDA3NTU3Nn0.OMPAyQoQbiZKbmN7USAbDk7C4w-glidP1p3Izt_LkRY"
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.burxia.app.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.burxia.app.onesignal"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "0ac05162-1c51-4217-9c25-9dfd3a8087fa"
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "https://spieokzbbwmgkcdigsxo.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwaWVva3piYndtZ2tjZGlnc3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMTQwMjIsImV4cCI6MjEwMDU5MDAyMn0._fJJdOgvkiaC3pqSmq_Pc4AEahNx18kH9VA7Og_18m0"
     }
   }
 }
