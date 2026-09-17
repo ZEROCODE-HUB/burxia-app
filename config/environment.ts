@@ -18,10 +18,26 @@ const APP_ENV = (getEnvVar('EXPO_PUBLIC_APP_ENV') || 'test') as 'test' | 'produc
 export const isTestEnv = APP_ENV === 'test';
 export const isProductionEnv = APP_ENV === 'production';
 
-// La configuración de ZapSign (API key, template, base url, tipo de
-// validación) ya no vive acá: se movió a la Edge Function zapsign-proxy,
-// del lado servidor. Nada de eso debe estar en el cliente, porque todo lo
-// EXPO_PUBLIC_ queda incrustado en el binario. Ver services/zapsign.service.ts.
+/**
+ * Mostrar el código OTP en pantalla durante el registro (solo QA). Separado de
+ * `isTestEnv` a propósito: así se puede APAGAR la exposición del código sin
+ * cambiar el resto del entorno de pruebas (ZapSign tolerante, etc.).
+ * Default: OFF. Para reactivarlo en QA: EXPO_PUBLIC_SHOW_SANDBOX_OTP=true.
+ */
+export const showSandboxOtpOnScreen = getEnvVar('EXPO_PUBLIC_SHOW_SANDBOX_OTP') === 'true';
+
+// La configuración SECRETA de ZapSign (API key, tipo de validación) ya no vive
+// acá: se movió a la Edge Function zapsign-proxy, del lado servidor. Nada de eso
+// debe estar en el cliente, porque todo lo EXPO_PUBLIC_ queda incrustado en el
+// binario. Ver services/zapsign.service.ts.
+//
+// El LINK público de la plantilla NO es secreto (es una URL pública de firma),
+// así que sí puede vivir en el cliente. Se elige por entorno: en QA usamos la
+// cuenta SANDBOX (gratis, no gasta créditos reales); en release, la de prod.
+// Cambiar de una a otra = cambiar EXPO_PUBLIC_APP_ENV, sin tocar código.
+export const KYC_PUBLIC_LINK = isTestEnv
+    ? 'https://sandbox.app.zapsign.com.br/verificar/doc/2e555468-834b-4277-b39f-2585a845a12d'
+    : 'https://app.zapsign.co/verificar/doc/b23ddd4b-6af3-4613-9a83-17a2a1ade26f';
 
 /**
  * Validate CUIT/CUIL formula

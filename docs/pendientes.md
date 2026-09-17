@@ -1,8 +1,8 @@
-# App Proxpera (nativa) — estado y pendientes
+# App Bruxia (nativa) — estado y pendientes
 
 App **React Native / Expo** (SDK 54, RN 0.81.5). Es el producto real, tomada de
 `magnate-virtual-wallet` rama **`master`** y adaptada al stack de TecnoMind (la
-base de datos) con la marca **Proxpera**.
+base de datos) con la marca **Bruxia**.
 
 Apunta a la base fiat (`spieokzbbwmgkcdigsxo`) vía `.env` (no versionado; ver
 `.env.example`). `utils/env.ts` falla si falta configuración en vez de caer a
@@ -31,9 +31,9 @@ valores hardcodeados.
   `ZAPSIGN_API_KEY`, `ZAPSIGN_TEMPLATE_ID`, y opcionales `ZAPSIGN_BASE_URL` /
   `ZAPSIGN_SELFIE_VALIDATION_TYPE`. Sin secrets responde 503 a usuarios
   autenticados; en modo test el KYC usa mocks, así que no bloquea.
-- **Marca Proxpera** en UI, textos y el `name` de la app.
-- **Package `com.proxpera.app`** (iOS `bundleIdentifier` + Android `package`),
-  `scheme: proxpera`, `slug: proxpera-mobile`.
+- **Marca Bruxia** en UI, textos y el `name` de la app.
+- **Package `com.bruxia.app`** (iOS `bundleIdentifier` + Android `package`),
+  `scheme: bruxia`, `slug: bruxia-mobile`.
 - **Mocks eliminados** (`data/`); el tipo que se usaba se movió a `types/dashboard.ts`.
 - **Columnas**: `AuthContext` normaliza `document_number→dni` y `tax_id→cuit_cuil`
   en un solo punto.
@@ -46,18 +46,18 @@ valores hardcodeados.
 - `assets/{icon,splash-icon,adaptive-icon,favicon}.png` son los del proyecto de
   origen. Son el ícono de la app en las tiendas y la splash.
 
-No hay logo ni identidad visual de Proxpera todavía (lo confirmó el cliente).
+No hay logo ni identidad visual de Bruxia todavía (lo confirmó el cliente).
 Cuando llegue: reemplazar esos PNG (icon 1024×1024, adaptive-icon, splash) y el
 SVG de `LogoIcon.tsx`.
 
 ### 📦 EAS / release (necesita la cuenta del cliente)
 
 - `extra.eas.projectId` en `app.config.js` sigue siendo el de la cuenta original.
-  Antes del primer build bajo la cuenta EAS de Proxpera hay que correr `eas init`
+  Antes del primer build bajo la cuenta EAS de Bruxia hay que correr `eas init`
   para regenerarlo (ajusta el `slug`).
 - Certificados de firma (iOS/Android) y el AuthKey de Apple: los aporta el cliente
   con su cuenta.
-- OneSignal (`EXPO_PUBLIC_ONESIGNAL_APP_ID`): app de push propia de Proxpera.
+- OneSignal (`EXPO_PUBLIC_ONESIGNAL_APP_ID`): app de push propia de Bruxia.
 
 ### ✅ Test funcional en web (2026-09-04)
 
@@ -141,7 +141,78 @@ Verificado en web: pantalla "Mis Datos de Cuenta" con QR real y datos reales;
 
 ### Sigue pendiente de la web
 
-- Escaneo QR en vivo por webcam (opcional; el fallback de subir imagen ya cubre).
-- KYC con foto de documento en el registro (Fase 4, la pieza más grande).
-- Repaso de settings, dispositivos, api-config, web-access dentro del marco.
-- Decidir Nivel B (escritorio con sidebar).
+- Escaneo QR en vivo por webcam: **descartado por decisión del cliente** (en web
+  solo se sube la imagen del QR; el fallback ya lo cubre).
+- **Nivel B (escritorio con sidebar): HECHO** (ver sección más abajo).
+- **PDF de estado de cuenta en web: HECHO** (`statement.service.web.ts`).
+- Avatar (`expo-image-picker`) y KYC real de ZapSign: falta QA con interacción
+  real (file-picker del SO / credenciales reales), no automatizable acá.
+
+## 🏷️ Rebrand a Bruxia + Web Fase 4 (KYC) + responsive completo (2026-09-04)
+
+- **Nombre definitivo: Bruxia** (antes "Proxpera", antes "Tecnomind/Magnate");
+  package `com.bruxia.app`.
+- **Fuente ÚNICA de marca: `constants/brand.ts`** (`BRAND_NAME`, `BRAND_TAGLINE`,
+  `SUPPORT_EMAIL`, `EMAIL_PLACEHOLDER`, `ALIAS_PREFIX`). Toda la UI/servicios la
+  referencian: **renombrar la app = cambiar una línea**. Los identificadores
+  nativos (name, slug `bruxia-mobile`, scheme `bruxia`, bundle/package
+  `com.bruxia.app`) viven en `app.config.js` (los consume el build de Expo/EAS);
+  si cambia la marca, actualizar ambos lados.
+- **Eliminado `constants/AppConfig.ts`**: era código muerto (nadie lo importaba) y
+  traía una **URL + anon key de Supabase hardcodeadas de un proyecto equivocado**
+  (`mzxhyjgbbabnughknrxc`). Fuera.
+- Barridos todos los residuos de marca en UI, comprobante (`success.tsx` decía
+  "TECNOMIND"), PDF (`statement.service.ts`), alias del CVU (`generators.ts` +
+  `AliasManagement.tsx` → prefijo `bruxia.`), placeholders de email y email de
+  soporte, comentarios y docs.
+- **KYC web (Fase 4):** `components/register/BiometricCard.web.tsx`. El nativo usa
+  `react-native-webview` + `expo-camera`, que **rompían el bundle web y la ruta
+  `/register`**. La variante `.web` abre la `signerUrl` de ZapSign en pestaña nueva
+  (`window.open`) y verifica con polling de `verifyZapSignIdentity` (misma subida
+  del PDF a Storage). Metro resuelve `.web.tsx` en web y `.tsx` en nativo.
+- **Responsive Nivel A COMPLETO.** Verificadas en el navegador dentro del
+  `WebFrame`: login, dashboard, movimientos, transferir, estadísticas, QR
+  (fallback), compartir CVU, menú, API, acceso web, **registro** (con la tarjeta
+  biométrica web), **perfil**, **dispositivos** y **configuración**. `change-pin`
+  reutiliza el teclado del login. tsc: 0.
+- Menor: el **título de la pestaña** del navegador todavía sale "Proxpera" hasta
+  reiniciar el dev server (Metro cachea el `name` del arranque); el binario/EAS ya
+  toma "Bruxia" del `app.config.js`.
+- Recordatorio: hay **dispositivos de test/piloto** en `user_devices` de la cuenta
+  demo (se ven en la pantalla Dispositivos) — limpiar antes de producción.
+
+## 🖥️ Nivel B — layout de escritorio (2026-09-04)
+
+- **`components/WebFrame.tsx`:** en web con ancho ≥ 900px (`hooks/useIsDesktop.ts`)
+  y dentro de la app autenticada, renderiza `DesktopSidebar` a la izquierda +
+  contenido centrado en una columna (máx. 760px). En angosto y en pantallas sin
+  sesión (login/registro/verify) mantiene el marco tipo teléfono (Nivel A).
+- **`components/layout/DesktopSidebar.tsx`:** navegación agrupada + tarjeta de
+  usuario + cerrar sesión; resalta la ruta activa (`usePathname`).
+- **`app/(tabs)/_layout.tsx`:** oculta la tab-bar inferior en escritorio.
+- **`constants/navItems.ts`:** fuente ÚNICA de navegación, consumida por el menú
+  móvil **y** el sidebar → agregar/quitar un destino = editar un solo archivo.
+- El sidebar usa el componente `Logo` central → cuando llegue el gráfico de
+  Bruxia, se cambia en `LogoIcon.tsx`/`Logo.tsx` y se propaga a todos lados.
+- Verificado en el navegador: dashboard y transferir con sidebar, navegación y
+  resaltado activo funcionando. tsc: 0.
+- **PDF de estado de cuenta en web** (`statement.service.web.ts`): el generador de
+  HTML se extrajo a `services/statement.template.ts` (neutro) y lo comparten la
+  versión nativa (expo-print) y la web (abre ventana + `window.print`).
+
+### QA en web (escritorio, 2026-09-04)
+
+Recorrido completo del layout de escritorio (Inicio, Transferir, Movimientos,
+Estadísticas, Perfil, Compartir CVU, Escanear QR) con navegación por el sidebar y
+resaltado activo. **Cero errores de consola.** Un hallazgo corregido:
+
+- **`BalanceChart`** usaba `min(windowWidth, 480)` y en escritorio quedaba topado a
+  480px dejando vacío el resto de la tarjeta. Ahora mide su contenedor (`onLayout`)
+  y llena el ancho disponible (teléfono ~480 / columna escritorio ~760).
+
+Limitación del entorno: el viewport del navegador de prueba está fijo en 1920px y
+no se puede achicar, así que el **Nivel A angosto** (marco teléfono + tab-bar) no
+se pudo re-capturar acá; se verificó antes en el marco de 480 y su lógica no
+cambió (la tab-bar solo se oculta con ancho ≥ 900). Falta QA con interacción real:
+selector de archivo del avatar / "Cargar imagen" del QR / impresión del estado de
+cuenta (abre diálogo modal del navegador) y el flujo real de ZapSign.

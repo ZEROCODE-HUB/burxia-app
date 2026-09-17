@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { LineChart } from "react-native-gifted-charts";
 import { spacing, borderRadius, shadows } from '../../theme';
 import { formatCurrency } from '../../utils/formatters';
@@ -28,9 +28,15 @@ interface ExtendedChartDataPoint {
 export const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentBalance, label }) => {
     const { colors } = useTheme();
     const { width: windowWidth } = useWindowDimensions();
-    // En web la ventana puede ser mucho más ancha que el marco (WebFrame, 480).
-    // Se acota para que el gráfico no se desborde; en móvil usa el ancho real.
-    const screenWidth = Math.min(windowWidth, 480);
+    // El gráfico se ajusta al ancho de SU contenedor (medido con onLayout), así
+    // llena el marco teléfono (~480) o la columna de escritorio (Nivel B, ~760)
+    // sin toparse. Hasta la primera medición cae al ancho de ventana acotado.
+    const [containerWidth, setContainerWidth] = useState(0);
+    const screenWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 480);
+    const onContainerLayout = (e: LayoutChangeEvent) => {
+        const w = e.nativeEvent.layout.width;
+        if (w > 0 && Math.abs(w - containerWidth) > 1) setContainerWidth(w);
+    };
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const dynamicSpacing = useMemo(() => {
@@ -88,7 +94,7 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentBalance
     const safeBalance = currentBalance ?? 0;
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} onLayout={onContainerLayout}>
             <View style={styles.header}>
                 <View>
                     <Text style={styles.title}>Balance Neto</Text>

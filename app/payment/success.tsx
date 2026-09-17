@@ -14,6 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { capturarYCompartir } from "../../lib/captura";
+import { BRAND_NAME, BRAND_TAGLINE } from "../../constants/brand";
 import { Toast } from "../../components/ui";
 import {
   colors,
@@ -99,7 +100,7 @@ export default function SuccessScreen() {
       setIsDownloading(true);
 
       const res = await capturarYCompartir(viewShotRef, {
-        nombre: `comprobante-${reference_number || 'proxpera'}`,
+        nombre: `comprobante-${reference_number || BRAND_NAME.toLowerCase()}`,
         titulo: 'Guardar Comprobante',
       });
       if (!res.ok && res.error) throw new Error(res.error);
@@ -149,7 +150,7 @@ export default function SuccessScreen() {
               <View style={styles.miniLogo}>
                 <Ionicons name="diamond" size={16} color="white" />
               </View>
-              <Text style={styles.captureBrand}>TECNOMIND</Text>
+              <Text style={styles.captureBrand}>{BRAND_NAME.toUpperCase()}</Text>
             </View>
 
             <View style={styles.cardCapture}>
@@ -202,7 +203,7 @@ export default function SuccessScreen() {
               {/* Watermark/Footer en el capture */}
               <View style={styles.captureFooter}>
                 <Text style={styles.captureFooterText}>
-                  Comprobante oficial Proxpera Financial Freedom
+                  Comprobante oficial {BRAND_NAME} {BRAND_TAGLINE}
                 </Text>
               </View>
             </View>
@@ -397,7 +398,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(47, 128, 237, 0.1)",
+    backgroundColor: "rgba(139, 123, 214, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { SUPPORT_EMAIL } from '../constants/brand';
 
 /**
  * Obtiene el email de soporte configurado en la base de datos.
@@ -12,11 +13,11 @@ export async function getSupportEmail(): Promise<string> {
             .single();
 
         if (error || !data?.email) {
-            return 'soporte@tecnomind.com';
+            return SUPPORT_EMAIL;
         }
 
         return data.email as string;
     } catch {
-        return 'soporte@tecnomind.com';
+        return SUPPORT_EMAIL;
     }
 }

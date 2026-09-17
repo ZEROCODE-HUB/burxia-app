@@ -54,7 +54,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     container: {
         alignItems: 'center',
         gap: spacing.xs,
-        width: '23%',
+        width: 72,
     },
     iconContainer: {
         width: 60,

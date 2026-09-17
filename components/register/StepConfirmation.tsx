@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Button } from '../ui/Button';
-import { colors, spacing, borderRadius, typography } from '../../theme';
+import { spacing, borderRadius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { BRAND_NAME } from '../../constants/brand';
 import { registerUser } from '../../services/auth.service';
 import { useAuth } from '../../context/AuthContext';
-import { getSignedDocumentUrlWithRetry } from '../../services/zapsign.service';
-import { supabase } from '../../lib/supabase';
 
 interface StepConfirmationProps {
     data: {
@@ -25,6 +25,8 @@ interface StepConfirmationProps {
 }
 
 export const StepConfirmation: React.FC<StepConfirmationProps> = ({ data, pin }) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const insets = useSafeAreaInsets();
     const { login } = useAuth();
     const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -40,7 +42,20 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({ data, pin })
 
                 if (result.success) {
                     setStatus('success');
-                    // En este punto no realizamos auto-login: forzamos verificación de email en todos los entornos
+                    // El correo ya se validó con el PIN enviado por email (paso 2), así
+                    // que no volvemos a pedir verificación: iniciamos sesión y entramos
+                    // directo a la app.
+                    try {
+                        const loginResult = await login(data.email, pin);
+                        if (loginResult?.success) {
+                            router.replace('/(tabs)');
+                        } else {
+                            // Si el auto-login falla, mandamos al login para que ingrese manualmente.
+                            router.replace('/(auth)/login');
+                        }
+                    } catch {
+                        router.replace('/(auth)/login');
+                    }
                 } else {
                     setStatus('error');
                     setErrorMsg(result.error || 'Error al procesar el registro');
@@ -60,7 +75,7 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({ data, pin })
                 <View style={styles.loadingBox}>
                     <ActivityIndicator size="large" color={colors.accent} />
                     <Text style={styles.processingTitle}>Procesando tu registro</Text>
-                    <Text style={styles.processingSubtitle}>Estamos configurando tu cuenta de Proxpera...</Text>
+                    <Text style={styles.processingSubtitle}>Estamos configurando tu cuenta de {BRAND_NAME}...</Text>
                 </View>
             </View>
         );
@@ -85,71 +100,27 @@ export const StepConfirmation: React.FC<StepConfirmationProps> = ({ data, pin })
         );
     }
 
+    // status === 'success': la cuenta se creó y estamos entrando a la app. Se
+    // muestra un instante mientras se resuelve el auto-login y el router.replace.
     return (
         <View style={[styles.container, { paddingBottom: spacing.xl + insets.bottom }]}>
-            {/* Icon Stack */}
             <View style={styles.iconStack}>
                 <View style={styles.pulseBg}>
                     <View style={styles.iconCircle}>
-                        <Ionicons name="mail" size={44} color={colors.accent} />
+                        <Ionicons name="checkmark-circle" size={52} color={colors.success} />
                     </View>
                 </View>
-                <View style={styles.successBadge}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-                </View>
             </View>
 
-            <Text style={styles.title}>¡Casi listo!</Text>
-            <Text style={styles.subtitle}>Enviamos un enlace de verificación a tu correo:</Text>
+            <Text style={styles.title}>¡Cuenta creada!</Text>
+            <Text style={styles.subtitle}>Estamos ingresando a tu billetera {BRAND_NAME}...</Text>
 
-            <View style={styles.emailContainer}>
-                <Text style={styles.emailText}>{data.email || 'tu@email.com'}</Text>
-            </View>
-
-            <View style={styles.nextStepBox}>
-                <View style={styles.nextStepHeader}>
-                    <View style={styles.infoBadge}>
-                        <Text style={styles.infoText}>!</Text>
-                    </View>
-                    <Text style={styles.nextStepTitle}>Próximo paso</Text>
-                </View>
-                <Text style={styles.nextStepDesc}>
-                    Por favor, confirma tu email para activar todas las funciones de tu billetera Proxpera.
-                    Revisa tu bandeja de entrada y haz clic en el enlace de verificación.
-                </Text>
-            </View>
-
-            <Button
-                onPress={() => router.replace('/(auth)/login')}
-                style={styles.button}
-            >
-                Ir al Login
-                <Ionicons name="arrow-forward" size={20} color={colors.accentForeground} style={{ marginLeft: 8 }} />
-            </Button>
-
-            <View style={styles.footer}>
-                <Text style={styles.footerText}>¿No recibiste el correo? </Text>
-                <TouchableOpacity
-                    onPress={async () => {
-                        try {
-                            const res = await supabase.auth.resend({
-                                type: 'signup',
-                                email: data.email
-                            } as any);
-                            Alert.alert('Verificación', 'Correo de verificación reenviado.');
-                        } catch (e: any) {
-                            Alert.alert('Error', 'No se pudo reenviar el correo de verificación.');
-                        }
-                    }}
-                >
-                    <Text style={styles.resendLink}>reenviar verificación</Text>
-                </TouchableOpacity>
-            </View>
+            <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: spacing.lg }} />
         </View>
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.xl,

@@ -6,6 +6,7 @@ import { spacing, typography, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { checkAliasAvailable, updateAlias } from '../../services/account.service';
+import { ALIAS_PREFIX } from '../../constants/brand';
 
 const createStyles = (colors: any) => StyleSheet.create({
     container: {
@@ -94,8 +95,8 @@ interface AliasManagementProps {
 export const AliasManagement: React.FC<AliasManagementProps> = ({ userCuit = "20123456789" }) => {
     const { colors } = useTheme();
     const { account, refreshAccount } = useAuth();
-    const [alias, setAlias] = useState(account?.alias || `tecnomind.${userCuit}`);
-    const [originalAlias, setOriginalAlias] = useState(account?.alias || `tecnomind.${userCuit}`);
+    const [alias, setAlias] = useState(account?.alias || `${ALIAS_PREFIX}.${userCuit}`);
+    const [originalAlias, setOriginalAlias] = useState(account?.alias || `${ALIAS_PREFIX}.${userCuit}`);
 
     // Sync with external account changes
     useEffect(() => {
@@ -172,7 +173,7 @@ export const AliasManagement: React.FC<AliasManagementProps> = ({ userCuit = "20
                 <Input
                     value={alias}
                     onChangeText={handleAliasChange}
-                    placeholder="tecnomind.tucuit"
+                    placeholder={`${ALIAS_PREFIX}.tunombre`}
                     containerStyle={styles.inputContainer}
                     autoCapitalize="none"
                 />

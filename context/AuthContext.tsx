@@ -1,5 +1,6 @@
 // contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { User, Account, AccountWithType } from '../types/database.types';
 import { loginWithPin as loginService } from '../services/auth.service';
@@ -63,9 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (session?.user) {
         const email = session.user.email || '';
-        const { isDeviceKnown } = await import('../services/auth.service');
-        const known = await isDeviceKnown(session.user.id, email);
-        
+        // La verificación de dispositivo solo corre si está activada desde el
+        // backoffice (RPC device_verification_requerida: global o por usuario).
+        // En web se omite (sin módulos nativos; rebotaba al login en cada
+        // recarga). Apagada por defecto (el OTP hoy no se entrega sin SMTP).
+        let known = true;
+        if (Platform.OS !== 'web') {
+          const { data: mustVerify } = await supabase.rpc('device_verification_requerida' as any);
+          if (mustVerify === true) {
+            const { isDeviceKnown } = await import('../services/auth.service');
+            known = await isDeviceKnown(session.user.id, email);
+          }
+        }
+
         if (!known) {
           const { sendVerificationOtp } = await import('../services/auth.service');
           await sendVerificationOtp();
@@ -122,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // En Proxpera las columnas son document_number / tax_id; la app
+      // En Bruxia las columnas son document_number / tax_id; la app
       // heredada lee user.dni / user.cuit_cuil en ~28 lugares. Se normaliza
       // acá, en el único punto donde se arma el user, en vez de tocar cada
       // pantalla. Se conservan ambos nombres para no romper nada.
@@ -212,9 +223,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAccount(null); // Also clear account if user fallback fails
         }
       } else {
-        console.error('Error loading user data:', error);
-        setUser(null);
-        setAccount(null);
+        // Error TRANSITORIO (red, re-emisión de SIGNED_IN al enfocar, refresh de
+        // token, etc.): NO borrar user/account en memoria. Borrarlos rompía toda
+        // la app ("Cargando…" para siempre) hasta recargar. La sesión solo se
+        // limpia en un SIGNED_OUT real (ver onAuthStateChange).
+        console.error('Error loading user data (se conserva la sesión):', error);
       }
     }
   };
@@ -262,9 +275,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadUserData(session.user.id);
   };
 
+  // Refresco LIVIANO y NO destructivo de la cuenta (saldo/límites). Se llama al
+  // enfocar pantallas: solo re-baja la fila de la cuenta y la actualiza si sale
+  // bien. NUNCA borra user/account ante un error transitorio (eso rompía la app).
   const refreshAccount = async () => {
-    if (!session?.user?.id) return;
-    await loadUserData(session.user.id);
+    const uid = session?.user?.id;
+    if (!uid) return;
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*, account_types(*)')
+        .eq('user_id', uid)
+        .eq('is_primary', true)
+        .single();
+      if (!error && data) setAccount(data as AccountWithType);
+    } catch {
+      /* mantener la cuenta actual; un fallo de refresco no debe romper la sesión */
+    }
   };
 
   return (

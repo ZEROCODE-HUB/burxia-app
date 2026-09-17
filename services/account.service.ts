@@ -101,28 +101,19 @@ export async function getAccountBalance(accountId: string): Promise<number | nul
 }
 
 /**
- * Buscar cuenta por CVU, CBU o Alias
+ * Buscar cuenta por número de cuenta o alias
  */
 export async function findAccountByIdentifier(identifier: string): Promise<AccountWithType | null> {
-  // Intentar buscar por CVU
+  // Buscar por número de cuenta
   let { data, error } = await supabase
     .from('accounts')
     .select('*, account_types(*)')
-    .eq('cvu', identifier)
+    .eq('account_number', identifier)
     .single();
 
   if (!error && data) return data as AccountWithType;
 
-  // Intentar buscar por CBU
-  ({ data, error } = await supabase
-    .from('accounts')
-    .select('*, account_types(*)')
-    .eq('cbu', identifier)
-    .single());
-
-  if (!error && data) return data as AccountWithType;
-
-  // Intentar buscar por Alias
+  // Buscar por Alias
   ({ data, error } = await supabase
     .from('accounts')
     .select('*, account_types(*)')
@@ -188,10 +179,10 @@ export async function getStaticQR(accountId: string) {
 /**
  * Generar QR Dinámico
  */
-export async function generateDynamicQR(accountId: string, amount: number, concept: string, cvu: string, alias: string) {
+export async function generateDynamicQR(accountId: string, amount: number, concept: string, accountNumber: string, alias: string) {
   const qrData = {
     account_id: accountId,
-    cvu,
+    account_number: accountNumber,
     alias,
     amount,
     concept,

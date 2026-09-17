@@ -15,13 +15,16 @@ import { ScreenHeader } from '../../components/layout';
 import { FormInput } from '../../components/register/FormInput';
 import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius } from '../../theme';
+import { BRAND_NAME } from '../../constants/brand';
 import { useTheme } from '../../context/ThemeContext';
-
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { DesktopPage, DesktopGrid, DesktopCol } from '../../components/layout/DesktopPage';
 import { useAuth } from '../../context/AuthContext';
 import { updateWebAccess } from '../../services/auth.service';
 
 export default function WebAccessScreen() {
     const { colors } = useTheme();
+    const isDesktop = useIsDesktop();
     const { user, refreshUser } = useAuth();
     const [webAccessEnabled, setWebAccessEnabled] = useState(false);
     const [password, setPassword] = useState('');
@@ -107,6 +110,98 @@ export default function WebAccessScreen() {
         }
     };
 
+    const passwordForm = (
+        <View style={styles.form}>
+            <View style={styles.sectionHeader}>
+                <Ionicons name="key-outline" size={20} color={colors.accent} />
+                <Text style={styles.sectionTitle}>Contraseña Web</Text>
+            </View>
+            <FormInput
+                label="Contraseña"
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                icon="lock-closed-outline"
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
+            />
+            {(isPasswordFocused || password.length > 0) && (
+                <View style={styles.validatorContainer}>
+                    <Text style={styles.validatorTitle}>Requisitos de seguridad:</Text>
+                    {passwordRequirements.map(req => (
+                        <View key={req.id} style={styles.requirementRow}>
+                            <Ionicons name={req.met ? "checkmark-circle" : "ellipse-outline"} size={16} color={req.met ? colors.success : colors.mutedForeground} />
+                            <Text style={[styles.requirementText, req.met && styles.requirementMet]}>{req.label}</Text>
+                        </View>
+                    ))}
+                </View>
+            )}
+            <FormInput
+                label="Confirmar Contraseña"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                icon="lock-closed-outline"
+                error={confirmPassword && !passwordsMatch ? "Las contraseñas no coinciden" : undefined}
+            />
+            <Button onPress={handleSave} loading={loading} disabled={loading || !password || !isPasswordValid || !passwordsMatch} style={styles.actionButton}>
+                Cambiar Contraseña
+            </Button>
+        </View>
+    );
+
+    if (isDesktop) {
+        return (
+            <View style={styles.container}>
+                <DesktopPage title="Acceso Web" subtitle="Activá el ingreso por usuario y contraseña en el navegador" maxWidth={960}>
+                    <DesktopGrid>
+                        <DesktopCol flex={1.3} minWidth={340}>
+                            <View style={styles.settingRow}>
+                                <View style={styles.settingInfo}>
+                                    <Text style={styles.settingLabel}>Habilitar acceso web</Text>
+                                    <Text style={styles.settingDescription}>Permite iniciar sesión mediante usuario y contraseña en la versión de escritorio.</Text>
+                                </View>
+                                <Switch
+                                    value={webAccessEnabled}
+                                    onValueChange={setWebAccessEnabled}
+                                    trackColor={{ false: colors.border, true: colors.accentAlpha[40] }}
+                                    thumbColor={webAccessEnabled ? colors.accent : colors.mutedForeground}
+                                />
+                            </View>
+                            {webAccessEnabled ? passwordForm : (
+                                <Button onPress={handleSave} loading={loading} disabled={loading} style={styles.actionButton}>
+                                    Guardar cambios
+                                </Button>
+                            )}
+                        </DesktopCol>
+                        <DesktopCol flex={1} minWidth={280}>
+                            <View style={styles.warningCard}>
+                                <View style={styles.warningHeader}>
+                                    <Ionicons name="shield-half-outline" size={24} color={colors.warning} />
+                                    <Text style={styles.warningTitle}>Zona de Seguridad</Text>
+                                </View>
+                                <Text style={styles.warningText}>
+                                    Esta contraseña permite el acceso directo a tu cuenta {BRAND_NAME} vía navegadores web. Mantenla segura y no la compartas.
+                                </Text>
+                            </View>
+                        </DesktopCol>
+                    </DesktopGrid>
+                </DesktopPage>
+
+                <AlertDialog
+                    visible={alertConfig.visible}
+                    title={alertConfig.title}
+                    description={alertConfig.description}
+                    variant={alertConfig.variant}
+                    onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                    onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                />
+            </View>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <ScreenHeader
@@ -137,7 +232,7 @@ export default function WebAccessScreen() {
                             <Text style={styles.warningTitle}>Zona de Seguridad</Text>
                         </View>
                         <Text style={styles.warningText}>
-                            Esta contraseña permite el acceso directo a tu cuenta Proxpera vía navegadores web. Mantenla segura.
+                            Esta contraseña permite el acceso directo a tu cuenta {BRAND_NAME} vía navegadores web. Mantenla segura.
                         </Text>
                     </View>
 

@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, ReactNode } from 'react';
-import { View, PanResponder, AppState, AppStateStatus } from 'react-native';
+import { View, PanResponder, AppState, AppStateStatus, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { AlertDialog } from './ui';
 import { useState } from 'react';
 
-const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutos en milisegundos
+const INACTIVITY_MINUTES = 15;
+const INACTIVITY_TIMEOUT = INACTIVITY_MINUTES * 60 * 1000; // ms
 
 interface InactivityWrapperProps {
   children: ReactNode;
@@ -38,6 +39,19 @@ export function InactivityWrapper({ children }: InactivityWrapperProps) {
       startTimer();
     }
   };
+
+  // En WEB el PanResponder no capta el mouse/teclado/scroll, así que la app se
+  // cerraba por "inactividad" aunque la estuvieras usando. Escuchamos actividad
+  // real del DOM (con throttle de 10s para no reiniciar el timer en cada pixel).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !isAuthenticated || typeof window === 'undefined') return;
+    const onActivity = () => {
+      if (Date.now() - lastActiveTimestamp.current > 10000) startTimer();
+    };
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel'];
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true } as any));
+    return () => events.forEach((e) => window.removeEventListener(e, onActivity));
+  }, [isAuthenticated]);
 
   // Observador del estado de la app (segundo plano / primer plano)
   useEffect(() => {
@@ -90,14 +104,19 @@ export function InactivityWrapper({ children }: InactivityWrapperProps) {
     })
   ).current;
 
+  // En WEB los handlers del PanResponder (onStartShouldSetResponder, etc.) se
+  // filtran al DOM y ensucian la consola con "Unknown event handler property";
+  // además en web usamos listeners del DOM (arriba), así que acá NO se aplican.
+  const panHandlers = Platform.OS === 'web' ? {} : panResponder.panHandlers;
+
   return (
-    <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+    <View style={{ flex: 1 }} {...panHandlers}>
       {children}
       
       <AlertDialog
         visible={showTimeoutAlert}
         title="Sesión expirada"
-        description="Por tu seguridad, hemos cerrado tu sesión debido a inactividad (5 minutos)."
+        description={`Por tu seguridad, cerramos tu sesión por inactividad (${INACTIVITY_MINUTES} minutos).`}
         confirmLabel="Entendido"
         icon="time-outline"
         onConfirm={() => setShowTimeoutAlert(false)}

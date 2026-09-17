@@ -23,6 +23,9 @@ export const transactionService = {
             `,
       )
       .or(`from_account_id.eq.${accountId},to_account_id.eq.${accountId}`)
+      // Solo movimientos efectivos: excluye reversed/cancelled/failed/pending
+      // (p. ej. un retiro rechazado, que vuelve el saldo, no debe figurar).
+      .eq("status", "completed")
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -120,7 +123,7 @@ export const transactionService = {
     toIdentifier: string,
     amount: number,
     concept: string = "",
-    paymentMethod: "alias" | "cbu" | "cvu" = "alias",
+    paymentMethod: "alias" | "account_number" = "alias",
   ): Promise<any> {
     const { data, error } = await supabase.rpc("process_transfer", {
       p_from_account_id: fromAccountId,

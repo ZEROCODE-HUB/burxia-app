@@ -6,6 +6,8 @@ import { useRouter } from 'expo-router';
 import { ScreenHeader } from '../../components/layout';
 import { Button, AlertDialog } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { DesktopPage } from '../../components/layout/DesktopPage';
 import * as authService from '../../services/auth.service';
 import { spacing, borderRadius, colors as themeColors } from '../../theme';
 import { UserDevice } from '../../types/database.types';
@@ -65,6 +67,7 @@ const createStyles = (colors: any) => StyleSheet.create({
 export default function DevicesScreen() {
     const { colors } = useTheme();
     const router = useRouter();
+    const isDesktop = useIsDesktop();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [devices, setDevices] = useState<UserDevice[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -167,6 +170,41 @@ export default function DevicesScreen() {
             </View>
         );
     };
+
+    if (isDesktop) {
+        const visibles = devices.filter((d) => d.status !== 'revoked');
+        return (
+            <View style={styles.container}>
+                <DesktopPage title="Dispositivos" subtitle="Sesiones y equipos vinculados a tu cuenta" maxWidth={820}>
+                    <View style={{ gap: spacing.md }}>
+                        {visibles.length === 0 && !isLoading ? (
+                            <View style={styles.emptyState}>
+                                <Text style={{ color: colors.mutedForeground }}>No se encontraron dispositivos</Text>
+                            </View>
+                        ) : (
+                            visibles.map((item) => (
+                                <React.Fragment key={item.id}>{renderItem({ item })}</React.Fragment>
+                            ))
+                        )}
+                    </View>
+                </DesktopPage>
+
+                <AlertDialog
+                    visible={alertConfig.visible}
+                    title={alertConfig.title}
+                    description={alertConfig.description}
+                    variant={alertConfig.variant}
+                    confirmLabel={alertConfig.onConfirm ? "Confirmar" : "Entendido"}
+                    cancelLabel="Cancelar"
+                    onConfirm={() => {
+                        alertConfig.onConfirm?.();
+                        setAlertConfig(prev => ({ ...prev, visible: false }));
+                    }}
+                    onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                />
+            </View>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>

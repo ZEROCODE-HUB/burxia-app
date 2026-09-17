@@ -2,8 +2,13 @@
  * Valida formato de email
  */
 export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
+  // Estricto: el '+' solo se permite en la parte LOCAL (antes del @), NO en el
+  // dominio; el dominio debe tener un TLD válido (letras). Así se rechazan
+  // emails que la app dejaba pasar pero Supabase rebota con "invalid format"
+  // (ej: "oscar@zerocode+6.la" — el + está en el dominio).
+  const value = email.trim();
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
+  return emailRegex.test(value) && !value.includes('..');
 }
 
 /**

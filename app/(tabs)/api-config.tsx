@@ -18,6 +18,7 @@ import { FormInput } from '../../components/register/FormInput';
 import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 import { supabase } from '../../lib/supabase';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ interface ApiAccessData {
 
 export default function ApiConfigScreen() {
     const { colors } = useTheme();
+    const isDesktop = useIsDesktop();
 
     // Estado del backend
     const [apiData, setApiData] = useState<ApiAccessData | null>(null);
@@ -268,18 +270,27 @@ export default function ApiConfigScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-            <ScreenHeader
-                title="Configuración API"
-                showBackButton
-                onBack={() => router.canGoBack() ? router.back() : router.push('/menu')}
-            />
+            {!isDesktop && (
+                <ScreenHeader
+                    title="Configuración API"
+                    showBackButton
+                    onBack={() => router.canGoBack() ? router.back() : router.push('/menu')}
+                />
+            )}
 
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]} showsVerticalScrollIndicator={false}>
+
+                    {isDesktop && (
+                        <View style={styles.dtHeader}>
+                            <Text style={styles.dtTitle}>Configuración API</Text>
+                            <Text style={styles.dtSub}>Acceso programático a tu cuenta</Text>
+                        </View>
+                    )}
 
                     {/* Warning Card */}
                     <View style={styles.warningCard}>
@@ -320,7 +331,7 @@ export default function ApiConfigScreen() {
                             </View>
                             {apiData.last_used_at && (
                                 <Text style={styles.lastUsedText}>
-                                    Último uso: {new Date(apiData.last_used_at).toLocaleDateString('es-AR')}
+                                    Último uso: {new Date(apiData.last_used_at).toLocaleDateString('es-CO')}
                                 </Text>
                             )}
                         </View>
@@ -498,6 +509,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     scrollContent: { padding: spacing.lg, gap: spacing.xl },
+    scrollContentDesktop: { width: '100%', maxWidth: 820, alignSelf: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xl * 3 },
+    dtHeader: { marginBottom: spacing.sm },
+    dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
+    dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
     warningCard: {
         backgroundColor: colors.background, borderRadius: borderRadius.xl,
         borderWidth: 1, borderColor: colors.warningAlpha[40], padding: spacing.md, gap: spacing.xs,

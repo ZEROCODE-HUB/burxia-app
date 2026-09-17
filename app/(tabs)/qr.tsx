@@ -11,9 +11,12 @@ import { AlertDialog } from '../../components/ui';
 import { QRScannerOverlay } from '../../components/qr/QRScannerOverlay';
 import { QRProcessingState } from '../../components/qr/QRProcessingState';
 import { useQRHandler } from '../../hooks/useQRHandler';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { DesktopPage } from '../../components/layout/DesktopPage';
 
 export default function QrScreen() {
     const { colors } = useTheme();
+    const isDesktop = useIsDesktop();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
     const [flash, setFlash] = useState(false);
@@ -53,6 +56,42 @@ export default function QrScreen() {
     }, [isFocused]);
 
     const esWeb = Platform.OS === 'web';
+
+    // Escritorio: la cámara no está disponible en el navegador → página con
+    // dropzone para cargar la imagen del QR.
+    if (isDesktop) {
+        return (
+            <View style={styles.container}>
+                <DesktopPage title="Escanear QR" subtitle="Pagá o transferí leyendo un código QR" maxWidth={720}>
+                    <View style={styles.dtCard}>
+                        <View style={styles.dtIconWrap}>
+                            <Ionicons name="qr-code-outline" size={56} color={colors.accent} />
+                        </View>
+                        <Text style={styles.dtTitle}>Cargá una imagen del código QR</Text>
+                        <Text style={styles.dtText}>
+                            El escaneo con cámara no está disponible en el navegador. Seleccioná una
+                            imagen del código QR desde tu equipo y la procesamos igual.
+                        </Text>
+                        <TouchableOpacity style={styles.dtButton} onPress={pickImage} activeOpacity={0.85}>
+                            <Ionicons name="image-outline" size={22} color={colors.accentForeground} />
+                            <Text style={styles.dtButtonText}>Cargar imagen</Text>
+                        </TouchableOpacity>
+                    </View>
+                </DesktopPage>
+
+                <AlertDialog
+                    visible={alertConfig.visible}
+                    title={alertConfig.title}
+                    description={alertConfig.description}
+                    variant={alertConfig.variant}
+                    onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                    onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+                />
+                {processing && <QRProcessingState />}
+            </View>
+        );
+    }
+
     if (!esWeb && !permission) return <View style={styles.container} />;
 
     if (!esWeb && !permission?.granted) {
@@ -132,6 +171,21 @@ export default function QrScreen() {
 }
 
 const createStyles = (colors: any, insets: any) => StyleSheet.create({
+    dtCard: {
+        backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border,
+        borderStyle: 'dashed', padding: 40, alignItems: 'center', gap: 12,
+    },
+    dtIconWrap: {
+        width: 96, height: 96, borderRadius: 24, backgroundColor: colors.accentAlpha[10],
+        alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+    },
+    dtTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+    dtText: { fontSize: 14, lineHeight: 20, color: colors.mutedForeground, textAlign: 'center', maxWidth: 420 },
+    dtButton: {
+        flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12,
+        backgroundColor: colors.accent, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12,
+    },
+    dtButtonText: { color: colors.accentForeground, fontWeight: '700', fontSize: 15 },
     webPlaceholder: {
         ...StyleSheet.absoluteFillObject,
         alignItems: 'center',

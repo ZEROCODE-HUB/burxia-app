@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -9,15 +9,19 @@ import {
     Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { Button, Input, AlertDialog, Toast, ToastType } from '../../components/ui';
+import { Button, Input, AlertDialog, Toast, ToastType, VersionTag } from '../../components/ui';
 import { LogoIcon } from '../../components/LogoIcon';
 import { FeatureCard, PinIndicator, PinKeypad, LoginProcessingModal } from '../../components/login';
+import { DesktopLogin } from '../../components/auth/DesktopLogin';
 import { colors, spacing, borderRadius, typography } from '../../theme';
-import { PIN_LENGTH, APP_VERSION } from '../../constants/app';
+import { useTheme } from '../../context/ThemeContext';
+import { PIN_LENGTH } from '../../constants/app';
+import { BRAND_NAME, EMAIL_PLACEHOLDER } from '../../constants/brand';
 import { useAuth } from '../../context/AuthContext';
 import { validateEmail, validatePIN } from '../../utils/validators';
 import { getLastUser, clearLastUser, SavedUser } from '../../services/storage.service';
@@ -43,7 +47,10 @@ const features = [
 
 export default function LoginScreen() {
     const insets = useSafeAreaInsets();
+    const isDesktop = useIsDesktop();
     const { login } = useAuth();
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [email, setEmail] = useState('');
     const [pin, setPin] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -133,8 +140,13 @@ export default function LoginScreen() {
         }
     };
 
+    // Escritorio: login dedicado (se escribe el PIN con teclado), no la vista móvil.
+    if (isDesktop) {
+        return <DesktopLogin />;
+    }
+
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.container, isDesktop ? styles.containerDesktop : { paddingTop: insets.top }]}>
             {isLoading && <LoginProcessingModal />}
 
             <Toast
@@ -159,12 +171,20 @@ export default function LoginScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
-                <View style={styles.card}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <LogoIcon size={40} />
-                        <Text style={styles.headerTitle}>Proxpera</Text>
-                    </View>
+                <View style={[styles.card, isDesktop && styles.cardDesktop]}>
+                    {/* Header: en escritorio el panel de marca (izquierda) ya
+                        muestra logo + nombre, así que acá va un título de contexto. */}
+                    {isDesktop ? (
+                        <View style={styles.headerDesktop}>
+                            <Text style={styles.headerDesktopTitle}>Iniciar sesión</Text>
+                            <Text style={styles.headerDesktopSubtitle}>Ingresá tus datos para continuar</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.header}>
+                            <LogoIcon size={40} />
+                            <Text style={styles.headerTitle}>{BRAND_NAME}</Text>
+                        </View>
+                    )}
 
                     {/* Content */}
                     <ScrollView
@@ -172,18 +192,21 @@ export default function LoginScreen() {
                         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
                         showsVerticalScrollIndicator={false}
                     >
-                        {/* Feature Cards */}
-                        <View style={styles.featuresGrid}>
-                            {features.map((feature, index) => (
-                                <FeatureCard
-                                    key={index}
-                                    icon={feature.icon}
-                                    label={feature.label}
-                                    gradientColors={feature.gradientColors}
-                                    style={styles.featureCard}
-                                />
-                            ))}
-                        </View>
+                        {/* Feature Cards (se ocultan en escritorio: la tarjeta de
+                            auth es compacta y el botón Ingresar debe quedar visible) */}
+                        {!isDesktop && (
+                            <View style={styles.featuresGrid}>
+                                {features.map((feature, index) => (
+                                    <FeatureCard
+                                        key={index}
+                                        icon={feature.icon}
+                                        label={feature.label}
+                                        gradientColors={feature.gradientColors}
+                                        style={styles.featureCard}
+                                    />
+                                ))}
+                            </View>
+                        )}
 
                         {/* Email Input or Welcome Message */}
                         <View style={styles.inputSection}>
@@ -204,7 +227,7 @@ export default function LoginScreen() {
                                         setEmail(text);
                                         // setError(null); // Error state removed
                                     }}
-                                    placeholder="ejemplo@tecnomind.com"
+                                    placeholder={EMAIL_PLACEHOLDER}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoCorrect={false}
@@ -283,8 +306,8 @@ export default function LoginScreen() {
                                 </Button>
                             </View>
 
-                            {/* Version */}
-                            <Text style={styles.version}>{APP_VERSION}</Text>
+                            {/* Version (real: app + id OTA si aplica) */}
+                            <VersionTag style={styles.version} />
                         </View>
                     </ScrollView>
                 </View>
@@ -293,11 +316,17 @@ export default function LoginScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
         padding: spacing.base,
+    },
+    // Escritorio: el marco (WebFrame) ya provee la superficie/​tarjeta; acá
+    // eliminamos padding y fondo para no duplicar tarjetas.
+    containerDesktop: {
+        padding: 0,
+        backgroundColor: 'transparent',
     },
     keyboardView: {
         flex: 1,
@@ -312,6 +341,28 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 20,
         elevation: 8,
+    },
+    cardDesktop: {
+        backgroundColor: 'transparent',
+        borderRadius: 0,
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    headerDesktop: {
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.xl,
+        paddingBottom: spacing.md,
+        gap: 4,
+    },
+    headerDesktopTitle: {
+        fontSize: typography.sizes['2xl'],
+        fontWeight: '800',
+        color: colors.foreground,
+        letterSpacing: typography.letterSpacing.tight,
+    },
+    headerDesktopSubtitle: {
+        fontSize: typography.sizes.sm,
+        color: colors.mutedForeground,
     },
     header: {
         flexDirection: 'row',

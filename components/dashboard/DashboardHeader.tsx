@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '../../theme';
+import { spacing, typography, borderRadius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { Logo } from '../Logo';
 import { Avatar } from '../ui';
 
@@ -14,6 +15,8 @@ interface DashboardHeaderProps {
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     userName: userNameProp
 }) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const { user, session } = useAuth();
     const fullName = user ? `${user.first_name} ${user.last_name}`.trim() : (userNameProp || "Usuario");
     const avatarUrl = user?.photo_url || session?.user?.user_metadata?.avatar_url;
@@ -47,7 +50,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
     container: {
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.base,
@@ -67,18 +70,6 @@ const styles = StyleSheet.create({
     menuButton: {
         padding: 4,
     },
-    avatarButton: {
-        // Web: group relative outline-none
-    },
-    avatarPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: borderRadius.full,
-        backgroundColor: colors.muted,
-        borderColor: 'rgba(47, 128, 237, 0.2)', // accent/20
-        borderWidth: 2,
-        // Mobile doesn't have hover, but we simulate structure
-    },
     greetingContainer: {
         gap: spacing.sm,
     },
@@ -93,13 +84,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.xs,
-        backgroundColor: 'rgba(47, 128, 237, 0.1)', // accent/10
+        backgroundColor: colors.accentAlpha[10],
         paddingLeft: spacing.sm,
         paddingRight: spacing.md,
         paddingVertical: 4,
         borderRadius: borderRadius.full,
         borderWidth: 1,
-        borderColor: 'rgba(47, 128, 237, 0.2)', // accent/20
+        borderColor: colors.accentAlpha[20],
     },
     badgeText: {
         color: colors.accent,

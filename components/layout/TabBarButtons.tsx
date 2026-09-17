@@ -28,6 +28,25 @@ export const QrTabBarButton = ({ children, onPress }: CustomTabBarButtonProps) =
     );
 };
 
+/** Botón central de la tab bar → Comprar/Vender USDT (OTC). */
+export const OtcTabBarButton = ({ onPress }: CustomTabBarButtonProps) => {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
+
+    return (
+        <TouchableOpacity
+            style={styles.qrButtonContainer}
+            onPress={onPress}
+            activeOpacity={0.8}
+        >
+            <View style={styles.qrButton}>
+                <Ionicons name="swap-vertical" size={28} color={colors.accentForeground} />
+            </View>
+            <Text style={styles.qrLabel}>USDT</Text>
+        </TouchableOpacity>
+    );
+};
+
 const createStyles = (colors: any) => StyleSheet.create({
     qrButtonContainer: {
         top: -24,

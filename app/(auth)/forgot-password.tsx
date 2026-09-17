@@ -15,8 +15,11 @@ import { ScreenHeader } from '../../components/layout';
 import { FormInput } from '../../components/register/FormInput';
 import { Button } from '../../components/ui/Button';
 import { colors, spacing, borderRadius, typography } from '../../theme';
+import { EMAIL_PLACEHOLDER } from '../../constants/brand';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 export default function ForgotPasswordScreen() {
+    const isDesktop = useIsDesktop();
     const [email, setEmail] = useState('');
     const [step, setStep] = useState<'email' | 'sent'>('email');
     const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +45,7 @@ export default function ForgotPasswordScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={[styles.container, isDesktop && { backgroundColor: 'transparent' }]} edges={['top']}>
             <ScreenHeader
                 title="Recuperar Clave"
                 showBackButton={true}
@@ -73,7 +76,7 @@ export default function ForgotPasswordScreen() {
                             {/* Email Input */}
                             <FormInput
                                 label="Correo Electrónico"
-                                placeholder="ejemplo@tecnomind.com"
+                                placeholder={EMAIL_PLACEHOLDER}
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"

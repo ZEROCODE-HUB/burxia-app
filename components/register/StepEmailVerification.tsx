@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { colors, spacing, borderRadius, typography } from '../../theme';
+import { spacing, borderRadius, typography } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
-import { isTestEnv } from '../../config/environment';
-import { sendPreSignupEmailVerification } from '../../services/email.service';
 
 interface StepEmailVerificationProps {
   email: string;
@@ -15,33 +14,37 @@ interface StepEmailVerificationProps {
 }
 
 export const StepEmailVerification: React.FC<StepEmailVerificationProps> = ({ email, onVerified }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState('');
   const [info, setInfo] = useState<string | null>(null);
-  const [testCode, setTestCode] = useState<string | null>(null);
 
   useEffect(() => {
     requestCode();
   }, []);
 
+  // Pide al servidor que genere y envíe el código (RPC request_presignup_otp).
+  // El código se genera y guarda HASHEADO en el server; el cliente nunca lo ve.
   const requestCode = async () => {
     try {
       setLoading(true);
       setInfo(null);
-      // Generar código de 6 dígitos (cliente) y encolar notificación al worker para enviar email
-      const generated = Math.floor(100000 + Math.random() * 900000).toString();
-      setTestCode(generated);
       const firstName = email.split('@')[0] || 'Usuario';
-      const res = await sendPreSignupEmailVerification(email.trim(), firstName, generated);
-      if (res.success) {
-        setInfo('Te enviamos un código de 6 dígitos a tu correo.');
+      const { error } = await (supabase.rpc as any)('request_presignup_otp', {
+        p_email: email.trim(),
+        p_first_name: firstName,
+      });
+      if (error) {
+        if ((error.message || '').includes('rate_limit')) {
+          setInfo('Demasiados intentos. Esperá unos minutos y reintentá.');
+        } else {
+          setInfo('No se pudo enviar el código por correo. Puedes reintentar.');
+        }
       } else {
-        setInfo('No se pudo enviar el código por correo. Puedes reintentar.');
+        setInfo('Te enviamos un código de 6 dígitos a tu correo.');
       }
-
-      // En sandbox mostrar también el código en pantalla para QA
-      if (isTestEnv) setInfo(prev => (prev ? `${prev}\n(Sandbox: ${generated})` : `Sandbox: ${generated}`));
     } catch (e) {
       setInfo('Error al solicitar código.');
     } finally {
@@ -49,26 +52,20 @@ export const StepEmailVerification: React.FC<StepEmailVerificationProps> = ({ em
     }
   };
 
+  // Verifica el código contra el servidor (RPC verify_presignup_otp).
   const verifyCode = async () => {
     try {
       setLoading(true);
-      // Intentar verificación con Supabase (si el usuario existe)
-      const { error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: code.trim(),
-        type: 'email'
-      } as any);
+      const { data, error } = await (supabase.rpc as any)('verify_presignup_otp', {
+        p_email: email.trim(),
+        p_code: code.trim(),
+      });
       if (error) {
-        // En sandbox aceptar el código local como respaldo
-        if (isTestEnv && testCode && code.trim() === testCode) {
-          onVerified();
-        } else {
-          setInfo('Código incorrecto o expirado.');
-        }
-      } else {
-        // Evitar mantener sesión abierta por esta verificación
-        await supabase.auth.signOut();
+        setInfo('Error al verificar el código.');
+      } else if (data === true) {
         onVerified();
+      } else {
+        setInfo('Código incorrecto o expirado.');
       }
     } catch (e) {
       setInfo('Error al verificar el código.');
@@ -109,7 +106,7 @@ export const StepEmailVerification: React.FC<StepEmailVerificationProps> = ({ em
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',

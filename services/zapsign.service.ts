@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import { isTestEnv, isProductionEnv } from "../config/environment";
+import { isProductionEnv } from "../config/environment";
 
 /**
  * Cliente de ZapSign (KYC).
@@ -10,12 +10,13 @@ import { isTestEnv, isProductionEnv } from "../config/environment";
  * Function `zapsign-proxy`, que guarda la key en el servidor; la app nunca
  * la ve.
  *
- * En modo test se devuelven respuestas mock, para que el flujo de registro
- * ande sin depender de que ZapSign esté configurado. En producción se usa
- * el proxy real.
+ * Se usa SIEMPRE el proxy real (Edge Function `zapsign-proxy`). El entorno
+ * (sandbox de prueba vs producción) lo decide el servidor por `ZAPSIGN_BASE_URL`
+ * — hoy apunta al SANDBOX, así que el flujo es real pero de PRUEBA. El mock
+ * quedó desactivado (antes tapaba el link real con `mock-zapsign.local`).
  */
 
-const ZAPSIGN_MOCK = isTestEnv;
+const ZAPSIGN_MOCK = false;
 
 export interface ZapSignDocument {
   token: string;

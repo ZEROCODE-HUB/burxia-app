@@ -7,6 +7,7 @@ import { Logo } from '../Logo';
 import { Avatar } from '../ui';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 interface ScreenHeaderProps {
     variant?: 'dashboard' | 'simple';
@@ -31,6 +32,9 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 }) => {
     const { colors } = useTheme();
     const { user, session } = useAuth();
+    // En escritorio (Nivel B) el sidebar reemplaza al menú y a la navegación,
+    // así que ocultamos la hamburguesa (abre el mismo menú) y la flecha "atrás".
+    const isDesktop = useIsDesktop();
 
     // Prioritize name from AuthContext user object, then prop, then default
     const fullName = user ? `${user.first_name} ${user.last_name}`.trim() : (userNameProp || "Usuario");
@@ -60,12 +64,14 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                             <Avatar name={fullName} image={avatarUrl} size={40} />
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.menuButton}
-                            onPress={() => router.push('/menu')}
-                        >
-                            <Ionicons name="menu-outline" size={24} color={colors.foreground} />
-                        </TouchableOpacity>
+                        {!isDesktop && (
+                            <TouchableOpacity
+                                style={styles.menuButton}
+                                onPress={() => router.push('/menu')}
+                            >
+                                <Ionicons name="menu-outline" size={24} color={colors.foreground} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -94,7 +100,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             )}
 
             <View style={styles.leftContainer}>
-                {showBackButton && (
+                {showBackButton && !isDesktop && (
                     <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={colors.foreground} />
                     </TouchableOpacity>
@@ -113,7 +119,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                         <Avatar name={fullName} image={avatarUrl} size={40} />
                     </TouchableOpacity>
                 )}
-                {showMenu && (
+                {showMenu && !isDesktop && (
                     <TouchableOpacity
                         style={styles.menuButton}
                         onPress={() => router.push('/menu')}

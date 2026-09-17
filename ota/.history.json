@@ -1,0 +1,110 @@
+[
+  {
+    "runtimeVersion": "1.0.9",
+    "updateId": "07670b4b-c35a-47fc-934f-2d76d60fd274",
+    "createdAt": "2026-09-15T07:13:08.614Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.9",
+    "updateId": "cbcea0e9-b4f2-44c6-8a4c-82b5960e761a",
+    "createdAt": "2026-09-15T07:30:15.093Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "08236b23-d0c0-42de-b4e0-343922b166ef",
+    "createdAt": "2026-09-15T13:24:18.241Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "eed8aab2-17e0-468c-af88-cd90502cf5da",
+    "createdAt": "2026-09-15T13:52:54.270Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "746f16ab-8efd-42da-a02d-77c171e01f7d",
+    "createdAt": "2026-09-15T14:36:37.075Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "b30ce061-1cfe-4b10-a53f-ffccd9e99acc",
+    "createdAt": "2026-09-15T14:54:09.561Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "657292f0-48f8-4978-a96b-06a3311efbef",
+    "createdAt": "2026-09-16T14:14:31.716Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "e7aead9d-3804-4d34-aae9-7f5d83f3d195",
+    "createdAt": "2026-09-16T14:30:57.615Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "ac28b022-af8b-435a-b1da-dfc6bc646660",
+    "createdAt": "2026-09-16T17:47:54.516Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "6b0cb94f-1026-4ec3-88bb-20cb402b014e",
+    "createdAt": "2026-09-16T18:25:56.435Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "6d982d60-bdfc-40e5-8621-6fce49ddea98",
+    "createdAt": "2026-09-16T18:54:39.993Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "51969abf-e065-462f-a0f0-2932ff20b14c",
+    "createdAt": "2026-09-16T19:08:32.514Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  }
+]

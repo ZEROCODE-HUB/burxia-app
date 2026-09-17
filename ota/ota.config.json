@@ -1,0 +1,5 @@
+{
+  "bucket": "burxia-ota",
+  "baseUrl": "https://burxia-ota.oscarmijael7w7.workers.dev",
+  "platforms": ["android", "ios"]
+}

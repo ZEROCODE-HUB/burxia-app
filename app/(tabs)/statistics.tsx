@@ -9,6 +9,9 @@ import { InlineDateRangePicker } from '../../components/statistics/InlineDateRan
 import { spacing } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
+import { DesktopBackground } from '../../components/layout/DesktopPage';
 import { transactionService } from '../../services/transaction.service';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,6 +33,8 @@ export default function StatisticsScreen() {
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
     const { account } = useAuth();
+    const isDesktop = useIsDesktop();
+  useAccountRefreshOnFocus();
     const [selectedRange, setSelectedRange] = useState("1d");
     const [customRange, setCustomRange] = useState<{ start: Date; end: Date } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -115,10 +120,18 @@ export default function StatisticsScreen() {
     const showContent = selectedRange !== 'custom' || (selectedRange === 'custom' && customRange);
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <ScreenHeader title="Estadísticas" showBackButton={true} showAvatar={true} />
+        <SafeAreaView style={[styles.container, isDesktop && { backgroundColor: 'transparent' }]} edges={['top']}>
+            {isDesktop && <DesktopBackground />}
+            {!isDesktop && <ScreenHeader title="Estadísticas" showBackButton={true} showAvatar={true} />}
 
-            <View style={styles.tabsContainer}>
+            {isDesktop && (
+                <View style={[styles.dtHeader, styles.desktopCentered]}>
+                    <Text style={styles.dtTitle}>Estadísticas</Text>
+                    <Text style={styles.dtSub}>Análisis de tus ingresos, egresos y balance</Text>
+                </View>
+            )}
+
+            <View style={[styles.tabsContainer, isDesktop && styles.desktopCentered]}>
                 <TimeRangeSelector
                     options={TIME_RANGES}
                     selected={selectedRange}
@@ -151,8 +164,8 @@ export default function StatisticsScreen() {
                 )}
             </View>
 
-            <ScrollView 
-                contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]} 
+            <ScrollView
+                contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }, isDesktop && styles.desktopCentered]}
                 showsVerticalScrollIndicator={false}
             >
                 {isLoading ? (
@@ -227,6 +240,14 @@ const createStyles = (colors: any) => StyleSheet.create({
         padding: spacing.lg,
         paddingTop: 0,
     },
+    desktopCentered: {
+        width: '100%',
+        maxWidth: 1000,
+        alignSelf: 'center',
+    },
+    dtHeader: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.md },
+    dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
+    dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
     placeholderContainer: {
         alignItems: 'center',
         justifyContent: 'center',

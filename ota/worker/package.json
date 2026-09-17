@@ -1,0 +1,16 @@
+{
+  "name": "burxia-ota-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker que sirve actualizaciones OTA (expo-updates) de Burxia desde R2.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250901.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^3.80.0"
+  }
+}

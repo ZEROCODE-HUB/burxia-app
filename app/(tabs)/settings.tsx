@@ -4,15 +4,20 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    Switch,
     Platform,
+    TouchableOpacity,
 } from 'react-native';
+import { PillToggle } from '../../components/ui/PillToggle';
+import { DeleteAccountModal } from '../../components/settings/DeleteAccountModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenHeader } from '../../components/layout';
 import { spacing, borderRadius, typography } from '../../theme';
+import { BRAND_NAME } from '../../constants/brand';
 import { useTheme } from '../../context/ThemeContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { DesktopPage } from '../../components/layout/DesktopPage';
 import { oneSignalService } from '../../services/oneSignalService';
 import { getSettings, saveSettings } from '../../services/storage.service';
 
@@ -46,11 +51,13 @@ const SettingRow: React.FC<SettingRowProps> = ({ icon, label, description, child
 );
 
 export default function SettingsScreen() {
-    const { colors } = useTheme();
+    const { colors, isDark, setDarkMode } = useTheme();
+    const isDesktop = useIsDesktop();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [pushEnabled, setPushEnabled] = useState(false);
     const [emailEnabled, setEmailEnabled] = useState(false);
+    const [deleteVisible, setDeleteVisible] = useState(false);
 
     useEffect(() => {
         checkSettings();
@@ -96,6 +103,85 @@ export default function SettingsScreen() {
         await saveSettings({ emailAlerts: value });
     };
 
+    const notificationsSection = (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Notificaciones</Text>
+            </View>
+            <View style={styles.sectionCard}>
+                {Platform.OS !== 'web' && (
+                    <>
+                        <SettingRow icon="notifications-outline" label="Notificaciones Push" description="Recibe alertas en tiempo real" colors={colors} styles={styles}>
+                            <PillToggle value={pushEnabled} onValueChange={togglePush} />
+                        </SettingRow>
+                        <View style={styles.divider} />
+                    </>
+                )}
+                <SettingRow icon="mail-outline" label="Alertas por Email" description="Recibe un resumen de tus movimientos" colors={colors} styles={styles}>
+                    <PillToggle value={emailEnabled} onValueChange={toggleEmail} />
+                </SettingRow>
+            </View>
+        </View>
+    );
+
+    const preferencesSection = (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Preferencias</Text>
+            </View>
+            <View style={styles.sectionCard}>
+                <SettingRow
+                    icon={isDark ? 'moon-outline' : 'sunny-outline'}
+                    label="Tema oscuro"
+                    description={isDark ? 'Fondo oscuro' : 'Fondo claro'}
+                    colors={colors}
+                    styles={styles}
+                >
+                    <PillToggle value={isDark} onValueChange={setDarkMode} />
+                </SettingRow>
+            </View>
+        </View>
+    );
+
+    const dangerSection = (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Cuenta</Text>
+            </View>
+            <View style={styles.sectionCard}>
+                <TouchableOpacity style={styles.settingRow} onPress={() => setDeleteVisible(true)} activeOpacity={0.7}>
+                    <View style={styles.settingMain}>
+                        <View style={[styles.iconContainer, { backgroundColor: colors.destructive + '1A' }]}>
+                            <Ionicons name="trash-outline" size={22} color={colors.destructive} />
+                        </View>
+                        <View style={styles.settingText}>
+                            <Text style={[styles.settingLabel, { color: colors.destructive }]}>Eliminar cuenta</Text>
+                            <Text style={styles.settingDescription}>Elimina tu cuenta de forma permanente</Text>
+                        </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    if (isDesktop) {
+        return (
+            <View style={styles.container}>
+                <DesktopPage title="Configuración" subtitle="Preferencias y notificaciones de tu cuenta" maxWidth={760}>
+                    {preferencesSection}
+                    {notificationsSection}
+                    {dangerSection}
+                    <View style={styles.footerInfo}>
+                        <Text style={styles.versionText}>{BRAND_NAME} v2.4.0 (Build 892)</Text>
+                        <Text style={styles.securityText}>Enterprise Grade Security</Text>
+                    </View>
+                </DesktopPage>
+                <DeleteAccountModal visible={deleteVisible} onClose={() => setDeleteVisible(false)} />
+            </View>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <ScreenHeader
@@ -115,28 +201,31 @@ export default function SettingsScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+                {preferencesSection}
+
                 {/* Notificaciones */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Notificaciones</Text>
                     </View>
                     <View style={styles.sectionCard}>
-                        <SettingRow
-                            icon="notifications-outline"
-                            label="Notificaciones Push"
-                            description="Recibe alertas en tiempo real"
-                            colors={colors}
-                            styles={styles}
-                        >
-                            <Switch
-                                value={pushEnabled}
-                                onValueChange={togglePush}
-                                trackColor={{ false: colors.border, true: colors.accentAlpha[40] }}
-                                thumbColor={pushEnabled ? colors.accent : colors.mutedForeground}
-                            />
-                        </SettingRow>
+                        {/* Push depende de OneSignal (módulos nativos); en web es
+                            no-op, así que no mostramos un toggle que no hace nada. */}
+                        {Platform.OS !== 'web' && (
+                            <>
+                                <SettingRow
+                                    icon="notifications-outline"
+                                    label="Notificaciones Push"
+                                    description="Recibe alertas en tiempo real"
+                                    colors={colors}
+                                    styles={styles}
+                                >
+                                    <PillToggle value={pushEnabled} onValueChange={togglePush} />
+                                </SettingRow>
 
-                        <View style={styles.divider} />
+                                <View style={styles.divider} />
+                            </>
+                        )}
 
                         <SettingRow
                             icon="mail-outline"
@@ -145,26 +234,25 @@ export default function SettingsScreen() {
                             colors={colors}
                             styles={styles}
                         >
-                            <Switch
-                                value={emailEnabled}
-                                onValueChange={toggleEmail}
-                                trackColor={{ false: colors.border, true: colors.accentAlpha[40] }}
-                                thumbColor={emailEnabled ? colors.accent : colors.mutedForeground}
-                            />
+                            <PillToggle value={emailEnabled} onValueChange={toggleEmail} />
                         </SettingRow>
                     </View>
                 </View>
 
+                {dangerSection}
+
                 {/* Version Info */}
                 <View style={styles.footerInfo}>
                     <Text style={styles.versionText}>
-                        Proxpera v2.4.0 (Build 892)
+                        {BRAND_NAME} v2.4.0 (Build 892)
                     </Text>
                     <Text style={styles.securityText}>
                         Enterprise Grade Security
                     </Text>
                 </View>
             </ScrollView>
+
+            <DeleteAccountModal visible={deleteVisible} onClose={() => setDeleteVisible(false)} />
         </SafeAreaView>
     );
 }
