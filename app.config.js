@@ -74,8 +74,9 @@ export default {
             // CAMERA + RECORD_AUDIO: verificación biométrica (KYC ZapSign).
             // POST_NOTIFICATIONS: notificaciones push (OneSignal, Android 13+).
             permissions: ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS"],
-            package: "com.burxia.app",
-             versionCode: 10
+            package: "com.burxia.app"
+            // Sin versionCode: EAS lo lleva (appVersionSource: "remote" +
+            // autoIncrement). Ponerlo acá se ignora y confunde.
         },
 
         web: {
