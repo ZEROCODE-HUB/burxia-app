@@ -52,5 +52,59 @@
       "android",
       "ios"
     ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "657292f0-48f8-4978-a96b-06a3311efbef",
+    "createdAt": "2026-09-16T14:14:31.716Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "e7aead9d-3804-4d34-aae9-7f5d83f3d195",
+    "createdAt": "2026-09-16T14:30:57.615Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "ac28b022-af8b-435a-b1da-dfc6bc646660",
+    "createdAt": "2026-09-16T17:47:54.516Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "6b0cb94f-1026-4ec3-88bb-20cb402b014e",
+    "createdAt": "2026-09-16T18:25:56.435Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "6d982d60-bdfc-40e5-8621-6fce49ddea98",
+    "createdAt": "2026-09-16T18:54:39.993Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.10",
+    "updateId": "51969abf-e065-462f-a0f0-2932ff20b14c",
+    "createdAt": "2026-09-16T19:08:32.514Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
   }
 ]
