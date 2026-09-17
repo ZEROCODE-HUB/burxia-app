@@ -50,7 +50,7 @@ export default {
 
         ios: {
             supportsTablet: true,
-            bundleIdentifier: "com.bruxia.app",
+            bundleIdentifier: "com.burxia.app",
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false,
                 NSCameraUsageDescription:
@@ -69,7 +69,7 @@ export default {
             // CAMERA + RECORD_AUDIO: verificación biométrica (KYC ZapSign).
             // POST_NOTIFICATIONS: notificaciones push (OneSignal, Android 13+).
             permissions: ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS"],
-            package: "com.bruxia.app",
+            package: "com.burxia.app",
              versionCode: 10
         },
 
