@@ -11,6 +11,8 @@ import { useAuth } from '../../context/AuthContext';
 import { transactionService } from '../../services/transaction.service';
 import { getMySolicitudes, enCurso, SolicitudItem } from '../../services/solicitudes.service';
 import { formatBalance } from '../../utils/formatters';
+import { DataTable, Cell, StatusChip, type Column } from '../layout/DataTable';
+import { Ionicons } from '@expo/vector-icons';
 
 type MovProps = { id: string; title: string; description: string; amount: string; type: 'income' | 'expense'; iconName: 'arrow-down' | 'arrow-up' };
 type FeedItem =
@@ -23,12 +25,42 @@ const solToVoucher = (s: SolicitudItem, user: any): VoucherModel =>
         ? buildOtcVoucher(s.rawOtc, user)
         : buildFundingVoucher(s.rawFunding as any, user);
 
+const SOL_STATUS: Record<string, { label: string; tone: 'ok' | 'bad' | 'warn' }> = {
+    pending: { label: 'Pendiente', tone: 'warn' },
+    rejected: { label: 'Rechazada', tone: 'bad' },
+    approved: { label: 'Aprobada', tone: 'ok' },
+    completed: { label: 'Completada', tone: 'ok' },
+};
+
+// Campos normalizados de una fila (movimiento o solicitud) para la tabla desktop.
+const normalizeFeed = (item: FeedItem) => {
+    if (item.kind === 'sol') {
+        const s = item.sol;
+        const st = SOL_STATUS[s.status] ?? { label: s.status, tone: 'warn' as const };
+        return { isIncome: s.isIncome, title: s.title, subtitle: s.subtitle || '', amountText: formatBalance(s.amountFiat), status: st };
+    }
+    return {
+        isIncome: item.mov.type === 'income',
+        title: item.mov.title,
+        subtitle: item.mov.description || '',
+        amountText: item.mov.amount,
+        status: { label: 'Completado', tone: 'ok' as const },
+    };
+};
+
+const formatShortDate = (iso: string) => {
+    const d = new Date(iso);
+    const month = d.toLocaleString('es-ES', { month: 'short' }).replace('.', '');
+    return `${d.getDate()} ${month.charAt(0).toUpperCase() + month.slice(1)}`;
+};
+
 export interface TransactionsListHandle {
     /** Recarga la lista bajo demanda (p.ej. desde el pull-to-refresh del Dashboard). */
     refresh: () => Promise<void>;
 }
 
-export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref) => {
+export const TransactionsList = forwardRef<TransactionsListHandle, { desktop?: boolean }>((props, ref) => {
+    const { desktop } = props;
     const { colors } = useTheme();
     const { account, user } = useAuth();
     const styles = useMemo(() => createStyles(colors), [colors]);
@@ -110,6 +142,58 @@ export const TransactionsList = forwardRef<TransactionsListHandle>((_props, ref)
     // "Cargando…" solo en la PRIMERA carga (sin datos); en refrescos se mantiene la lista.
     if (loading && feed.length === 0) return <View style={styles.container}><Text style={{ color: colors.mutedForeground }}>Cargando...</Text></View>;
 
+    // Escritorio: los últimos movimientos se ven como TABLA (no lista estirada).
+    if (desktop) {
+        const columns: Column<FeedItem>[] = [
+            { key: 'fecha', header: 'Fecha', width: 96, render: (it) => <Cell text={formatShortDate(it.createdAt)} muted /> },
+            {
+                key: 'detalle', header: 'Detalle', flex: 2.2, render: (it) => {
+                    const n = normalizeFeed(it);
+                    const accent = n.isIncome ? colors.success : colors.accent;
+                    return (
+                        <View style={styles.dtDetail}>
+                            <View style={[styles.dtIcon, { backgroundColor: accent + '22' }]}>
+                                <Ionicons name={n.isIncome ? 'arrow-down' : 'arrow-up'} size={15} color={accent} />
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                                <Cell text={n.title} strong />
+                                {n.subtitle ? <Cell text={n.subtitle} muted /> : null}
+                            </View>
+                        </View>
+                    );
+                },
+            },
+            { key: 'tipo', header: 'Tipo', width: 110, render: (it) => <Cell text={normalizeFeed(it).isIncome ? 'Ingreso' : 'Egreso'} muted /> },
+            { key: 'estado', header: 'Estado', width: 120, render: (it) => { const n = normalizeFeed(it); return <StatusChip label={n.status.label} tone={n.status.tone} />; } },
+            {
+                key: 'monto', header: 'Monto', width: 150, align: 'right', render: (it) => {
+                    const n = normalizeFeed(it);
+                    return <Text style={[styles.dtAmount, { color: n.isIncome ? colors.success : colors.foreground }]}>{n.isIncome ? '+' : '-'}{n.amountText}</Text>;
+                },
+            },
+            { key: 'accion', header: '', width: 40, align: 'right', render: () => <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} /> },
+        ];
+        return (
+            <View style={styles.dtContainer}>
+                <View style={styles.header}>
+                    <Text style={styles.title}>Últimos Movimientos</Text>
+                    <TouchableOpacity onPress={() => router.push('/(tabs)/movements')}>
+                        <Text style={styles.link}>Ver todo</Text>
+                    </TouchableOpacity>
+                </View>
+                <DataTable
+                    columns={columns}
+                    rows={feed}
+                    keyExtractor={(it) => it.key}
+                    onRowPress={(it) => (it.kind === 'sol' ? setVoucher(solToVoucher(it.sol, user)) : abrirMov(it.raw))}
+                    emptyIcon="receipt-outline"
+                    emptyText="No hay movimientos recientes"
+                />
+                <Voucher model={voucher} visible={!!voucher} onClose={() => setVoucher(null)} />
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -162,4 +246,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     list: {
         gap: spacing.sm,
     },
+    dtContainer: {
+        marginTop: spacing.md,
+    },
+    dtDetail: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1, minWidth: 0 },
+    dtIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+    dtAmount: { fontSize: typography.sizes.sm, fontWeight: '700' },
 });

@@ -105,7 +105,7 @@ export function DesktopDashboard() {
 
       {/* Movimientos recientes (las solicitudes viven unificadas en Movimientos) */}
       <View style={styles.colMain}>
-        <TransactionsList />
+        <TransactionsList desktop />
       </View>
 
       <View style={{ height: 60 }} />
