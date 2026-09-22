@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import { View, TextInput, StyleSheet, TextInputProps, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -42,5 +42,7 @@ const createStyles = (colors: any) => StyleSheet.create({
         height: '100%',
         color: colors.foreground,
         fontSize: typography.sizes.sm,
+        // En web, el borde de foco por defecto del navegador se ve mal sobre la tarjeta.
+        ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null),
     },
 });

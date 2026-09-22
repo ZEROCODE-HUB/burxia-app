@@ -138,8 +138,12 @@ export default function MovementsScreen() {
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             movs = movs.filter((t) => {
-                const concept = (t.concept || t.transaction_type_name || '').toLowerCase();
-                return concept.includes(query) || t.amount.toString().includes(query);
+                // Buscar en todo lo visible: contraparte (nombre mostrado), tipo, concepto y monto.
+                const haystack = [t.counterpart_name, t.transaction_type_name, t.concept]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+                return haystack.includes(query) || t.amount.toString().includes(query);
             });
         }
         const movItems: FeedItem[] = movs.map((t) => ({ kind: 'mov', key: `m_${t.transaction_id}`, created_at: t.created_at, mov: t }));
