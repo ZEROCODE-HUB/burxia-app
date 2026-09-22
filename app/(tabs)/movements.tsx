@@ -17,7 +17,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
-import { DesktopBackground } from '../../components/layout/DesktopPage';
+import { DesktopMovements } from '../../components/movements/DesktopMovements';
 import { transactionService } from '../../services/transaction.service';
 import { statementService } from '../../services/statement.service';
 import { getMySolicitudes, enCurso, SolicitudItem } from '../../services/solicitudes.service';
@@ -186,11 +186,39 @@ export default function MovementsScreen() {
         return <TransactionItem {...props} onPress={() => abrirMov(t)} />;
     };
 
+    // Abre el comprobante correcto según el tipo de fila (usado por la tabla desktop).
+    const openFeedItem = (item: FeedItem) => {
+        if (item.kind === 'sol') setVoucher(solToVoucher(item.sol, user));
+        else abrirMov(item.mov);
+    };
+
+    if (isDesktop) {
+        return (
+            <>
+                <DesktopMovements
+                    sections={sections}
+                    account={account}
+                    showBalance={showBalance}
+                    onToggleBalance={() => setShowBalance(!showBalance)}
+                    searchQuery={searchQuery}
+                    onSearch={setSearchQuery}
+                    activeFilter={activeFilter}
+                    onFilterChange={handleFilterChange}
+                    isLoading={isLoading}
+                    isDownloading={isDownloading}
+                    onDownload={handleDownloadStatement}
+                    onRowPress={openFeedItem}
+                />
+                <DateRangeFilter visible={showDateFilter} onClose={() => setShowDateFilter(false)} onApply={applyDateFilter} />
+                <Voucher model={voucher} visible={!!voucher} onClose={() => setVoucher(null)} />
+            </>
+        );
+    }
+
     return (
-        <View style={[styles.container, isDesktop ? { backgroundColor: 'transparent' } : { paddingTop: insets.top }]}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar style={isDark ? 'light' : 'dark'} />
-            {isDesktop && <DesktopBackground />}
-            {!isDesktop && <ScreenHeader variant="simple" title="Movimientos" showBackButton showAvatar />}
+            <ScreenHeader variant="simple" title="Movimientos" showBackButton showAvatar />
 
             <SectionList
                 sections={sections}
@@ -199,18 +227,12 @@ export default function MovementsScreen() {
                 renderSectionHeader={renderSectionHeader}
                 stickySectionHeadersEnabled={false}
                 ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }, isDesktop && styles.desktopCentered]}
+                contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 90 }]}
                 showsVerticalScrollIndicator={false}
                 refreshing={isLoading}
                 onRefresh={() => { loadMovements(); loadSolicitudes(); }}
                 ListHeaderComponent={
                     <>
-                        {isDesktop && (
-                            <View style={styles.dtHeader}>
-                                <Text style={styles.dtTitle}>Movimientos</Text>
-                                <Text style={styles.dtSub}>Historial de tu actividad y solicitudes</Text>
-                            </View>
-                        )}
                         <View style={styles.balanceSection}>
                             <View>
                                 <Text style={styles.balanceLabel}>Saldo disponible</Text>

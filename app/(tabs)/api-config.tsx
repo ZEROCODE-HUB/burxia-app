@@ -19,6 +19,7 @@ import { Button, AlertDialog } from '../../components/ui';
 import { spacing, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { DesktopPage, DesktopGrid, DesktopCol } from '../../components/layout/DesktopPage';
 import { supabase } from '../../lib/supabase';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -257,6 +258,33 @@ export default function ApiConfigScreen() {
     const isNewConfig = !apiData; // No tiene api_access aún
     const isAlreadyEnabled = apiData?.is_enabled === true;
 
+    // Bloques reutilizables (en desktop van en la columna derecha; en móvil, en el flujo).
+    const warningBlock = (
+        <View style={styles.warningCard}>
+            <View style={styles.warningHeader}>
+                <Ionicons name="shield-checkmark-outline" size={24} color={colors.warning} />
+                <Text style={styles.warningTitle}>Zona de Seguridad</Text>
+            </View>
+            <Text style={styles.warningText}>
+                Habilitar la API permite que aplicaciones externas interactúen con tu cuenta. Nunca compartas tus credenciales.
+            </Text>
+        </View>
+    );
+    const apiInfoBlock = (
+        <View style={styles.panelCard}>
+            <Text style={styles.panelTitle}>¿Para qué sirve?</Text>
+            <Text style={styles.panelText}>
+                Con la API podés conectar sistemas o bots externos que operen sobre tu cuenta de forma programática, usando un Client ID y una contraseña propios.
+            </Text>
+            {!isAlreadyEnabled && ['Activá el interruptor de API.', 'Elegí un sufijo y una contraseña segura.', 'Usá tu Client ID y contraseña desde tu sistema.'].map((s, i) => (
+                <View key={i} style={styles.stepRow}>
+                    <View style={styles.stepNum}><Text style={styles.stepNumText}>{i + 1}</Text></View>
+                    <Text style={styles.stepText}>{s}</Text>
+                </View>
+            ))}
+        </View>
+    );
+
     if (loadingInitial) {
         return (
             <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -278,8 +306,9 @@ export default function ApiConfigScreen() {
                 />
             )}
 
+            <View style={isDesktop ? styles.desktopRow : { flex: 1 }}>
             <KeyboardAvoidingView
-                style={{ flex: 1 }}
+                style={isDesktop ? styles.desktopMainCol : { flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
@@ -292,16 +321,8 @@ export default function ApiConfigScreen() {
                         </View>
                     )}
 
-                    {/* Warning Card */}
-                    <View style={styles.warningCard}>
-                        <View style={styles.warningHeader}>
-                            <Ionicons name="shield-checkmark-outline" size={24} color={colors.warning} />
-                            <Text style={styles.warningTitle}>Zona de Seguridad</Text>
-                        </View>
-                        <Text style={styles.warningText}>
-                            Habilitar la API permite que aplicaciones externas interactúen con tu cuenta. Nunca compartas tus credenciales.
-                        </Text>
-                    </View>
+                    {/* Warning Card (en desktop va en la columna derecha) */}
+                    {!isDesktop && warningBlock}
 
                     {/* Toggle */}
                     <View style={styles.settingRow}>
@@ -490,6 +511,13 @@ export default function ApiConfigScreen() {
                     <View style={{ height: 120 }} />
                 </ScrollView>
             </KeyboardAvoidingView>
+            {isDesktop && (
+                <View style={styles.desktopSideCol}>
+                    {warningBlock}
+                    {apiInfoBlock}
+                </View>
+            )}
+            </View>
 
             <AlertDialog
                 visible={alertConfig.visible}
@@ -509,7 +537,17 @@ const createStyles = (colors: any) => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     scrollContent: { padding: spacing.lg, gap: spacing.xl },
-    scrollContentDesktop: { width: '100%', maxWidth: 820, alignSelf: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xl * 3 },
+    scrollContentDesktop: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xl * 3, gap: spacing.xl },
+    desktopRow: { flex: 1, flexDirection: 'row', gap: spacing.xl, width: '100%', maxWidth: 1160, alignSelf: 'center' },
+    desktopMainCol: { flex: 1.4, minWidth: 360 },
+    desktopSideCol: { flex: 1, minWidth: 280, gap: spacing.lg, paddingTop: 96, paddingRight: spacing.xl },
+    panelCard: { backgroundColor: colors.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, gap: spacing.md },
+    panelTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
+    panelText: { fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
+    stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accentAlpha[10], alignItems: 'center', justifyContent: 'center' },
+    stepNumText: { fontSize: 13, fontWeight: '700', color: colors.accent },
+    stepText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
     dtHeader: { marginBottom: spacing.sm },
     dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
     dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },

@@ -152,12 +152,23 @@ export default function WebAccessScreen() {
         </View>
     );
 
+    const steps = [
+        'Activá el interruptor de acceso web.',
+        'Definí una contraseña segura, distinta de tu PIN.',
+        'Ingresá en el navegador con tu usuario y esa contraseña.',
+    ];
+    const benefits: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
+        { icon: 'desktop-outline', text: 'Operá tu cuenta desde la computadora, sin el teléfono a mano.' },
+        { icon: 'shield-checkmark-outline', text: 'Mismo nivel de seguridad que la app.' },
+        { icon: 'sync-outline', text: 'Saldos y movimientos siempre sincronizados.' },
+    ];
+
     if (isDesktop) {
         return (
             <View style={styles.container}>
-                <DesktopPage title="Acceso Web" subtitle="Activá el ingreso por usuario y contraseña en el navegador" maxWidth={960}>
+                <DesktopPage title="Acceso Web" subtitle="Activá el ingreso por usuario y contraseña en el navegador" maxWidth={1000}>
                     <DesktopGrid>
-                        <DesktopCol flex={1.3} minWidth={340}>
+                        <DesktopCol flex={1.4} minWidth={360}>
                             <View style={styles.settingRow}>
                                 <View style={styles.settingInfo}>
                                     <Text style={styles.settingLabel}>Habilitar acceso web</Text>
@@ -171,9 +182,20 @@ export default function WebAccessScreen() {
                                 />
                             </View>
                             {webAccessEnabled ? passwordForm : (
-                                <Button onPress={handleSave} loading={loading} disabled={loading} style={styles.actionButton}>
-                                    Guardar cambios
-                                </Button>
+                                <>
+                                    <View style={styles.panelCard}>
+                                        <Text style={styles.cardTitle}>¿Cómo funciona?</Text>
+                                        {steps.map((s, i) => (
+                                            <View key={i} style={styles.stepRow}>
+                                                <View style={styles.stepNum}><Text style={styles.stepNumText}>{i + 1}</Text></View>
+                                                <Text style={styles.stepText}>{s}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    <Button onPress={handleSave} loading={loading} disabled={loading} style={styles.actionButton}>
+                                        Guardar cambios
+                                    </Button>
+                                </>
                             )}
                         </DesktopCol>
                         <DesktopCol flex={1} minWidth={280}>
@@ -185,6 +207,15 @@ export default function WebAccessScreen() {
                                 <Text style={styles.warningText}>
                                     Esta contraseña permite el acceso directo a tu cuenta {BRAND_NAME} vía navegadores web. Mantenla segura y no la compartas.
                                 </Text>
+                            </View>
+                            <View style={styles.panelCard}>
+                                <Text style={styles.cardTitle}>Qué obtenés</Text>
+                                {benefits.map((b, i) => (
+                                    <View key={i} style={styles.benefitRow}>
+                                        <Ionicons name={b.icon} size={20} color={colors.accent} />
+                                        <Text style={styles.benefitText}>{b.text}</Text>
+                                    </View>
+                                ))}
                             </View>
                         </DesktopCol>
                     </DesktopGrid>
@@ -431,4 +462,39 @@ const createStyles = (colors: any) => StyleSheet.create({
         color: colors.success,
         fontWeight: '500',
     },
+    panelCard: {
+        backgroundColor: colors.card,
+        borderRadius: borderRadius.xl,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        gap: spacing.md,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: colors.foreground,
+        marginBottom: spacing.xs,
+    },
+    stepRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+    },
+    stepNum: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: colors.accentAlpha[10],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    stepNumText: { fontSize: 13, fontWeight: '700', color: colors.accent },
+    stepText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
+    benefitRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: spacing.md,
+    },
+    benefitText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
 });

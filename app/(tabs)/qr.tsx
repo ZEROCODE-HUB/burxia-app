@@ -12,7 +12,7 @@ import { QRScannerOverlay } from '../../components/qr/QRScannerOverlay';
 import { QRProcessingState } from '../../components/qr/QRProcessingState';
 import { useQRHandler } from '../../hooks/useQRHandler';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
-import { DesktopPage } from '../../components/layout/DesktopPage';
+import { DesktopPage, DesktopGrid, DesktopCol } from '../../components/layout/DesktopPage';
 
 export default function QrScreen() {
     const { colors } = useTheme();
@@ -62,21 +62,40 @@ export default function QrScreen() {
     if (isDesktop) {
         return (
             <View style={styles.container}>
-                <DesktopPage title="Escanear QR" subtitle="Pagá o transferí leyendo un código QR" maxWidth={720}>
-                    <View style={styles.dtCard}>
-                        <View style={styles.dtIconWrap}>
-                            <Ionicons name="qr-code-outline" size={56} color={colors.accent} />
-                        </View>
-                        <Text style={styles.dtTitle}>Cargá una imagen del código QR</Text>
-                        <Text style={styles.dtText}>
-                            El escaneo con cámara no está disponible en el navegador. Seleccioná una
-                            imagen del código QR desde tu equipo y la procesamos igual.
-                        </Text>
-                        <TouchableOpacity style={styles.dtButton} onPress={pickImage} activeOpacity={0.85}>
-                            <Ionicons name="image-outline" size={22} color={colors.accentForeground} />
-                            <Text style={styles.dtButtonText}>Cargar imagen</Text>
-                        </TouchableOpacity>
-                    </View>
+                <DesktopPage title="Escanear QR" subtitle="Pagá o transferí leyendo un código QR" maxWidth={960}>
+                    <DesktopGrid>
+                        <DesktopCol flex={1.3} minWidth={340}>
+                            <View style={styles.dtCard}>
+                                <View style={styles.dtIconWrap}>
+                                    <Ionicons name="qr-code-outline" size={56} color={colors.accent} />
+                                </View>
+                                <Text style={styles.dtTitle}>Cargá una imagen del código QR</Text>
+                                <Text style={styles.dtText}>
+                                    El escaneo con cámara no está disponible en el navegador. Seleccioná una
+                                    imagen del código QR desde tu equipo y la procesamos igual.
+                                </Text>
+                                <TouchableOpacity style={styles.dtButton} onPress={pickImage} activeOpacity={0.85}>
+                                    <Ionicons name="image-outline" size={22} color={colors.accentForeground} />
+                                    <Text style={styles.dtButtonText}>Cargar imagen</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </DesktopCol>
+                        <DesktopCol flex={1} minWidth={280}>
+                            <View style={styles.dtInfoCard}>
+                                <Text style={styles.dtInfoTitle}>¿Cómo funciona?</Text>
+                                {[
+                                    'Pedí o mostrá el código QR de la operación.',
+                                    'Guardá o capturá la imagen del QR en tu equipo.',
+                                    'Cargala acá y confirmá el pago o la transferencia.',
+                                ].map((s, i) => (
+                                    <View key={i} style={styles.dtStepRow}>
+                                        <View style={styles.dtStepNum}><Text style={styles.dtStepNumText}>{i + 1}</Text></View>
+                                        <Text style={styles.dtStepText}>{s}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </DesktopCol>
+                    </DesktopGrid>
                 </DesktopPage>
 
                 <AlertDialog
@@ -186,6 +205,18 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
         backgroundColor: colors.accent, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12,
     },
     dtButtonText: { color: colors.accentForeground, fontWeight: '700', fontSize: 15 },
+    dtInfoCard: {
+        backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.border,
+        padding: 24, gap: 14,
+    },
+    dtInfoTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground, marginBottom: 2 },
+    dtStepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    dtStepNum: {
+        width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accentAlpha[10],
+        alignItems: 'center', justifyContent: 'center',
+    },
+    dtStepNumText: { fontSize: 13, fontWeight: '700', color: colors.accent },
+    dtStepText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
     webPlaceholder: {
         ...StyleSheet.absoluteFillObject,
         alignItems: 'center',
