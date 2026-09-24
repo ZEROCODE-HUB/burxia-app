@@ -6,13 +6,14 @@ import { SummaryCards } from '../../components/statistics/SummaryCards';
 import { BalanceChart } from '../../components/statistics/BalanceChart';
 import { TimeRangeSelector } from '../../components/statistics/TimeRangeSelector';
 import { InlineDateRangePicker } from '../../components/statistics/InlineDateRangePicker';
-import { spacing } from '../../theme';
+import { spacing, borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { DesktopBackground } from '../../components/layout/DesktopPage';
 import { transactionService } from '../../services/transaction.service';
+import { formatCurrency } from '../../utils/formatters';
 import { Ionicons } from '@expo/vector-icons';
 
 const TIME_RANGES = [
@@ -119,6 +120,19 @@ export default function StatisticsScreen() {
 
     const showContent = selectedRange !== 'custom' || (selectedRange === 'custom' && customRange);
 
+    const netBalance = stats.summaryData.income - stats.summaryData.expenses;
+
+    // Tarjeta de métrica para la columna lateral de escritorio.
+    const renderStat = (icon: keyof typeof Ionicons.glyphMap, label: string, value: string, color: string) => (
+        <View style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: color + '22' }]}>
+                <Ionicons name={icon} size={18} color={color} />
+            </View>
+            <Text style={styles.statLabel}>{label}</Text>
+            <Text style={styles.statValue}>{value}</Text>
+        </View>
+    );
+
     return (
         <SafeAreaView style={[styles.container, isDesktop && { backgroundColor: 'transparent' }]} edges={['top']}>
             {isDesktop && <DesktopBackground />}
@@ -174,15 +188,33 @@ export default function StatisticsScreen() {
                         <Text style={styles.loadingText}>Cargando datos...</Text>
                     </View>
                 ) : showContent ? (
-                    <>
-                        <SummaryCards data={stats.summaryData} />
+                    isDesktop ? (
+                        <View style={styles.dtGrid}>
+                            <View style={styles.dtChartCol}>
+                                <BalanceChart
+                                    data={stats.chartData}
+                                    currentBalance={stats.currentBalance}
+                                    label={RANGE_LABELS[selectedRange]}
+                                />
+                            </View>
+                            <View style={styles.dtStatsCol}>
+                                {renderStat('arrow-down-outline', 'Total Ingresos', formatCurrency(stats.summaryData.income), colors.success)}
+                                {renderStat('arrow-up-outline', 'Total Egresos', formatCurrency(stats.summaryData.expenses), colors.destructive)}
+                                {renderStat('swap-vertical-outline', 'Balance neto', formatCurrency(netBalance), netBalance >= 0 ? colors.success : colors.destructive)}
+                                {renderStat('wallet-outline', 'Saldo actual', formatCurrency(stats.currentBalance), colors.accent)}
+                            </View>
+                        </View>
+                    ) : (
+                        <>
+                            <SummaryCards data={stats.summaryData} />
 
-                        <BalanceChart
-                            data={stats.chartData}
-                            currentBalance={stats.currentBalance}
-                            label={RANGE_LABELS[selectedRange]}
-                        />
-                    </>
+                            <BalanceChart
+                                data={stats.chartData}
+                                currentBalance={stats.currentBalance}
+                                label={RANGE_LABELS[selectedRange]}
+                            />
+                        </>
+                    )
                 ) : (
                     <View style={styles.placeholderContainer}>
                         <Ionicons name="calendar" size={48} color={colors.mutedAlpha[40]} />
@@ -242,9 +274,41 @@ const createStyles = (colors: any) => StyleSheet.create({
     },
     desktopCentered: {
         width: '100%',
-        maxWidth: 1000,
+        maxWidth: 1160,
         alignSelf: 'center',
     },
+    dtGrid: {
+        flexDirection: 'row',
+        gap: spacing.xl,
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+    },
+    dtChartCol: { flex: 1.7, minWidth: 420 },
+    dtStatsCol: { flex: 1, minWidth: 260, gap: spacing.md },
+    statCard: {
+        backgroundColor: colors.card,
+        borderRadius: borderRadius.xl,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.lg,
+        gap: 6,
+    },
+    statIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 11,
+        color: colors.mutedForeground,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+        fontWeight: '700',
+    },
+    statValue: { fontSize: 22, fontWeight: '800', color: colors.foreground, letterSpacing: -0.3 },
     dtHeader: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.md },
     dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
     dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },

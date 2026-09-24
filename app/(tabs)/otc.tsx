@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { DesktopBackground } from "../../components/layout/DesktopPage";
+import { DataTable, Cell, StatusChip, type Column } from "../../components/layout/DataTable";
 import { OperationVoucher } from "../../components/OperationVoucher";
 import { formatCurrency } from "../../utils/formatters";
 import {
@@ -30,6 +31,12 @@ import {
 const FIAT_LABEL = "Pesos";
 
 const fmtCrypto = (n: number) => n.toLocaleString("es-CO", { maximumFractionDigits: 6 });
+
+const fmtOtcDate = (iso: string) => {
+  const d = new Date(iso);
+  const month = d.toLocaleString("es-ES", { month: "short" }).replace(".", "");
+  return `${d.getDate()} ${month.charAt(0).toUpperCase() + month.slice(1)}`;
+};
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Pendiente", completed: "Completada", rejected: "Rechazada",
@@ -196,6 +203,36 @@ export default function OtcScreen() {
     </View>
   );
 
+  // Columnas de la tabla "Mis operaciones" (solo escritorio).
+  const otcColumns: Column<OtcOrder>[] = useMemo(() => [
+    { key: "fecha", header: "Fecha", width: 110, render: (o) => <Cell text={fmtOtcDate(o.created_at)} muted /> },
+    {
+      key: "op", header: "Operación", flex: 1.6, render: (o) => {
+        const isBuy = o.side === "buy";
+        const accent = isBuy ? colors.accent : colors.success;
+        return (
+          <View style={styles.otcOpCell}>
+            <View style={[styles.otcIcon, { backgroundColor: accent + "22" }]}>
+              <Ionicons name={isBuy ? "arrow-down" : "arrow-up"} size={15} color={accent} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Cell text={`${isBuy ? "Compra" : "Venta"} · ${fmtCrypto(o.amount_crypto)} ${o.asset_code}`} strong />
+              {o.reference ? <Cell text={`Ref: ${o.reference}`} muted /> : null}
+            </View>
+          </View>
+        );
+      },
+    },
+    {
+      key: "estado", header: "Estado", width: 130, render: (o) => {
+        const tone = o.status === "completed" ? "ok" : o.status === "rejected" ? "bad" : "warn";
+        return <StatusChip label={STATUS_LABEL[o.status] ?? o.status} tone={tone} />;
+      },
+    },
+    { key: "monto", header: "Monto", width: 150, align: "right", render: (o) => <Text style={styles.otcAmount}>{formatCurrency(o.fiat_amount)}</Text> },
+    { key: "accion", header: "", width: 44, align: "right", render: () => <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} /> },
+  ], [colors, styles]);
+
   return (
     <View style={[styles.container, isDesktop ? { backgroundColor: "transparent" } : { paddingTop: insets.top }]}>
       {isDesktop && <DesktopBackground />}
@@ -208,9 +245,15 @@ export default function OtcScreen() {
           showsVerticalScrollIndicator={false}
         >
           {isDesktop && (
-            <View style={styles.dtHeader}>
-              <Text style={styles.dtTitle}>Comprar / Vender USDT</Text>
-              <Text style={styles.dtSub}>Operá USDT contra el saldo de tu cuenta</Text>
+            <View style={styles.dtHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dtTitle}>Comprar / Vender USDT</Text>
+                <Text style={styles.dtSub}>Operá USDT contra el saldo de tu cuenta</Text>
+              </View>
+              <View style={styles.balancePill}>
+                <Text style={styles.balancePillLabel}>Saldo disponible</Text>
+                <Text style={styles.balancePillValue}>{formatCurrency(balance)}</Text>
+              </View>
             </View>
           )}
           {loadingCfg ? (
@@ -218,6 +261,7 @@ export default function OtcScreen() {
           ) : !cfg ? (
             <Text style={styles.empty}>La mesa OTC no está disponible por el momento.</Text>
           ) : (
+            <>
             <View style={isDesktop ? styles.desktopRow : undefined}>
               <View style={isDesktop ? styles.formCol : undefined}>
               {assets.length > 1 && (
@@ -339,8 +383,8 @@ export default function OtcScreen() {
               </Button>
               </View>{/* /formCol */}
 
-              <View style={isDesktop ? styles.sideCol : undefined}>
-                {isDesktop && (
+              {isDesktop && (
+                <View style={styles.sideCol}>
                   <View style={styles.summaryCard}>
                     <Text style={styles.summaryTitle}>Resumen</Text>
                     <View style={styles.sumRow}><Text style={styles.sumK}>Cotización</Text><Text style={styles.sumV}>{formatCurrency(cfg.unit_rate)} / {cfg.asset_code}</Text></View>
@@ -355,31 +399,45 @@ export default function OtcScreen() {
                       <Text style={styles.summaryHint}>Ingresá un monto para ver el detalle.</Text>
                     )}
                   </View>
-                )}
+                </View>
+              )}
+              </View>{/* /desktopRow o columna móvil */}
 
-                {orders.length > 0 && (
-                  <>
-                    <Text style={styles.histTitle}>Mis operaciones</Text>
-                    {orders.map((o) => {
-                      const sc = o.status === "completed" ? colors.success : o.status === "rejected" ? colors.destructive : colors.warning;
-                      return (
-                        <TouchableOpacity key={o.id} style={styles.histCard} activeOpacity={0.8} onPress={() => setVoucherOrder(o)}>
-                          <View style={styles.histRow}>
-                            <Text style={styles.histSide}>{o.side === "buy" ? "Compra" : "Venta"} · {fmtCrypto(o.amount_crypto)} {o.asset_code}</Text>
-                            <View style={[styles.badge, { backgroundColor: sc + "22" }]}>
-                              <Text style={[styles.badgeText, { color: sc }]}>{STATUS_LABEL[o.status] ?? o.status}</Text>
-                            </View>
+              {/* Mis operaciones: tabla a todo el ancho en escritorio; tarjetas en móvil */}
+              {orders.length > 0 && (isDesktop ? (
+                <View style={styles.ordersSection}>
+                  <Text style={styles.histTitle}>Mis operaciones</Text>
+                  <DataTable
+                    columns={otcColumns}
+                    rows={orders}
+                    keyExtractor={(o) => o.id}
+                    onRowPress={(o) => setVoucherOrder(o)}
+                    emptyIcon="swap-vertical-outline"
+                    emptyText="Sin operaciones"
+                  />
+                </View>
+              ) : (
+                <View>
+                  <Text style={styles.histTitle}>Mis operaciones</Text>
+                  {orders.map((o) => {
+                    const sc = o.status === "completed" ? colors.success : o.status === "rejected" ? colors.destructive : colors.warning;
+                    return (
+                      <TouchableOpacity key={o.id} style={styles.histCard} activeOpacity={0.8} onPress={() => setVoucherOrder(o)}>
+                        <View style={styles.histRow}>
+                          <Text style={styles.histSide}>{o.side === "buy" ? "Compra" : "Venta"} · {fmtCrypto(o.amount_crypto)} {o.asset_code}</Text>
+                          <View style={[styles.badge, { backgroundColor: sc + "22" }]}>
+                            <Text style={[styles.badgeText, { color: sc }]}>{STATUS_LABEL[o.status] ?? o.status}</Text>
                           </View>
-                          <Text style={styles.histFiat}>{formatCurrency(o.fiat_amount)}</Text>
-                          {o.reference ? <Text style={styles.histRef}>Ref: {o.reference} · Ver comprobante ›</Text> : null}
-                          {o.admin_comment ? <Text style={styles.histComment}>Operador: {o.admin_comment}</Text> : null}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </>
-                )}
-              </View>
-            </View>
+                        </View>
+                        <Text style={styles.histFiat}>{formatCurrency(o.fiat_amount)}</Text>
+                        {o.reference ? <Text style={styles.histRef}>Ref: {o.reference} · Ver comprobante ›</Text> : null}
+                        {o.admin_comment ? <Text style={styles.histComment}>Operador: {o.admin_comment}</Text> : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
+            </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -414,9 +472,21 @@ const createStyles = (colors: any) =>
     content: { padding: spacing.lg },
     contentDesktop: { width: "100%", maxWidth: 1120, alignSelf: "center", paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
     dtHeader: { marginBottom: spacing.xl },
+    dtHeaderRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.lg, marginBottom: spacing.xl, flexWrap: "wrap" },
     dtTitle: { fontSize: 28, fontWeight: "800", color: colors.foreground, letterSpacing: -0.5 },
     dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
+    balancePill: {
+      backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+      borderRadius: borderRadius.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, alignItems: "flex-end",
+    },
+    balancePillLabel: { fontSize: 11, color: colors.mutedForeground, textTransform: "uppercase", letterSpacing: 0.4, fontWeight: "700" },
+    balancePillValue: { fontSize: 18, fontWeight: "800", color: colors.foreground, marginTop: 2 },
     empty: { color: colors.mutedForeground, fontSize: 14, textAlign: "center", marginTop: spacing.xl },
+
+    ordersSection: { marginTop: spacing.xl },
+    otcOpCell: { flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1, minWidth: 0 },
+    otcIcon: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+    otcAmount: { fontSize: 13, fontWeight: "700", color: colors.foreground },
 
     // Escritorio: 2 columnas (form | resumen+historial)
     desktopRow: { flexDirection: "row", gap: spacing.xl, alignItems: "flex-start" },
