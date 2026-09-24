@@ -80,7 +80,12 @@ export default {
         },
 
         web: {
-            favicon: "./assets/favicon.png"
+            favicon: "./assets/favicon.png",
+            // SPA: exporta un único index.html + assets (app 100% cliente). El
+            // ruteo de expo-router se resuelve en el navegador; Vercel reescribe
+            // todas las rutas a la SPA (ver vercel.json).
+            bundler: "metro",
+            output: "single",
         },
 
         plugins: [
