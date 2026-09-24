@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             dni: metadata.dni || '',
             cuit_cuil: metadata.cuit || '',
             pin_hash: metadata.pin_hash || '',
-            verification_status: 'verified', // Assume verified if auth works
+            verification_status: 'pending', // Fail-closed: sin perfil no se asume verificado (gate KYB)
             web_access_enabled: false,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

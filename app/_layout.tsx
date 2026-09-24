@@ -25,14 +25,22 @@ function RootLayoutNav() {
         const inAuthGroup = segments[0] === '(auth)';
         const inTabsGroup = segments[0] === '(tabs)';
 
+        const inVerificacion = segments[0] === 'verificacion';
+        const isVerified = (user as any)?.verification_status === 'verified';
+
         if (session && user) {
             if (pendingDeviceVerification) {
                 // If user needs to verify device, push them to the verify screen unless they are already there
                 if (segments.join('/') !== '(auth)/verify-device') {
                     router.replace('/(auth)/verify-device');
                 }
-            } else if (inAuthGroup) {
-                // Si hay sesión Y usuario verificado, y estamos en grupo auth (login/register), ir a tabs
+            } else if (!isVerified) {
+                // Portón KYB: sin verificación aprobada NO puede usar la app.
+                if (!inVerificacion) {
+                    router.replace('/verificacion');
+                }
+            } else if (inAuthGroup || inVerificacion) {
+                // Verificado: si está en auth o en el portón, entra a la app.
                 router.replace('/(tabs)');
             }
         } else if (!session && inTabsGroup) {
@@ -59,6 +67,7 @@ function RootLayoutNav() {
         >
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)/login" />
+            <Stack.Screen name="verificacion" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="payment/confirm" options={{ animation: 'none' }} />
             <Stack.Screen name="payment/success" options={{ animation: 'none', gestureEnabled: false }} />

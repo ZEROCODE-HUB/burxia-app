@@ -33,7 +33,9 @@ function WebFrameInner({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { session, user, pendingDeviceVerification } = useAuth();
-  const enApp = !!session && !!user && !pendingDeviceVerification;
+  // "En la app" solo si además está verificado (KYB aprobado). Un usuario
+  // pendiente ve el portón de verificación sin el sidebar de la app.
+  const enApp = !!session && !!user && !pendingDeviceVerification && (user as any)?.verification_status === 'verified';
 
   if (isDesktop && enApp) {
     return (
