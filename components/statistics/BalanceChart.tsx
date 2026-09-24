@@ -109,7 +109,7 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentBalance
                     areaChart
                     scrollToEnd
                     data={chartData}
-                    width={screenWidth - 48}
+                    width={screenWidth - 64}
                     height={220}
                     spacing={dynamicSpacing}
                     initialSpacing={20}
@@ -135,6 +135,7 @@ export const BalanceChart: React.FC<BalanceChartProps> = ({ data, currentBalance
                     // Axis & Rules
                     yAxisThickness={0}
                     xAxisThickness={0}
+                    yAxisLabelWidth={52}
                     rulesType="dashed"
                     rulesColor={colors.border}
                     rulesThickness={1}

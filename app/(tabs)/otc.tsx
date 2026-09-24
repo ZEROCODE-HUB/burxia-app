@@ -172,7 +172,7 @@ export default function OtcScreen() {
 
   // Pill de moneda (compacta, no crece: flexShrink 0).
   const pill = (kind: "fiat" | "crypto", code: string) => (
-    <View style={styles.pill}>
+    <View style={[styles.pill, isDesktop && styles.pillDesktop]}>
       <View style={[styles.coin, kind === "fiat" && styles.coinFiat]}>
         <Text style={styles.coinText}>{kind === "fiat" ? "$" : code.slice(0, 1)}</Text>
       </View>
@@ -264,6 +264,7 @@ export default function OtcScreen() {
             <>
             <View style={isDesktop ? styles.desktopRow : undefined}>
               <View style={isDesktop ? styles.formCol : undefined}>
+              {isDesktop && <Text style={styles.formTitle}>Nueva operación</Text>}
               {assets.length > 1 && (
                 <View style={styles.assetRow}>
                   {assets.map((a) => (
@@ -297,7 +298,7 @@ export default function OtcScreen() {
               </View>
 
               {/* Tarjeta con los dos paneles + swap centrado */}
-              <View style={styles.card}>
+              <View style={[styles.card, isDesktop && styles.cardDesktop]}>
                 {side === "buy"
                   ? panel({ label: "Entregás", kind: "fiat", code: FIAT_LABEL, editable: true, valueText: "" })
                   : panel({ label: "Entregás", kind: "crypto", code: cfg.asset_code, editable: true, valueText: "" })}
@@ -399,6 +400,22 @@ export default function OtcScreen() {
                       <Text style={styles.summaryHint}>Ingresá un monto para ver el detalle.</Text>
                     )}
                   </View>
+
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoTitle}>¿Cómo funciona?</Text>
+                    <View style={styles.infoRow}>
+                      <Ionicons name="arrow-down-outline" size={18} color={colors.accent} />
+                      <Text style={styles.infoText}>Comprar: pagás con tu saldo y recibís el cripto en tu wallet.</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Ionicons name="arrow-up-outline" size={18} color={colors.success} />
+                      <Text style={styles.infoText}>Vender: enviás el cripto a la mesa y subís el comprobante.</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Ionicons name="time-outline" size={18} color={colors.mutedForeground} />
+                      <Text style={styles.infoText}>La operación queda pendiente hasta que el operador la confirme; te avisamos al resolverse.</Text>
+                    </View>
+                  </View>
                 </View>
               )}
               </View>{/* /desktopRow o columna móvil */}
@@ -490,8 +507,19 @@ const createStyles = (colors: any) =>
 
     // Escritorio: 2 columnas (form | resumen+historial)
     desktopRow: { flexDirection: "row", gap: spacing.xl, alignItems: "flex-start" },
-    formCol: { flex: 1.2, minWidth: 0, maxWidth: 520 },
-    sideCol: { flex: 1, minWidth: 0 },
+    formCol: {
+      flex: 1.2, minWidth: 0, maxWidth: 560,
+      backgroundColor: colors.card, borderRadius: borderRadius.xl,
+      borderWidth: 1, borderColor: colors.border, padding: spacing.xl,
+    },
+    formTitle: { fontSize: 17, fontWeight: "700", color: colors.foreground, marginBottom: spacing.md },
+    cardDesktop: { backgroundColor: colors.background },
+    pillDesktop: { backgroundColor: colors.card },
+    sideCol: { flex: 1, minWidth: 0, gap: spacing.lg },
+    infoCard: { backgroundColor: colors.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, gap: spacing.md },
+    infoTitle: { fontSize: 15, fontWeight: "700", color: colors.foreground },
+    infoRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
+    infoText: { flex: 1, fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
     summaryCard: { backgroundColor: colors.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.lg },
     summaryTitle: { fontSize: 17, fontWeight: "700", color: colors.foreground, marginBottom: spacing.md },
     sumRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 5 },

@@ -122,14 +122,16 @@ export default function StatisticsScreen() {
 
     const netBalance = stats.summaryData.income - stats.summaryData.expenses;
 
-    // Tarjeta de métrica para la columna lateral de escritorio.
+    // Tarjeta de métrica (compacta, horizontal) para la columna lateral de escritorio.
     const renderStat = (icon: keyof typeof Ionicons.glyphMap, label: string, value: string, color: string) => (
         <View style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: color + '22' }]}>
-                <Ionicons name={icon} size={18} color={color} />
+                <Ionicons name={icon} size={20} color={color} />
             </View>
-            <Text style={styles.statLabel}>{label}</Text>
-            <Text style={styles.statValue}>{value}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.statLabel}>{label}</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{value}</Text>
+            </View>
         </View>
     );
 
@@ -146,11 +148,13 @@ export default function StatisticsScreen() {
             )}
 
             <View style={[styles.tabsContainer, isDesktop && styles.desktopCentered]}>
-                <TimeRangeSelector
-                    options={TIME_RANGES}
-                    selected={selectedRange}
-                    onSelect={setSelectedRange}
-                />
+                <View style={isDesktop ? styles.dtFilterWrap : undefined}>
+                    <TimeRangeSelector
+                        options={TIME_RANGES}
+                        selected={selectedRange}
+                        onSelect={setSelectedRange}
+                    />
+                </View>
 
                 {selectedRange === 'custom' && (
                     <View style={styles.customPickerContainer}>
@@ -277,6 +281,7 @@ const createStyles = (colors: any) => StyleSheet.create({
         maxWidth: 1160,
         alignSelf: 'center',
     },
+    dtFilterWrap: { width: 440, maxWidth: '100%' },
     dtGrid: {
         flexDirection: 'row',
         gap: spacing.xl,
@@ -286,20 +291,22 @@ const createStyles = (colors: any) => StyleSheet.create({
     dtChartCol: { flex: 1.7, minWidth: 420 },
     dtStatsCol: { flex: 1, minWidth: 260, gap: spacing.md },
     statCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
         backgroundColor: colors.card,
         borderRadius: borderRadius.xl,
         borderWidth: 1,
         borderColor: colors.border,
-        padding: spacing.lg,
-        gap: 6,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
     },
     statIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 4,
     },
     statLabel: {
         fontSize: 11,
@@ -307,8 +314,9 @@ const createStyles = (colors: any) => StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.4,
         fontWeight: '700',
+        marginBottom: 2,
     },
-    statValue: { fontSize: 22, fontWeight: '800', color: colors.foreground, letterSpacing: -0.3 },
+    statValue: { fontSize: 20, fontWeight: '800', color: colors.foreground, letterSpacing: -0.3 },
     dtHeader: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.md },
     dtTitle: { fontSize: 28, fontWeight: '800', color: colors.foreground, letterSpacing: -0.5 },
     dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
