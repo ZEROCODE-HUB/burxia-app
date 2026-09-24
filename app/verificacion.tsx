@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { spacing, borderRadius } from '../theme';
 import { useTheme } from '../context/ThemeContext';
@@ -47,11 +48,20 @@ export default function VerificacionScreen() {
 
   const pickDoc = async (docType: string) => {
     try {
-      const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
       if (res.canceled || !res.assets?.length) return;
       const asset = res.assets[0];
+      const ct = asset.mimeType || '';
+      const okType = ct.includes('pdf') || ct.startsWith('image/') || /\.(pdf|jpe?g|png|webp|heic)$/i.test(asset.name || '');
+      if (!okType) { showAlert('Archivo no válido', 'Adjuntá un PDF o una imagen.'); return; }
+      if (asset.size != null && asset.size > 10 * 1024 * 1024) { showAlert('Archivo muy grande', 'El tamaño máximo es 10 MB.'); return; }
+
       setDocs((p) => ({ ...p, [docType]: { fileName: asset.name, uploading: true } }));
-      await uploadKybDoc(docType, asset.uri, asset.name);
+      await uploadKybDoc(docType, asset.uri, { fileName: asset.name, contentType: asset.mimeType });
       setDocs((p) => ({ ...p, [docType]: { fileName: asset.name, uploading: false } }));
     } catch (e: any) {
       setDocs((p) => ({ ...p, [docType]: { ...(p[docType] || { fileName: null }), uploading: false } }));
@@ -166,7 +176,7 @@ export default function VerificacionScreen() {
           {/* Documentos */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Anexo documental</Text>
-            <Text style={styles.sectionSub}>Adjuntá cada documento en PDF (máx. 10 MB).</Text>
+            <Text style={styles.sectionSub}>Adjuntá cada documento en PDF o imagen (máx. 10 MB).</Text>
             {KYB_DOCUMENTS.map((d) => {
               const st = docs[d.id];
               const done = !!st?.fileName;
@@ -206,7 +216,56 @@ export default function VerificacionScreen() {
   );
 }
 
+const toISODate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+function DateField({ value, onChange, colors, styles }: { value: any; onChange: (v: string) => void; colors: any; styles: any }) {
+  const [show, setShow] = useState(false);
+  if (Platform.OS === 'web') {
+    return React.createElement('input', {
+      type: 'date',
+      value: value || '',
+      max: toISODate(new Date()),
+      onChange: (e: any) => onChange(e.target.value),
+      style: {
+        width: '100%', boxSizing: 'border-box', padding: '11px 12px',
+        backgroundColor: colors.card, color: colors.foreground,
+        border: `1px solid ${colors.border}`, borderRadius: 12, fontSize: 14,
+        fontFamily: 'inherit', outline: 'none',
+        colorScheme: colors.background === '#F8F7FC' ? 'light' : 'dark',
+      },
+    });
+  }
+  return (
+    <>
+      <TouchableOpacity style={styles.input} onPress={() => setShow(true)} activeOpacity={0.8}>
+        <Text style={{ color: value ? colors.foreground : colors.mutedForeground, fontSize: 14 }}>{value || 'Seleccioná una fecha'}</Text>
+      </TouchableOpacity>
+      {show && (
+        <DateTimePicker
+          value={value ? new Date(value) : new Date()}
+          mode="date"
+          maximumDate={new Date()}
+          onChange={(_e: any, d?: Date) => { setShow(false); if (d) onChange(toISODate(d)); }}
+        />
+      )}
+    </>
+  );
+}
+
 function Field({ field, value, onChange, colors, styles }: { field: KybField; value: any; onChange: (v: any) => void; colors: any; styles: any }) {
+  if (field.type === 'date') {
+    return (
+      <View style={styles.fieldWrap}>
+        <Text style={styles.fieldLabel}>{field.label}{field.required ? ' *' : ''}</Text>
+        <DateField value={value} onChange={onChange} colors={colors} styles={styles} />
+      </View>
+    );
+  }
   if (field.type === 'choice') {
     return (
       <View style={styles.fieldWrap}>
@@ -232,7 +291,7 @@ function Field({ field, value, onChange, colors, styles }: { field: KybField; va
         style={[styles.input, multiline && styles.inputMultiline]}
         value={value ?? ''}
         onChangeText={onChange}
-        placeholder={field.type === 'date' ? 'DD/MM/AAAA' : (field.placeholder || '')}
+        placeholder={field.placeholder || ''}
         placeholderTextColor={colors.mutedForeground}
         multiline={multiline}
         keyboardType={field.type === 'email' ? 'email-address' : field.type === 'phone' ? 'phone-pad' : field.type === 'number' ? 'numeric' : 'default'}

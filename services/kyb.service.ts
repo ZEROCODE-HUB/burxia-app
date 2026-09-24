@@ -49,11 +49,34 @@ export async function getMyKybDocs(): Promise<KybDocRow[]> {
   return (data ?? []) as KybDocRow[];
 }
 
+const EXT_BY_MIME: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+};
+
+// Corta una promesa que no resuelve (subida colgada por red) para que la UI no
+// quede "cargando" para siempre.
+function withTimeout<T>(p: Promise<T>, ms = 90000): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error('La subida tardó demasiado. Revisá tu conexión e intentá de nuevo.')), ms)),
+  ]);
+}
+
 /**
- * Sube (o reemplaza) el PDF de un tipo de documento al bucket privado y registra
- * la fila en kyb_documents. Funciona en web e iOS/Android (fetch del uri).
+ * Sube (o reemplaza) un documento (PDF o imagen) al bucket privado y registra la
+ * fila en kyb_documents. Guarda el contentType REAL (antes forzaba application/pdf,
+ * lo que corrompía imágenes) y la extensión correcta. Funciona en web e iOS/Android.
  */
-export async function uploadKybDoc(docType: string, uri: string, fileName?: string): Promise<void> {
+export async function uploadKybDoc(
+  docType: string,
+  uri: string,
+  opts: { fileName?: string; contentType?: string } = {},
+): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuario no autenticado.');
 
@@ -61,16 +84,19 @@ export async function uploadKybDoc(docType: string, uri: string, fileName?: stri
   const blob = await response.blob();
   const arrayBuffer = await new Response(blob).arrayBuffer();
 
-  const path = `${user.id}/${docType}.pdf`;
-  const { error: upErr } = await db.storage
-    .from(KYB_BUCKET)
-    .upload(path, arrayBuffer, { contentType: 'application/pdf', upsert: true });
+  const contentType = opts.contentType || blob.type || 'application/octet-stream';
+  const ext = EXT_BY_MIME[contentType] || (opts.fileName?.split('.').pop() || 'bin').toLowerCase();
+  const path = `${user.id}/${docType}.${ext}`;
+
+  const { error: upErr } = (await withTimeout(
+    db.storage.from(KYB_BUCKET).upload(path, arrayBuffer, { contentType, upsert: true }),
+  )) as any;
   if (upErr) throw upErr;
 
   const { error: dbErr } = await db
     .from('kyb_documents')
     .upsert(
-      { user_id: user.id, doc_type: docType, storage_path: path, file_name: fileName ?? null, uploaded_at: new Date().toISOString() },
+      { user_id: user.id, doc_type: docType, storage_path: path, file_name: opts.fileName ?? null, uploaded_at: new Date().toISOString() },
       { onConflict: 'user_id,doc_type' },
     );
   if (dbErr) throw dbErr;
