@@ -138,10 +138,6 @@ export default function TabsLayout() {
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />
       <Tabs.Screen
-        name="web-access"
-        options={{ href: null, tabBarStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
         name="share-cvu"
         options={{ href: null, tabBarStyle: { display: "none" } }}
       />

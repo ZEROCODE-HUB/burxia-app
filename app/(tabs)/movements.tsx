@@ -146,15 +146,30 @@ export default function MovementsScreen() {
                 return haystack.includes(query) || t.amount.toString().includes(query);
             });
         }
+
+        // Filtro OTC: solo movimientos ligados a una orden OTC (compra/venta USDT).
+        // Se identifican por el transaction_id de las solicitudes con source 'otc'.
+        const otcTxIds = new Set(
+            solicitudes.filter((s) => s.source === 'otc' && s.transactionId).map((s) => s.transactionId)
+        );
+        if (activeFilter === 'otc') {
+            movs = movs.filter((t) => otcTxIds.has(t.transaction_id));
+        }
+
         const movItems: FeedItem[] = movs.map((t) => ({ kind: 'mov', key: `m_${t.transaction_id}`, created_at: t.created_at, mov: t }));
 
-        // 2) Solicitudes en curso (solo sin filtros activos; se deduplican contra
-        //    los movimientos: una solicitud que ya generó su transacción se ve
-        //    como movimiento, no dos veces).
+        // 2) Solicitudes a mostrar como filas "en curso" (se deduplican contra los
+        //    movimientos: una solicitud que ya generó su transacción se ve como
+        //    movimiento, no dos veces).
+        const movTxIds = new Set(transactions.map((t) => t.transaction_id));
         const filtering = activeFilter !== 'todos' || !!dateRange || !!searchQuery.trim();
         let solItems: FeedItem[] = [];
-        if (!filtering) {
-            const movTxIds = new Set(transactions.map((t) => t.transaction_id));
+        if (activeFilter === 'otc') {
+            // En OTC también mostramos las órdenes OTC en curso (pendientes/rechazadas).
+            solItems = enCurso(solicitudes)
+                .filter((s) => s.source === 'otc' && !(s.transactionId && movTxIds.has(s.transactionId)))
+                .map((s) => ({ kind: 'sol', key: s.id, created_at: s.createdAt, sol: s }));
+        } else if (!filtering) {
             solItems = enCurso(solicitudes)
                 .filter((s) => !(s.transactionId && movTxIds.has(s.transactionId)))
                 .map((s) => ({ kind: 'sol', key: s.id, created_at: s.createdAt, sol: s }));

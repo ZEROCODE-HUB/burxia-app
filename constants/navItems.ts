@@ -36,7 +36,6 @@ export const NAV_ITEMS: NavItem[] = [
   { icon: 'stats-chart-outline', activeIcon: 'stats-chart', label: 'Estadísticas', description: 'Análisis de gastos', path: '/statistics', group: 'principal' },
   { icon: 'person-outline', activeIcon: 'person', label: 'Perfil', description: 'Tu información', path: '/profile', group: 'principal' },
   { icon: 'code-working-outline', activeIcon: 'code-working', label: 'API', description: 'Configuración de API', path: '/api-config', group: 'principal' },
-  { icon: 'desktop-outline', activeIcon: 'desktop', label: 'Acceso Web', description: 'Acceso desde navegador', path: '/web-access', group: 'principal' },
 
   // Acciones rápidas
   { icon: 'arrow-down-circle-outline', activeIcon: 'arrow-down-circle', label: 'Depositar', description: 'Cargar saldo a tu cuenta', path: '/deposit', group: 'acciones' },
