@@ -14,7 +14,7 @@ import { getMyKyb, getMyKybDocs, uploadKybDoc, submitKyb, KybSubmission } from '
 
 export default function VerificacionScreen() {
   const { colors } = useTheme();
-  const { refreshUser, logout } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(true);
@@ -59,9 +59,10 @@ export default function VerificacionScreen() {
       const okType = ct.includes('pdf') || ct.startsWith('image/') || /\.(pdf|jpe?g|png|webp|heic)$/i.test(asset.name || '');
       if (!okType) { showAlert('Archivo no válido', 'Adjuntá un PDF o una imagen.'); return; }
       if (asset.size != null && asset.size > 10 * 1024 * 1024) { showAlert('Archivo muy grande', 'El tamaño máximo es 10 MB.'); return; }
+      if (!user?.id) { showAlert('Error', 'Sesión no disponible. Reingresá e intentá de nuevo.'); return; }
 
       setDocs((p) => ({ ...p, [docType]: { fileName: asset.name, uploading: true } }));
-      await uploadKybDoc(docType, asset.uri, { fileName: asset.name, contentType: asset.mimeType });
+      await uploadKybDoc(user.id, docType, asset.uri, { fileName: asset.name, contentType: asset.mimeType });
       setDocs((p) => ({ ...p, [docType]: { fileName: asset.name, uploading: false } }));
     } catch (e: any) {
       setDocs((p) => ({ ...p, [docType]: { ...(p[docType] || { fileName: null }), uploading: false } }));

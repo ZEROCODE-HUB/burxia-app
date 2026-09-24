@@ -73,20 +73,22 @@ function withTimeout<T>(p: Promise<T>, ms = 90000): Promise<T> {
  * lo que corrompía imágenes) y la extensión correcta. Funciona en web e iOS/Android.
  */
 export async function uploadKybDoc(
+  userId: string,
   docType: string,
   uri: string,
   opts: { fileName?: string; contentType?: string } = {},
 ): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuario no autenticado.');
-
+  // Importante: NO llamar supabase.auth.getUser() acá. En web usa el Navigator
+  // LockManager y, con varias subidas, las llamadas de auth se pelean por el lock
+  // y timeoutean ("supabase lock op timeout"). Usamos el userId que ya tiene la
+  // sesión (AuthContext). El token de la subida lo resuelve el cliente solo.
   const response = await fetch(uri);
   const blob = await response.blob();
   const arrayBuffer = await new Response(blob).arrayBuffer();
 
   const contentType = opts.contentType || blob.type || 'application/octet-stream';
   const ext = EXT_BY_MIME[contentType] || (opts.fileName?.split('.').pop() || 'bin').toLowerCase();
-  const path = `${user.id}/${docType}.${ext}`;
+  const path = `${userId}/${docType}.${ext}`;
 
   const { error: upErr } = (await withTimeout(
     db.storage.from(KYB_BUCKET).upload(path, arrayBuffer, { contentType, upsert: true }),
@@ -96,7 +98,7 @@ export async function uploadKybDoc(
   const { error: dbErr } = await db
     .from('kyb_documents')
     .upsert(
-      { user_id: user.id, doc_type: docType, storage_path: path, file_name: opts.fileName ?? null, uploaded_at: new Date().toISOString() },
+      { user_id: userId, doc_type: docType, storage_path: path, file_name: opts.fileName ?? null, uploaded_at: new Date().toISOString() },
       { onConflict: 'user_id,doc_type' },
     );
   if (dbErr) throw dbErr;
