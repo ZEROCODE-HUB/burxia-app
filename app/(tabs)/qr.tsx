@@ -6,6 +6,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { VerificacionPendiente } from '../../components/VerificacionPendiente';
 import { useIsFocused } from '@react-navigation/native';
 import { AlertDialog } from '../../components/ui';
 import { QRScannerOverlay } from '../../components/qr/QRScannerOverlay';
@@ -16,6 +18,7 @@ import { DesktopPage, DesktopGrid, DesktopCol } from '../../components/layout/De
 
 export default function QrScreen() {
     const { colors } = useTheme();
+    const { user } = useAuth();
     const isDesktop = useIsDesktop();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
@@ -59,6 +62,8 @@ export default function QrScreen() {
 
     // Escritorio: la cámara no está disponible en el navegador → página con
     // dropzone para cargar la imagen del QR.
+    if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
+
     if (isDesktop) {
         return (
             <View style={styles.container}>

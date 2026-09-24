@@ -15,6 +15,7 @@ import { Input, Button, Toast, ProcessingModal } from "../../components/ui";
 import { FundingSuccessModal, FundingSummaryRow } from "../../components/funding/FundingSuccessModal";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { VerificacionPendiente } from "../../components/VerificacionPendiente";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { DesktopBackground } from "../../components/layout/DesktopPage";
@@ -61,7 +62,7 @@ function humanizeError(e: any): string {
 export default function OtcScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { account } = useAuth();
+  const { account, user } = useAuth();
   const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -232,6 +233,8 @@ export default function OtcScreen() {
     { key: "monto", header: "Monto", width: 150, align: "right", render: (o) => <Text style={styles.otcAmount}>{formatCurrency(o.fiat_amount)}</Text> },
     { key: "accion", header: "", width: 44, align: "right", render: () => <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} /> },
   ], [colors, styles]);
+
+  if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
 
   return (
     <View style={[styles.container, isDesktop ? { backgroundColor: "transparent" } : { paddingTop: insets.top }]}>

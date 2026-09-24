@@ -18,6 +18,7 @@ import { Input, Button } from "../../components/ui";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { VerificacionPendiente } from "../../components/VerificacionPendiente";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { transactionService } from "../../services/transaction.service";
@@ -29,7 +30,7 @@ import { getSupportEmail } from "../../services/settings.service";
 export default function TransferScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { account } = useAuth();
+  const { account, user } = useAuth();
   const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
   const router = useRouter();
@@ -181,6 +182,9 @@ export default function TransferScreen() {
       />
     );
   }
+
+  // Cuenta en verificación: puede navegar, pero no operar.
+  if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

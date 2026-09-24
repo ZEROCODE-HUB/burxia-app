@@ -2,12 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-// OJO: expo-document-picker es módulo NATIVO nuevo (no está en binarios viejos).
-// Para poder actualizar por OTA sin recompilar, en NATIVO usamos expo-image-picker
-// (ya incluido) y en WEB cargamos document-picker DINÁMICAMENTE (require perezoso),
-// así el bundle nativo nunca evalúa el módulo y no crashea.
 
 import { spacing, borderRadius } from '../theme';
 import { useTheme } from '../context/ThemeContext';
@@ -18,7 +14,7 @@ import { getMyKyb, getMyKybDocs, uploadKybDoc, submitKyb, KybSubmission } from '
 
 export default function VerificacionScreen() {
   const { colors } = useTheme();
-  const { user, refreshUser, logout } = useAuth();
+  const { user, refreshUser, refreshKyb, logout } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(true);
@@ -52,44 +48,22 @@ export default function VerificacionScreen() {
 
   const pickDoc = async (docType: string) => {
     try {
-      // Se normaliza el archivo elegido a { uri, name, mimeType, size } venga
-      // del document-picker (web) o del image-picker (nativo).
-      let picked: { uri: string; name?: string; mimeType?: string; size?: number } | null = null;
-
-      if (Platform.OS === 'web') {
-        // Web: document-picker (PDF o imagen). Carga perezosa: solo en web.
-        const DocumentPicker = await import('expo-document-picker');
-        const res = await DocumentPicker.getDocumentAsync({
-          type: ['application/pdf', 'image/*'],
-          copyToCacheDirectory: true,
-          multiple: false,
-        });
-        if (res.canceled || !res.assets?.length) return;
-        const a = res.assets[0];
-        picked = { uri: a.uri, name: a.name, mimeType: a.mimeType, size: a.size };
-      } else {
-        // Nativo: image-picker (foto o imagen de la galería). Ya está en el binario.
-        const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-        if (res.canceled || !res.assets?.length) return;
-        const a = res.assets[0];
-        picked = {
-          uri: a.uri,
-          name: a.fileName ?? `${docType}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
-          size: a.fileSize,
-        };
-      }
-
-      const ct = picked.mimeType || '';
-      const okType = ct.includes('pdf') || ct.startsWith('image/') || /\.(pdf|jpe?g|png|webp|heic)$/i.test(picked.name || '');
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (res.canceled || !res.assets?.length) return;
+      const asset = res.assets[0];
+      const ct = asset.mimeType || '';
+      const okType = ct.includes('pdf') || ct.startsWith('image/') || /\.(pdf|jpe?g|png|webp|heic)$/i.test(asset.name || '');
       if (!okType) { showAlert('Archivo no válido', 'Adjuntá un PDF o una imagen.'); return; }
-      if (picked.size != null && picked.size > 10 * 1024 * 1024) { showAlert('Archivo muy grande', 'El tamaño máximo es 10 MB.'); return; }
+      if (asset.size != null && asset.size > 10 * 1024 * 1024) { showAlert('Archivo muy grande', 'El tamaño máximo es 10 MB.'); return; }
       if (!user?.id) { showAlert('Error', 'Sesión no disponible. Reingresá e intentá de nuevo.'); return; }
 
-      const nombre: string | null = picked.name ?? null;
-      setDocs((p) => ({ ...p, [docType]: { fileName: nombre, uploading: true } }));
-      await uploadKybDoc(user.id, docType, picked.uri, { fileName: nombre ?? undefined, contentType: picked.mimeType });
-      setDocs((p) => ({ ...p, [docType]: { fileName: nombre, uploading: false } }));
+      setDocs((p) => ({ ...p, [docType]: { fileName: asset.name, uploading: true } }));
+      await uploadKybDoc(user.id, docType, asset.uri, { fileName: asset.name, contentType: asset.mimeType });
+      setDocs((p) => ({ ...p, [docType]: { fileName: asset.name, uploading: false } }));
     } catch (e: any) {
       setDocs((p) => ({ ...p, [docType]: { ...(p[docType] || { fileName: null }), uploading: false } }));
       showAlert('Error', e?.message || 'No se pudo subir el documento.');
@@ -117,6 +91,7 @@ export default function VerificacionScreen() {
     setSubmitting(true);
     try {
       await submitKyb(answers);
+      await refreshKyb();   // pasa a 'submitted' → el portón lo deja explorar la app
       await load();
     } catch (e: any) {
       showAlert('Error', e?.message || 'No se pudo enviar el formulario.');
@@ -203,11 +178,7 @@ export default function VerificacionScreen() {
           {/* Documentos */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Anexo documental</Text>
-            <Text style={styles.sectionSub}>
-              {Platform.OS === 'web'
-                ? 'Adjuntá cada documento en PDF o imagen (máx. 10 MB).'
-                : 'Adjuntá una foto o imagen de cada documento (máx. 10 MB).'}
-            </Text>
+            <Text style={styles.sectionSub}>Adjuntá cada documento en PDF o imagen (máx. 10 MB).</Text>
             {KYB_DOCUMENTS.map((d) => {
               const st = docs[d.id];
               const done = !!st?.fileName;

@@ -19,6 +19,8 @@ import { spacing, borderRadius } from "../../theme";
 import { ScreenHeader } from "../../components/layout";
 import { Input, Button, Toast, ProcessingModal } from "../../components/ui";
 import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
+import { VerificacionPendiente } from "../../components/VerificacionPendiente";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { parseAmount, formatCurrency } from "../../utils/formatters";
@@ -34,6 +36,7 @@ import { DesktopDeposit } from "../../components/funding/DesktopDeposit";
 
 export default function DepositScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
@@ -171,6 +174,8 @@ export default function DepositScreen() {
       </View>
     );
   }
+
+  if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

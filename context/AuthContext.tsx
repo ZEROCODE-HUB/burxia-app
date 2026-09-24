@@ -6,6 +6,12 @@ import { User, Account, AccountWithType } from '../types/database.types';
 import { loginWithPin as loginService } from '../services/auth.service';
 import { saveLastUser } from '../services/storage.service';
 import { oneSignalService } from '../services/oneSignalService';
+import { getMyKyb } from '../services/kyb.service';
+
+// Estado de la vinculación KYB, para el portón: 'none' sin formulario,
+// 'submitted' en revisión (puede explorar la app pero no operar), 'approved'
+// verificado, 'rejected' rechazado (debe reenviar).
+export type KybGateStatus = 'none' | 'draft' | 'submitted' | 'approved' | 'rejected';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +25,8 @@ interface AuthContextType {
   refreshAccount: () => Promise<void>;
   pendingDeviceVerification: boolean;
   setPendingDeviceVerification: (val: boolean) => void;
+  kybStatus: KybGateStatus;
+  refreshKyb: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingDeviceVerification, setPendingDeviceVerification] = useState(false);
+  const [kybStatus, setKybStatus] = useState<KybGateStatus>('none');
 
   const isAuthenticated = !!session && !!user && !pendingDeviceVerification;
 
@@ -275,6 +284,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadUserData(session.user.id);
   };
 
+  // Estado de la vinculación KYB (para el portón). Verificado => 'approved';
+  // si no, se consulta la solicitud (o 'none' si no la abrió).
+  const refreshKyb = async () => {
+    if (!session?.user?.id) { setKybStatus('none'); return; }
+    if ((user as any)?.verification_status === 'verified') { setKybStatus('approved'); return; }
+    try {
+      const sub = await getMyKyb();
+      setKybStatus((sub?.status as KybGateStatus) ?? 'none');
+    } catch {
+      /* no romper la sesión por un fallo de consulta */
+    }
+  };
+
+  // Recalcula el estado KYB cuando cambia el usuario o su verificación.
+  useEffect(() => {
+    refreshKyb();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, (user as any)?.verification_status]);
+
   // Refresco LIVIANO y NO destructivo de la cuenta (saldo/límites). Se llama al
   // enfocar pantallas: solo re-baja la fila de la cuenta y la actualiza si sale
   // bien. NUNCA borra user/account ante un error transitorio (eso rompía la app).
@@ -308,6 +336,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshAccount,
         pendingDeviceVerification,
         setPendingDeviceVerification,
+        kybStatus,
+        refreshKyb,
       }}
     >
       {children}

@@ -14,7 +14,7 @@ import { UpdateModal } from '../components/UpdateModal';
 import { WebFrame } from '../components/WebFrame';
 
 function RootLayoutNav() {
-    const { session, loading, user, pendingDeviceVerification } = useAuth();
+    const { session, loading, user, pendingDeviceVerification, kybStatus } = useAuth();
     const { colors } = useTheme();
     const segments = useSegments();
     const router = useRouter();
@@ -35,9 +35,17 @@ function RootLayoutNav() {
                     router.replace('/(auth)/verify-device');
                 }
             } else if (!isVerified) {
-                // Portón KYB: sin verificación aprobada NO puede usar la app.
-                if (!inVerificacion) {
-                    router.replace('/verificacion');
+                if (kybStatus === 'submitted') {
+                    // Ya envió el formulario (en revisión): puede navegar/explorar la
+                    // app; las pantallas funcionales muestran el aviso "en verificación".
+                    if (inVerificacion || inAuthGroup) {
+                        router.replace('/(tabs)');
+                    }
+                } else {
+                    // Sin formulario (o rechazado): debe llenarlo/reenviarlo.
+                    if (!inVerificacion) {
+                        router.replace('/verificacion');
+                    }
                 }
             } else if (inAuthGroup || inVerificacion) {
                 // Verificado: si está en auth o en el portón, entra a la app.
@@ -47,7 +55,7 @@ function RootLayoutNav() {
             // Si NO hay sesión y estamos en tabs, ir a login
             router.replace('/(auth)/login');
         }
-    }, [session, loading, segments, user, pendingDeviceVerification]);
+    }, [session, loading, segments, user, pendingDeviceVerification, kybStatus]);
 
     if (loading) {
         return (
