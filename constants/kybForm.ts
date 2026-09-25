@@ -38,7 +38,6 @@ export const KYB_SECTIONS: KybSection[] = [
       { id: 'razon_social', label: 'Nombre / Razón social', type: 'text', required: true },
       { id: 'nit', label: 'NIT', type: 'text', required: true },
       { id: 'telefono', label: 'Número de teléfono', type: 'phone', required: true },
-      { id: 'correo', label: 'Correo electrónico', type: 'email', required: true },
       { id: 'direccion', label: 'Dirección', type: 'text', required: true },
       { id: 'ciudad_pais', label: 'Ciudad / País', type: 'text', required: true },
     ],

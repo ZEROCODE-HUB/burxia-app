@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -56,6 +56,20 @@ function RootLayoutNav() {
             router.replace('/(auth)/login');
         }
     }, [session, loading, segments, user, pendingDeviceVerification, kybStatus]);
+
+    // WEB: el <body>/<html> no tenían color de fondo, así que al hacer overscroll
+    // (rebote) en pantallas largas —como el formulario— asomaba un espacio en
+    // BLANCO por detrás. Pintamos body y html con el fondo del tema y cortamos el
+    // rebote con overscroll-behavior. Theme-aware: se re-aplica si cambia el color.
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+        const bg = colors.background;
+        for (const el of [document.documentElement, document.body]) {
+            if (!el) continue;
+            el.style.backgroundColor = bg;
+            (el.style as any).overscrollBehavior = 'none';
+        }
+    }, [colors.background]);
 
     if (loading) {
         return (
