@@ -28,7 +28,7 @@ export const KYB_SECTIONS: KybSection[] = [
     title: 'Solicitud',
     fields: [
       { id: 'tipo_solicitud', label: 'Tipo de solicitud', type: 'choice', required: true, options: ['Nueva solicitud', 'Actualización'] },
-      { id: 'tipo_servicio', label: 'Tipo de servicio', type: 'choice', required: true, options: ['Pagos y recaudos', 'Mesa OTC', 'Cross Border Payment'] },
+      { id: 'tipo_servicio', label: 'Tipo de servicio', type: 'choice', required: true, options: ['Pagos y recaudos', 'Cambio asistido', 'Cross Border Payment'] },
       { id: 'volumen', label: 'Volumen mensual de transacciones (COP)', type: 'choice', required: true, options: ['Menos de 300.000.000', 'Entre 300.000.000 y 600.000.000', 'Entre 600.000.000 y 1.000.000.000', 'Más de 1.000.000.000'] },
     ],
   },

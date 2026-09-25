@@ -20,7 +20,7 @@ const DEFAULT_FILTERS: FilterOption[] = [
     { id: 'todos', label: 'Todos' },
     { id: 'ingresos', label: 'Ingresos' },
     { id: 'egresos', label: 'Egresos' },
-    { id: 'otc', label: 'OTC' },
+    { id: 'otc', label: 'Cambio asistido' },
     { id: 'fechas', label: 'Fechas' },
 ];
 

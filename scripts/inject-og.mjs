@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const FILE = 'dist/index.html';
 const SITE = 'https://burxia-app.vercel.app';
 const DESC =
-  'Tu dinero, sin fronteras. Enviá, recibí y operá con la confianza de un banco y la agilidad de una app.';
+  'Settlement instantáneo. Disciplina bursátil. Operá con la confianza de un banco y la agilidad de una app.';
 
 let html = readFileSync(FILE, 'utf8');
 

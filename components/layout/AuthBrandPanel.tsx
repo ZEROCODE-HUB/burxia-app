@@ -47,7 +47,7 @@ export function AuthBrandPanel() {
 
         {/* Bloque central */}
         <View style={styles.center}>
-          <Text style={styles.heroTitle}>Tu dinero,{'\n'}sin fronteras.</Text>
+          <Text style={styles.heroTitle}>Settlement Instantáneo.{'\n'}Disciplina bursátil.</Text>
           <Text style={styles.heroSubtitle}>
             Enviá, recibí y operá con la confianza de un banco y la agilidad de una app.
           </Text>

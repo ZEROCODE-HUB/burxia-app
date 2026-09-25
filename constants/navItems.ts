@@ -31,7 +31,7 @@ export const NAV_GROUP_TITLES: Record<NavGroup, string> = {
 export const NAV_ITEMS: NavItem[] = [
   // Principal
   { icon: 'home-outline', activeIcon: 'home', label: 'Inicio', description: 'Panel principal', path: '/', group: 'principal' },
-  { icon: 'swap-vertical-outline', activeIcon: 'swap-vertical', label: 'OTC', description: 'Comprar / Vender USDT', path: '/otc', group: 'principal' },
+  { icon: 'swap-vertical-outline', activeIcon: 'swap-vertical', label: 'Cambio asistido', description: 'Comprar / Vender USDT', path: '/otc', group: 'principal' },
   { icon: 'swap-horizontal-outline', activeIcon: 'swap-horizontal', label: 'Transferir', description: 'Enviar dinero', path: '/transfer', group: 'principal' },
   { icon: 'receipt-outline', activeIcon: 'receipt', label: 'Movimientos', description: 'Historial de transacciones', path: '/movements', group: 'principal' },
   { icon: 'stats-chart-outline', activeIcon: 'stats-chart', label: 'Estadísticas', description: 'Análisis de gastos', path: '/statistics', group: 'principal' },

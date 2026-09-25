@@ -91,7 +91,7 @@ export default function OtcScreen() {
   useEffect(() => {
     getOtcAssets()
       .then((list) => { setAssets(list); if (list.length) setSelectedAsset(list[0].asset_code); })
-      .catch((e) => showToast(e.message ?? "No se pudo cargar la mesa OTC", "error"))
+      .catch((e) => showToast(e.message ?? "No se pudo cargar el Cambio asistido", "error"))
       .finally(() => setLoadingCfg(false));
   }, []);
   useFocusEffect(useCallback(() => { loadOrders(); }, [loadOrders]));
@@ -262,7 +262,7 @@ export default function OtcScreen() {
           {loadingCfg ? (
             <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.xl }} />
           ) : !cfg ? (
-            <Text style={styles.empty}>La mesa OTC no está disponible por el momento.</Text>
+            <Text style={styles.empty}>El Cambio asistido no está disponible por el momento.</Text>
           ) : (
             <>
             <View style={isDesktop ? styles.desktopRow : undefined}>
