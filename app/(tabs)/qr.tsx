@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { VerificacionPendiente } from '../../components/VerificacionPendiente';
+import { useVerificacionGate } from '../../hooks/useVerificacionGate';
 import { useIsFocused } from '@react-navigation/native';
 import { AlertDialog } from '../../components/ui';
 import { QRScannerOverlay } from '../../components/qr/QRScannerOverlay';
@@ -19,6 +19,7 @@ import { DesktopPage, DesktopGrid, DesktopCol } from '../../components/layout/De
 export default function QrScreen() {
     const { colors } = useTheme();
     const { user } = useAuth();
+    const { requireVerificado, modal: verifModal } = useVerificacionGate();
     const isDesktop = useIsDesktop();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
@@ -49,6 +50,11 @@ export default function QrScreen() {
         showAlert
     });
 
+    // Portón suave: puede abrir la pantalla, pero al intentar operar (escanear o
+    // cargar una imagen de QR) se muestra el aviso si la cuenta está en revisión.
+    const gatedPickImage = () => { if (!requireVerificado()) return; pickImage(); };
+    const gatedScanned = (data: string) => { if (!requireVerificado()) return; handleScannedData(data); };
+
     const styles = useMemo(() => createStyles(colors, insets), [colors, insets]);
 
     // Reset scanned state when returning to the screen
@@ -62,8 +68,6 @@ export default function QrScreen() {
 
     // Escritorio: la cámara no está disponible en el navegador → página con
     // dropzone para cargar la imagen del QR.
-    if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
-
     if (isDesktop) {
         return (
             <View style={styles.container}>
@@ -79,7 +83,7 @@ export default function QrScreen() {
                                     El escaneo con cámara no está disponible en el navegador. Seleccioná una
                                     imagen del código QR desde tu equipo y la procesamos igual.
                                 </Text>
-                                <TouchableOpacity style={styles.dtButton} onPress={pickImage} activeOpacity={0.85}>
+                                <TouchableOpacity style={styles.dtButton} onPress={gatedPickImage} activeOpacity={0.85}>
                                     <Ionicons name="image-outline" size={22} color={colors.accentForeground} />
                                     <Text style={styles.dtButtonText}>Cargar imagen</Text>
                                 </TouchableOpacity>
@@ -112,6 +116,7 @@ export default function QrScreen() {
                     onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
                 />
                 {processing && <QRProcessingState />}
+                {verifModal}
             </View>
         );
     }
@@ -138,7 +143,7 @@ export default function QrScreen() {
                     enableTorch={flash}
                     onBarcodeScanned={scanned ? undefined : (event) => {
                         setScanned(true);
-                        handleScannedData(event.data);
+                        gatedScanned(event.data);
                     }}
                     barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
                 />
@@ -160,7 +165,7 @@ export default function QrScreen() {
             {/* The Overlay component handles the visual frame, but we need interactive buttons on top */}
             <View style={styles.bottomContainer}>
                 <Text style={styles.instructions}>{esWeb ? 'Cargá una imagen del código QR' : 'Escanea un código QR para pagar'}</Text>
-                <TouchableOpacity onPress={pickImage} style={styles.bottomImageButton}>
+                <TouchableOpacity onPress={gatedPickImage} style={styles.bottomImageButton}>
                     <Ionicons name="image-outline" size={24} color={colors.foreground} />
                     <Text style={styles.bottomImageText}>Cargar imagen</Text>
                 </TouchableOpacity>
@@ -190,6 +195,7 @@ export default function QrScreen() {
             />
 
             {processing && <QRProcessingState />}
+            {verifModal}
         </View >
     );
 }

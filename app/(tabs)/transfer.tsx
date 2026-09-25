@@ -18,7 +18,7 @@ import { Input, Button } from "../../components/ui";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { VerificacionPendiente } from "../../components/VerificacionPendiente";
+import { useVerificacionGate } from "../../hooks/useVerificacionGate";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { transactionService } from "../../services/transaction.service";
@@ -31,6 +31,7 @@ export default function TransferScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { account, user } = useAuth();
+  const { requireVerificado, modal: verifModal } = useVerificacionGate();
   const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
   const router = useRouter();
@@ -132,6 +133,9 @@ export default function TransferScreen() {
     isRecipientValid && isAmountValid && !isLimitExhausted && !loadingLimits;
 
   const handleTransfer = async () => {
+    // Cuenta en verificación: puede entrar y explorar, pero al intentar operar
+    // se muestra el aviso en lugar de continuar.
+    if (!requireVerificado()) return;
     if (!canTransfer) return;
 
     // Si es válido, navegar a confirmación con datos enriquecidos
@@ -159,6 +163,7 @@ export default function TransferScreen() {
 
   if (isDesktop) {
     return (
+      <>
       <DesktopTransfer
         recipient={recipient}
         setRecipient={setRecipient}
@@ -180,11 +185,10 @@ export default function TransferScreen() {
         isLoading={isLoading}
         onTransfer={handleTransfer}
       />
+      {verifModal}
+      </>
     );
   }
-
-  // Cuenta en verificación: puede navegar, pero no operar.
-  if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -290,6 +294,7 @@ export default function TransferScreen() {
           </View>{/* /desktopRow */}
         </ScrollView>
       </KeyboardAvoidingView>
+      {verifModal}
     </View>
   );
 }

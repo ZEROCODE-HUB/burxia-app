@@ -18,7 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { useAuth } from "../../context/AuthContext";
-import { VerificacionPendiente } from "../../components/VerificacionPendiente";
+import { useVerificacionGate } from "../../hooks/useVerificacionGate";
 import { parseAmount, formatCurrency } from "../../utils/formatters";
 import { createWithdrawalRequest } from "../../services/funding.service";
 import { FundingSuccessModal, FundingSummaryRow } from "../../components/funding/FundingSuccessModal";
@@ -31,6 +31,7 @@ export default function WithdrawScreen() {
   useAccountRefreshOnFocus();
   const router = useRouter();
   const { account, user } = useAuth();
+  const { requireVerificado, modal: verifModal } = useVerificacionGate();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [amount, setAmount] = useState("0");
@@ -54,6 +55,7 @@ export default function WithdrawScreen() {
     setToast({ visible: true, message, type });
 
   const handleSubmit = async () => {
+    if (!requireVerificado()) return;
     if (!canSubmit) return;
     try {
       setSubmitting(true);
@@ -115,11 +117,10 @@ export default function WithdrawScreen() {
           rows={success?.rows ?? []}
           onClose={() => { setSuccess(null); router.replace("/movements"); }}
         />
+        {verifModal}
       </View>
     );
   }
-
-  if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -252,6 +253,8 @@ export default function WithdrawScreen() {
           router.replace("/movements");
         }}
       />
+
+      {verifModal}
     </View>
   );
 }

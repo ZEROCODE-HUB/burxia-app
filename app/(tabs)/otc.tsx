@@ -15,7 +15,7 @@ import { Input, Button, Toast, ProcessingModal } from "../../components/ui";
 import { FundingSuccessModal, FundingSummaryRow } from "../../components/funding/FundingSuccessModal";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { VerificacionPendiente } from "../../components/VerificacionPendiente";
+import { useVerificacionGate } from "../../hooks/useVerificacionGate";
 import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { DesktopBackground } from "../../components/layout/DesktopPage";
@@ -63,6 +63,7 @@ export default function OtcScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { account, user } = useAuth();
+  const { requireVerificado, modal: verifModal } = useVerificacionGate();
   const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -144,6 +145,8 @@ export default function OtcScreen() {
     ]);
 
   const handleSubmit = async () => {
+    // Cuenta en verificación: explora, pero al operar se muestra el aviso.
+    if (!requireVerificado()) return;
     if (!canSubmit || !cfg || !q) return;
     try {
       setSubmitting(true);
@@ -233,8 +236,6 @@ export default function OtcScreen() {
     { key: "monto", header: "Monto", width: 150, align: "right", render: (o) => <Text style={styles.otcAmount}>{formatCurrency(o.fiat_amount)}</Text> },
     { key: "accion", header: "", width: 44, align: "right", render: () => <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} /> },
   ], [colors, styles]);
-
-  if (user && (user as any).verification_status !== 'verified') return <VerificacionPendiente />;
 
   return (
     <View style={[styles.container, isDesktop ? { backgroundColor: "transparent" } : { paddingTop: insets.top }]}>
@@ -482,6 +483,8 @@ export default function OtcScreen() {
         ctaLabel="Entendido"
         onClose={() => { setSuccess(null); loadOrders(); }}
       />
+
+      {verifModal}
     </View>
   );
 }
