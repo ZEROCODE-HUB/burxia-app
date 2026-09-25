@@ -45,20 +45,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('🔐 Auth event:', event);
         setSession(session);
 
-        if (event === 'SIGNED_IN' && session) {
-          await loadUserData(session.user.id);
-          // ✅ Vincular con OneSignal después del login
-          await oneSignalService.loginUser(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setAccount(null);
-          // ✅ Desvincular de OneSignal al hacer logout
-          await oneSignalService.logoutUser();
-        }
+        // ⚠️ CRÍTICO: supabase-js ejecuta ESTE callback con el lock de auth
+        // TOMADO. Si adentro hacemos `await` de una llamada a supabase (o de
+        // cualquier cosa que se cuelgue, como OneSignal en web), se re-entra al
+        // lock y se produce un DEADLOCK: la sesión queda trabada y TODA la app
+        // se queda "cargando" hasta recargar (subir archivos, cerrar sesión,
+        // etc.). La solución oficial es NO usar await acá y diferir el trabajo
+        // FUERA del callback (setTimeout 0), para liberar el lock primero.
+        setTimeout(() => {
+          if (event === 'SIGNED_IN' && session) {
+            loadUserData(session.user.id);
+            oneSignalService.loginUser(session.user.id);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setAccount(null);
+            oneSignalService.logoutUser();
+          }
+        }, 0);
       }
     );
 

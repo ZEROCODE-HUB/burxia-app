@@ -42,6 +42,11 @@ class OneSignalService {
      * Llamar una sola vez al inicio de la app
      */
     async initialize() {
+        // OneSignal es un SDK de push SOLO-NATIVO. En web sus métodos pueden
+        // devolver promesas que nunca resuelven; como se lo llama en flujos de
+        // auth (login/logout), eso cuelga la app en el navegador. En web no hay
+        // push por acá, así que es un no-op.
+        if (Platform.OS === 'web') return;
         if (this.isInitialized) {
             console.log('OneSignal ya está inicializado');
             return;
@@ -131,6 +136,7 @@ class OneSignalService {
      * Llamar después del login exitoso
      */
     async loginUser(userId: string) {
+        if (Platform.OS === 'web') return; // push solo-nativo; no-op en web
         if (!this.isInitialized) {
             // Sin App ID (no configurado en app_config ni .env) OneSignal no se
             // inicializó; llamar a login() aquí crashea con "Must call
@@ -159,6 +165,7 @@ class OneSignalService {
      * Llamar al hacer logout
      */
     async logoutUser() {
+        if (Platform.OS === 'web') return; // push solo-nativo; no-op en web
         if (!this.isInitialized) {
             return;
         }

@@ -88,14 +88,20 @@ export default function RootLayout() {
         // 1. Inicializar OneSignal
         oneSignalService.initialize();
 
-        // 2. Escuchar cambios de autenticación
+        // 2. Escuchar cambios de autenticación.
+        // NO usar await acá: este callback corre con el lock de auth de
+        // supabase-js tomado; un await adentro (OneSignal en web se cuelga)
+        // deadlockea la sesión y deja la app "cargando" hasta recargar. Se
+        // difiere fuera del lock con setTimeout(0).
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (event === 'SIGNED_IN' && session?.user) {
-                    await oneSignalService.loginUser(session.user.id);
-                } else if (event === 'SIGNED_OUT') {
-                    await oneSignalService.logoutUser();
-                }
+            (event, session) => {
+                setTimeout(() => {
+                    if (event === 'SIGNED_IN' && session?.user) {
+                        oneSignalService.loginUser(session.user.id);
+                    } else if (event === 'SIGNED_OUT') {
+                        oneSignalService.logoutUser();
+                    }
+                }, 0);
             }
         );
 
