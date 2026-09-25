@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { borderRadius } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -42,7 +42,7 @@ export const OtcTabBarButton = ({ onPress }: CustomTabBarButtonProps) => {
             <View style={styles.qrButton}>
                 <Ionicons name="swap-vertical" size={28} color={colors.accentForeground} />
             </View>
-            <Text style={styles.qrLabel}>USDT</Text>
+            {Platform.OS !== 'web' && <Text style={styles.qrLabel}>Cambio</Text>}
         </TouchableOpacity>
     );
 };

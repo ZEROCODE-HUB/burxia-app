@@ -38,6 +38,10 @@ export default function TabsLayout() {
         },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.mutedForeground,
+        // En web (móvil) las etiquetas de react-navigation se renderizan
+        // cortadas/encimadas; se ven mal. Mostramos solo íconos en web y
+        // mantenemos las etiquetas en nativo (donde sí se ven bien).
+        tabBarShowLabel: Platform.OS !== "web",
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "500",
