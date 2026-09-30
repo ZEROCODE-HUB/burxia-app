@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { spacing, borderRadius } from "../../theme";
 import { useTheme } from "../../context/ThemeContext";
@@ -14,6 +14,8 @@ interface Props {
   balance: number;
   numericAmount: number;
   insufficient: boolean;
+  tipoDestino: "cuenta" | "breb";
+  setTipoDestino: (v: "cuenta" | "breb") => void;
   destination: string;
   setDestination: (v: string) => void;
   llaveBreb: string;
@@ -55,9 +57,23 @@ export function DesktopWithdraw(p: Props) {
               <Text style={styles.noteText}>Al confirmar, el monto se retiene de tu saldo. Si el retiro se rechaza, se devuelve.</Text>
             </View>
 
-            <Input label="Número de cuenta o alias de destino" placeholder="Dónde querés recibir el dinero" value={p.destination} onChangeText={p.setDestination} autoCapitalize="none" containerStyle={styles.block} />
-            <Input label="Llave Bre-B (opcional)" placeholder="Tu llave Bre-B" value={p.llaveBreb} onChangeText={p.setLlaveBreb} autoCapitalize="none" containerStyle={styles.block} />
-            <Input label="Titular (opcional)" placeholder="Nombre del titular de la cuenta destino" value={p.holder} onChangeText={p.setHolder} containerStyle={styles.block} />
+            <Text style={styles.selLabel}>Destino del retiro</Text>
+            <View style={styles.segment}>
+              <TouchableOpacity style={[styles.segBtn, p.tipoDestino === "cuenta" && styles.segBtnActive]} onPress={() => p.setTipoDestino("cuenta")} activeOpacity={0.85}>
+                <Text style={[styles.segText, p.tipoDestino === "cuenta" && styles.segTextActive]}>Cuenta Bancaria</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.segBtn, p.tipoDestino === "breb" && styles.segBtnActive]} onPress={() => p.setTipoDestino("breb")} activeOpacity={0.85}>
+                <Text style={[styles.segText, p.tipoDestino === "breb" && styles.segTextActive]}>Llave Bre-B</Text>
+              </TouchableOpacity>
+            </View>
+            {p.tipoDestino === "cuenta" ? (
+              <>
+                <Input label="Número de cuenta o alias de destino" placeholder="Dónde querés recibir el dinero" value={p.destination} onChangeText={p.setDestination} autoCapitalize="none" containerStyle={styles.block} />
+                <Input label="Titular (opcional)" placeholder="Nombre del titular de la cuenta destino" value={p.holder} onChangeText={p.setHolder} containerStyle={styles.block} />
+              </>
+            ) : (
+              <Input label="Llave Bre-B" placeholder="Tu llave Bre-B (celular, correo, documento…)" value={p.llaveBreb} onChangeText={p.setLlaveBreb} autoCapitalize="none" containerStyle={styles.block} />
+            )}
             <Input label="Comentario (opcional)" placeholder="Ej: retiro a mi cuenta bancaria" value={p.comment} onChangeText={p.setComment} containerStyle={styles.block} />
 
             <View style={{ height: spacing.md }} />
@@ -66,7 +82,7 @@ export function DesktopWithdraw(p: Props) {
             </Button>
             {!p.canSubmit && !p.submitting && (
               <Text style={styles.helper}>
-                {p.numericAmount <= 0 ? "Ingresá un monto" : p.insufficient ? "Saldo insuficiente" : p.destination.trim().length < 6 ? "Ingresá el destino (número de cuenta o alias)" : ""}
+                {p.numericAmount <= 0 ? "Ingresá un monto" : p.insufficient ? "Saldo insuficiente" : (p.tipoDestino === "cuenta" ? p.destination.trim().length < 6 : p.llaveBreb.trim().length < 3) ? (p.tipoDestino === "cuenta" ? "Ingresá el número de cuenta o alias" : "Ingresá tu llave Bre-B") : ""}
               </Text>
             )}
           </View>
@@ -96,6 +112,12 @@ const createStyles = (colors: any) =>
   StyleSheet.create({
     card: { backgroundColor: colors.card, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.xl },
     block: { marginBottom: spacing.md },
+    selLabel: { fontSize: 13, fontWeight: "600", color: colors.foreground, marginBottom: spacing.sm },
+    segment: { flexDirection: "row", backgroundColor: colors.mutedAlpha[20], borderRadius: borderRadius.full, padding: 4, gap: 4, marginBottom: spacing.md },
+    segBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: borderRadius.full, alignItems: "center" },
+    segBtnActive: { backgroundColor: colors.accent },
+    segText: { fontSize: 14, fontWeight: "700", color: colors.mutedForeground },
+    segTextActive: { color: "#fff" },
     warn: { backgroundColor: colors.destructive + "15", borderWidth: 1, borderColor: colors.destructive + "40", borderRadius: 12, padding: spacing.md, marginBottom: spacing.md, alignItems: "center" },
     warnText: { color: colors.destructive, fontSize: 12, fontWeight: "600" },
     note: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start", backgroundColor: colors.accentAlpha[10], borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.lg },

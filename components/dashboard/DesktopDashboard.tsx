@@ -16,7 +16,7 @@ import { TransactionsList } from "./TransactionsList";
 const ACTIONS = [
   { icon: "arrow-down-outline", label: "Depositar", path: "/(tabs)/deposit", isPrimary: true },
   { icon: "arrow-up-outline", label: "Retirar", path: "/(tabs)/withdraw", isPrimary: false },
-  { icon: "swap-vertical-outline", label: "Comprar/Vender", path: "/(tabs)/otc", isPrimary: false },
+  { icon: "swap-vertical-outline", label: "Cambio Asistido", path: "/(tabs)/otc", isPrimary: false },
   { icon: "paper-plane-outline", label: "Transferir", path: "/(tabs)/transfer", isPrimary: false },
   { icon: "bar-chart-outline", label: "Estadísticas", path: "/(tabs)/statistics", isPrimary: false },
 ] as const;

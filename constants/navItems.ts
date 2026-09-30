@@ -31,7 +31,7 @@ export const NAV_GROUP_TITLES: Record<NavGroup, string> = {
 export const NAV_ITEMS: NavItem[] = [
   // Principal
   { icon: 'home-outline', activeIcon: 'home', label: 'Inicio', description: 'Panel principal', path: '/', group: 'principal' },
-  { icon: 'swap-vertical-outline', activeIcon: 'swap-vertical', label: 'Cambio asistido', description: 'Comprar / Vender USDT', path: '/otc', group: 'principal' },
+  { icon: 'swap-vertical-outline', activeIcon: 'swap-vertical', label: 'Cambio Asistido', description: 'Cambio Asistido', path: '/otc', group: 'principal' },
   { icon: 'swap-horizontal-outline', activeIcon: 'swap-horizontal', label: 'Transferir', description: 'Enviar dinero', path: '/transfer', group: 'principal' },
   { icon: 'receipt-outline', activeIcon: 'receipt', label: 'Movimientos', description: 'Historial de transacciones', path: '/movements', group: 'principal' },
   { icon: 'stats-chart-outline', activeIcon: 'stats-chart', label: 'Estadísticas', description: 'Análisis de gastos', path: '/statistics', group: 'principal' },
@@ -45,7 +45,8 @@ export const NAV_ITEMS: NavItem[] = [
   { icon: 'phone-portrait-outline', activeIcon: 'phone-portrait', label: 'Dispositivos', description: 'Dispositivos vinculados', path: '/profile/devices', group: 'acciones' },
 
   // Ajustes
-  { icon: 'code-working-outline', activeIcon: 'code-working', label: 'API', description: 'Configuración de API', path: '/api-config', group: 'ajustes' },
+  // "API" (Configuración de API) oculto a pedido: no debe verse en web ni móvil.
+  // La ruta /api-config sigue registrada como oculta en (tabs)/_layout.tsx.
   { icon: 'settings-outline', activeIcon: 'settings', label: 'Configuración', description: 'Ajustes de la cuenta', path: '/settings', group: 'ajustes' },
 ];
 

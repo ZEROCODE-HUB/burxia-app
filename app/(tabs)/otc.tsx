@@ -21,7 +21,7 @@ import { useAccountRefreshOnFocus } from '../../hooks/useAccountRefreshOnFocus';
 import { DesktopBackground } from "../../components/layout/DesktopPage";
 import { DataTable, Cell, StatusChip, type Column } from "../../components/layout/DataTable";
 import { OperationVoucher } from "../../components/OperationVoucher";
-import { formatCurrency } from "../../utils/formatters";
+import { formatCurrency, parseAmount, formatThousandsWhileTyping } from "../../utils/formatters";
 import {
   getOtcAssets, getMyOtcOrders, createOtcBuy, createOtcSell, uploadOtcProof,
   quoteBuy, quoteSell, cryptoFromFiat, OtcConfig, OtcOrder, OtcSide,
@@ -98,7 +98,7 @@ export default function OtcScreen() {
   useFocusEffect(useCallback(() => { loadOrders(); }, [loadOrders]));
 
   const balance = account?.balance || 0;
-  const enviasNum = parseFloat(enviasStr.replace(",", ".")) || 0;
+  const enviasNum = parseAmount(enviasStr);
   const amountCrypto = !cfg ? 0 : side === "buy" ? cryptoFromFiat(cfg, enviasNum, "buy") : enviasNum;
 
   const q = useMemo(() => {
@@ -194,7 +194,7 @@ export default function OtcScreen() {
           <TextInput
             style={styles.amountInput}
             value={enviasStr}
-            onChangeText={setEnviasStr}
+            onChangeText={(t) => setEnviasStr(formatThousandsWhileTyping(t, side === "sell" ? 6 : 2))}
             keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor={colors.mutedForeground}
@@ -240,7 +240,7 @@ export default function OtcScreen() {
   return (
     <View style={[styles.container, isDesktop ? { backgroundColor: "transparent" } : { paddingTop: insets.top }]}>
       {isDesktop && <DesktopBackground />}
-      {!isDesktop && <ScreenHeader title="Comprar / Vender" showBackButton showAvatar={false} />}
+      {!isDesktop && <ScreenHeader title="Cambio Asistido" showBackButton showAvatar={false} />}
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView
@@ -251,7 +251,7 @@ export default function OtcScreen() {
           {isDesktop && (
             <View style={styles.dtHeaderRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.dtTitle}>Comprar / Vender USDT</Text>
+                <Text style={styles.dtTitle}>Cambio Asistido</Text>
                 <Text style={styles.dtSub}>Operá USDT contra el saldo de tu cuenta</Text>
               </View>
               <View style={styles.balancePill}>

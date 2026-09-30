@@ -26,7 +26,7 @@ export function buildOtcVoucher(order: OtcOrder, user: any): VoucherModel {
     rows: [
       { label: 'Referencia', value: order.reference, mono: true, strong: true },
       { label: 'Id Transacción (hash)', value: order.tx_hash || '—', mono: true },
-      { label: 'Tipo', value: isSell ? 'Venta USDT · Depósito de cripto' : 'Compra USDT' },
+      { label: 'Tipo', value: isSell ? 'Venta · Cambio Asistido' : 'Compra · Cambio Asistido' },
       { label: 'Cliente', value: clientOf(user) },
       { label: 'NIT / Documento', value: nitOf(user) },
       { label: `TRM negociada (${order.asset_code})`, value: `${formatCurrency(order.unit_rate)} / ${order.asset_code}` },

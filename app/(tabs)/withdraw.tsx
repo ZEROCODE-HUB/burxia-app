@@ -6,6 +6,7 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,6 +36,7 @@ export default function WithdrawScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [amount, setAmount] = useState("0");
+  const [tipoDestino, setTipoDestino] = useState<"cuenta" | "breb">("cuenta");
   const [destination, setDestination] = useState("");
   const [holder, setHolder] = useState("");
   const [llaveBreb, setLlaveBreb] = useState("");
@@ -48,8 +50,10 @@ export default function WithdrawScreen() {
   const balance = account?.balance || 0;
   const numericAmount = parseAmount(amount);
   const insufficient = numericAmount > balance;
-  const canSubmit =
-    numericAmount > 0 && !insufficient && destination.trim().length >= 6 && !submitting;
+  // Destino válido según el tipo elegido.
+  const destinoValido =
+    tipoDestino === "cuenta" ? destination.trim().length >= 6 : llaveBreb.trim().length >= 3;
+  const canSubmit = numericAmount > 0 && !insufficient && destinoValido && !submitting;
 
   const showToast = (message: string, type: "success" | "error") =>
     setToast({ visible: true, message, type });
@@ -59,21 +63,20 @@ export default function WithdrawScreen() {
     if (!canSubmit) return;
     try {
       setSubmitting(true);
+      const esBreb = tipoDestino === "breb";
+      const destino = esBreb
+        ? { tipo: "breb", identifier: llaveBreb.trim(), holder: null, llave_breb: llaveBreb.trim() }
+        : { tipo: "cuenta", identifier: destination.trim(), holder: holder.trim() || null, llave_breb: null };
       await createWithdrawalRequest({
         amount: numericAmount,
-        destination: {
-          identifier: destination.trim(),
-          holder: holder.trim() || null,
-          llave_breb: llaveBreb.trim() || null,
-        },
+        destination: destino,
         comment: comment.trim() || null,
       });
 
-      const rows: FundingSummaryRow[] = [
-        { label: "Número de cuenta / alias", value: destination.trim() },
-      ];
-      if (holder.trim()) rows.push({ label: "Titular", value: holder.trim() });
-      if (llaveBreb.trim()) rows.push({ label: "Llave Bre-B", value: llaveBreb.trim() });
+      const rows: FundingSummaryRow[] = esBreb
+        ? [{ label: "Llave Bre-B", value: llaveBreb.trim() }]
+        : [{ label: "Número de cuenta / alias", value: destination.trim() }];
+      if (!esBreb && holder.trim()) rows.push({ label: "Titular", value: holder.trim() });
       if (comment.trim()) rows.push({ label: "Comentario", value: comment.trim() });
 
       setSuccess({ amount: numericAmount, rows });
@@ -96,6 +99,8 @@ export default function WithdrawScreen() {
           balance={balance}
           numericAmount={numericAmount}
           insufficient={insufficient}
+          tipoDestino={tipoDestino}
+          setTipoDestino={setTipoDestino}
           destination={destination}
           setDestination={setDestination}
           llaveBreb={llaveBreb}
@@ -159,29 +164,53 @@ export default function WithdrawScreen() {
             </Text>
           </View>
 
-          <Input
-            label="Número de cuenta o alias de destino"
-            placeholder="Dónde querés recibir el dinero"
-            value={destination}
-            onChangeText={setDestination}
-            autoCapitalize="none"
-            containerStyle={styles.block}
-          />
-          <Input
-            label="Llave Bre-B (opcional)"
-            placeholder="Tu llave Bre-B"
-            value={llaveBreb}
-            onChangeText={setLlaveBreb}
-            autoCapitalize="none"
-            containerStyle={styles.block}
-          />
-          <Input
-            label="Titular (opcional)"
-            placeholder="Nombre del titular de la cuenta destino"
-            value={holder}
-            onChangeText={setHolder}
-            containerStyle={styles.block}
-          />
+          {/* Selector de tipo de destino */}
+          <Text style={styles.selLabel}>Destino del retiro</Text>
+          <View style={styles.segment}>
+            <TouchableOpacity
+              style={[styles.segBtn, tipoDestino === "cuenta" && styles.segBtnActive]}
+              onPress={() => setTipoDestino("cuenta")}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.segText, tipoDestino === "cuenta" && styles.segTextActive]}>Cuenta Bancaria</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.segBtn, tipoDestino === "breb" && styles.segBtnActive]}
+              onPress={() => setTipoDestino("breb")}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.segText, tipoDestino === "breb" && styles.segTextActive]}>Llave Bre-B</Text>
+            </TouchableOpacity>
+          </View>
+
+          {tipoDestino === "cuenta" ? (
+            <>
+              <Input
+                label="Número de cuenta o alias de destino"
+                placeholder="Dónde querés recibir el dinero"
+                value={destination}
+                onChangeText={setDestination}
+                autoCapitalize="none"
+                containerStyle={styles.block}
+              />
+              <Input
+                label="Titular (opcional)"
+                placeholder="Nombre del titular de la cuenta destino"
+                value={holder}
+                onChangeText={setHolder}
+                containerStyle={styles.block}
+              />
+            </>
+          ) : (
+            <Input
+              label="Llave Bre-B"
+              placeholder="Tu llave Bre-B (celular, correo, documento…)"
+              value={llaveBreb}
+              onChangeText={setLlaveBreb}
+              autoCapitalize="none"
+              containerStyle={styles.block}
+            />
+          )}
           <Input
             label="Comentario (opcional)"
             placeholder="Ej: retiro a mi cuenta bancaria"
@@ -201,8 +230,8 @@ export default function WithdrawScreen() {
                 ? "Ingresá un monto"
                 : insufficient
                   ? "Saldo insuficiente"
-                  : destination.trim().length < 6
-                    ? "Ingresá el destino (número de cuenta o alias)"
+                  : !destinoValido
+                    ? (tipoDestino === "cuenta" ? "Ingresá el número de cuenta o alias" : "Ingresá tu llave Bre-B")
                     : ""}
             </Text>
           )}
@@ -268,6 +297,12 @@ const createStyles = (colors: any) =>
     dtTitle: { fontSize: 28, fontWeight: "800", color: colors.foreground, letterSpacing: -0.5 },
     dtSub: { fontSize: 14, color: colors.mutedForeground, marginTop: 4 },
     block: { marginBottom: spacing.md },
+    selLabel: { fontSize: 13, fontWeight: "600", color: colors.foreground, marginBottom: spacing.sm },
+    segment: { flexDirection: "row", backgroundColor: colors.mutedAlpha[20], borderRadius: borderRadius.full, padding: 4, gap: 4, marginBottom: spacing.md },
+    segBtn: { flex: 1, paddingVertical: spacing.sm, borderRadius: borderRadius.full, alignItems: "center" },
+    segBtnActive: { backgroundColor: colors.accent },
+    segText: { fontSize: 14, fontWeight: "700", color: colors.mutedForeground },
+    segTextActive: { color: "#fff" },
     // Escritorio: 2 columnas (form | panel saldo/guía)
     desktopRow: { flexDirection: "row", gap: spacing.xl, alignItems: "flex-start" },
     formCol: { flex: 1.3, minWidth: 0, maxWidth: 560 },

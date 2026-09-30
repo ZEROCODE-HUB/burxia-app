@@ -136,15 +136,20 @@ const createStyles = (colors: any) => StyleSheet.create({
     },
     inputWrapper: {
         flexDirection: 'row',
-        alignItems: 'baseline',
+        alignItems: 'flex-end',
         justifyContent: 'center',
-        height: 80, // Fijo para evitar saltos
+        // minHeight (no height fijo): con alturas fijas el "$" grande se recortaba/
+        // desbordaba en web. flex-end alinea el símbolo al pie del número.
+        minHeight: 80,
+        paddingVertical: 6,
     },
     currencySymbol: {
         color: colors.mutedForeground,
         marginRight: spacing.xs,
         fontWeight: '500',
         opacity: 0.5,
+        // lineHeight acotado para que el glifo no empuje fuera del contenedor en web.
+        lineHeight: 40,
     },
     input: {
         fontWeight: '700',

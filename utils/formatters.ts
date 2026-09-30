@@ -70,3 +70,26 @@ export const parseAmount = (amountStr: string): number => {
     const clean = amountStr.replace(/\./g, "").replace(",", ".");
     return parseFloat(clean) || 0;
 };
+
+/**
+ * Formatea el texto de un input MIENTRAS se escribe: separador de miles con "."
+ * en la parte entera y coma decimal ("1.234,56"). Acepta hasta `maxDecimals`
+ * decimales (por defecto 2; usar más para montos cripto). Devuelve el texto ya
+ * formateado para mostrar; para el número usar parseAmount() sobre este texto.
+ */
+export const formatThousandsWhileTyping = (input: string, maxDecimals = 2): string => {
+    if (!input) return "";
+    // Solo dígitos y coma
+    let clean = input.replace(/[^\d,]/g, "");
+    const parts = clean.split(",");
+    let integerPart = (parts[0] || "").replace(/\./g, "");
+    const decimalPart = parts.length > 1 ? parts.slice(1).join("").slice(0, maxDecimals) : undefined;
+
+    if (integerPart.length > 3) {
+        integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    if (decimalPart !== undefined) {
+        return `${integerPart},${decimalPart}`;
+    }
+    return integerPart;
+};
