@@ -16,7 +16,7 @@ export default {
         // Andrés logró el build exitoso.
         slug: "Burxia",
         owner: "nocodehero",
-        version: "1.0.11",
+        version: "1.0.12",
         orientation: "portrait",
         icon: "./assets/icon.png",
         scheme: "bruxia",
