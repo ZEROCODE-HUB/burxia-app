@@ -161,6 +161,9 @@ const createStyles = (colors: any) => StyleSheet.create({
         opacity: 0.5,
         // lineHeight acotado para que el glifo no empuje fuera del contenedor en web.
         lineHeight: 40,
+        // El "$" es más chico que el número; bottom-aligned quedaba un poco bajo.
+        // marginBottom lo sube para alinearlo ópticamente con el centro del monto.
+        marginBottom: 12,
     },
     input: {
         fontWeight: '700',
