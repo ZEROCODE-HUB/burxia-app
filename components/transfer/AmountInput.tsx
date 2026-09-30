@@ -78,19 +78,27 @@ export const AmountInput: React.FC<AmountInputProps> = ({
         return 56;
     }
 
+    // Ancho del input AJUSTADO al contenido. Sin esto, en web el <input> toma su
+    // ancho por defecto (~20 caracteres = cientos de px), el número queda
+    // centrado en ese input enorme y el "$" se va al gutter izquierdo (se
+    // "desbordaba"). Con un ancho por contenido, el "$" queda pegado al número y
+    // el grupo centrado, para montos cortos y largos.
+    const fontSize = getFontSize();
+    const inputWidth = Math.max(48, Math.ceil((displayValue || "0,00").length * fontSize * 0.62));
+
     return (
         <View style={styles.container}>
             <Text style={styles.label}>MONTO A TRANSFERIR</Text>
 
             <View style={styles.inputWrapper}>
-                <Text style={[styles.currencySymbol, { fontSize: getFontSize() * 0.6 }]}>$</Text>
+                <Text style={[styles.currencySymbol, { fontSize: fontSize * 0.6 }]}>$</Text>
                 <TextInput
                     value={displayValue}
                     onChangeText={handleChangeText}
                     keyboardType="numeric" // En iOS numeric no tiene coma, usar decimal-pad
                     style={[
                         styles.input,
-                        { fontSize: getFontSize() },
+                        { fontSize, width: inputWidth },
                         isInsufficientBalance && styles.inputError
                     ]}
                     placeholder="0,00"
@@ -138,8 +146,11 @@ const createStyles = (colors: any) => StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        // minHeight (no height fijo): con alturas fijas el "$" grande se recortaba/
-        // desbordaba en web. flex-end alinea el símbolo al pie del número.
+        // width 100% + minHeight (no alto/ancho por defecto del input): mantiene
+        // el "$"+número como un grupo centrado dentro de la tarjeta. Con alturas
+        // fijas el "$" se recortaba y con el ancho por defecto del <input> se iba
+        // al gutter izquierdo en web.
+        width: '100%',
         minHeight: 80,
         paddingVertical: 6,
     },
@@ -154,7 +165,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     input: {
         fontWeight: '700',
         color: colors.foreground,
-        minWidth: 100,
+        minWidth: 0,
         textAlign: 'center',
         padding: 0,
     },
