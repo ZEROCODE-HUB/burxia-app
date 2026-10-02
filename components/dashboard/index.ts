@@ -4,3 +4,4 @@ export * from './QuickActions';
 export * from './TransactionItem';
 export * from './TransactionsList';
 export * from './TransactionDetailModal';
+export * from './VerificationSteps';

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -14,8 +15,11 @@ import { getMyKyb, getMyKybDocs, uploadKybDoc, submitKyb, KybSubmission } from '
 
 export default function VerificacionScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { user, refreshUser, refreshKyb, logout } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const volverAlInicio = () => router.replace('/(tabs)');
 
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState<KybSubmission | null>(null);
@@ -122,6 +126,14 @@ export default function VerificacionScreen() {
   if (submission?.status === 'submitted') {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <TouchableOpacity
+          onPress={volverAlInicio}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.lg }}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+          <Text style={{ color: colors.foreground, fontWeight: '600' }}>Inicio</Text>
+        </TouchableOpacity>
         <View style={styles.statusWrap}>
           <View style={[styles.statusIcon, { backgroundColor: colors.warningAlpha[20] }]}>
             <Ionicons name="hourglass-outline" size={40} color={colors.warning} />
@@ -150,6 +162,14 @@ export default function VerificacionScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.inner}>
+          <TouchableOpacity
+            onPress={volverAlInicio}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm }}
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+            <Text style={{ color: colors.foreground, fontWeight: '600' }}>Inicio</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>Verificación de cuenta</Text>
           <Text style={styles.subtitle}>
             Para operar en Burxia necesitamos vincular tu persona jurídica. Completá el formulario y adjuntá los documentos; un operador revisará la solicitud.

@@ -13,7 +13,6 @@ import { Button } from "../ui/Button";
 import { spacing, typography, borderRadius } from "../../theme";
 import { useTheme } from "../../context/ThemeContext";
 import { BRAND_NAME } from "../../constants/brand";
-import { BiometricCard } from "./BiometricCard";
 import { validateEmail, validatePhone, validateName } from "../../utils/validators";
 import { AlertDialog } from "../ui/AlertDialog";
 
@@ -51,14 +50,14 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
   const localEmailValid = validateEmail(formData.email);
   const localPhoneValid = validatePhone(formData.telefono);
   const localDniValid = formData.dni.replace(/\D/g, "").length >= 5; // documento de identidad
-  const docVerified = !!formData.zapsign_doc_token; // requerido en sandbox y producción
+  // La verificación facial (ZapSign) ya NO se pide acá: se difiere al Inicio
+  // como "Paso 2", habilitado tras aprobar el formulario (KYB). Ver verificacion-facial.tsx.
   const localFormValid =
     localNameValid &&
     localLastNameValid &&
     localEmailValid &&
     localPhoneValid &&
-    localDniValid &&
-    docVerified;
+    localDniValid;
 
   const handlePressContinue = () => {
     if (localFormValid) {
@@ -71,7 +70,6 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
     if (!localEmailValid) unmet.push("Email inválido");
     if (!localPhoneValid) unmet.push("Teléfono inválido");
     if (!localDniValid) unmet.push("Documento de identidad inválido");
-    if (!docVerified) unmet.push("Verificación de identidad pendiente");
     const message = `Revisa los siguientes puntos:\n• ${unmet.join("\n• ")}`;
     setAlertMessage(message);
     setAlertVisible(true);
@@ -147,23 +145,6 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
             </View>
           }
         />
-
-        <View style={styles.divider} />
-
-        {/* Biometric Card */}
-        <BiometricCard 
-          userName={`${formData.nombres} ${formData.apellidos}`.trim()}
-  userEmail={formData.email}
-  onSignatureSuccess={(token, contractUrl, biometric) => {
-    onChange('zapsign_doc_token', token);
-    if (contractUrl) {
-      onChange('zapsign_contract_url' as any, contractUrl);
-    }
-    if (biometric) {
-      onChange('zapsign_data', biometric);
-    }
-  }}
-/>
 
         <Text style={styles.termsText}>
           Al continuar, aceptas los{" "}

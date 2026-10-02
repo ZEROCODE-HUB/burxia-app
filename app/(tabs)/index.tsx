@@ -5,7 +5,8 @@ import { ScreenHeader } from '../../components/layout';
 import {
     BalanceCard,
     QuickActions,
-    TransactionsList
+    TransactionsList,
+    VerificationSteps
 } from '../../components/dashboard';
 import type { TransactionsListHandle } from '../../components/dashboard/TransactionsList';
 import { spacing } from '../../theme';
@@ -68,6 +69,8 @@ export default function DashboardScreen() {
                     variant="dashboard"
                     userName={user ? `${user.first_name} ${user.last_name}`.trim() : "Usuario"}
                 />
+
+                <VerificationSteps />
 
                 <View style={styles.section}>
                     <BalanceCard />

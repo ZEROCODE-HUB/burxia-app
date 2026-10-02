@@ -12,6 +12,7 @@ import { useAccount } from "../../hooks/useAccount";
 import { formatBalance } from "../../utils/formatters";
 import { DesktopBackground } from "../layout/DesktopPage";
 import { TransactionsList } from "./TransactionsList";
+import { VerificationSteps } from "./VerificationSteps";
 
 const ACTIONS = [
   { icon: "arrow-down-outline", label: "Depositar", path: "/(tabs)/deposit", isPrimary: true },
@@ -53,6 +54,9 @@ export function DesktopDashboard() {
         <Ionicons name="finger-print" size={14} color={colors.accent} />
         <Text style={styles.protectedText}>Acceso protegido</Text>
       </View>
+
+      {/* Verificación en 2 pasos (se oculta sola cuando el usuario ya está verificado) */}
+      <VerificationSteps flush />
 
       {/* Hero: tarjeta con el gradiente de la marca (mismo lenguaje que el login) */}
       <LinearGradient

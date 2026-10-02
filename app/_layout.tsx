@@ -14,7 +14,7 @@ import { UpdateModal } from '../components/UpdateModal';
 import { WebFrame } from '../components/WebFrame';
 
 function RootLayoutNav() {
-    const { session, loading, user, pendingDeviceVerification, kybStatus } = useAuth();
+    const { session, loading, user, pendingDeviceVerification } = useAuth();
     const { colors } = useTheme();
     const segments = useSegments();
     const router = useRouter();
@@ -25,37 +25,24 @@ function RootLayoutNav() {
         const inAuthGroup = segments[0] === '(auth)';
         const inTabsGroup = segments[0] === '(tabs)';
 
-        const inVerificacion = segments[0] === 'verificacion';
-        const isVerified = (user as any)?.verification_status === 'verified';
-
         if (session && user) {
             if (pendingDeviceVerification) {
                 // If user needs to verify device, push them to the verify screen unless they are already there
                 if (segments.join('/') !== '(auth)/verify-device') {
                     router.replace('/(auth)/verify-device');
                 }
-            } else if (!isVerified) {
-                if (kybStatus === 'submitted') {
-                    // Ya envió el formulario (en revisión): puede navegar/explorar la
-                    // app; las pantallas funcionales muestran el aviso "en verificación".
-                    if (inVerificacion || inAuthGroup) {
-                        router.replace('/(tabs)');
-                    }
-                } else {
-                    // Sin formulario (o rechazado): debe llenarlo/reenviarlo.
-                    if (!inVerificacion) {
-                        router.replace('/verificacion');
-                    }
-                }
-            } else if (inAuthGroup || inVerificacion) {
-                // Verificado: si está en auth o en el portón, entra a la app.
+            } else if (inAuthGroup) {
+                // Ya autenticado (sin verificación de dispositivo pendiente): entra a
+                // la app. La verificación se completa en 2 pasos desde el Inicio
+                // (formulario + facial); ya NO hay portón duro a /verificacion. El
+                // soft-gate (useVerificacionGate) bloquea OPERAR hasta estar verificado.
                 router.replace('/(tabs)');
             }
         } else if (!session && inTabsGroup) {
             // Si NO hay sesión y estamos en tabs, ir a login
             router.replace('/(auth)/login');
         }
-    }, [session, loading, segments, user, pendingDeviceVerification, kybStatus]);
+    }, [session, loading, segments, user, pendingDeviceVerification]);
 
     // WEB: el <body>/<html> no tenían color de fondo, así que al hacer overscroll
     // (rebote) en pantallas largas —como el formulario— asomaba un espacio en
@@ -90,6 +77,7 @@ function RootLayoutNav() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)/login" />
             <Stack.Screen name="verificacion" />
+            <Stack.Screen name="verificacion-facial" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="payment/confirm" options={{ animation: 'none' }} />
             <Stack.Screen name="payment/success" options={{ animation: 'none', gestureEnabled: false }} />
