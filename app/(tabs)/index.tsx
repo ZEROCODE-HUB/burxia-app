@@ -21,7 +21,7 @@ import { DesktopDashboard } from '../../components/dashboard/DesktopDashboard';
 export default function DashboardScreen() {
     const { colors, isDark } = useTheme();
     const insets = useSafeAreaInsets();
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, refreshKyb } = useAuth();
     const { refreshBalance } = useAccount();
     const isDesktop = useIsDesktop();
   useAccountRefreshOnFocus();
@@ -35,11 +35,12 @@ export default function DashboardScreen() {
         // seguía mostrándose "Pendiente" tras deslizar para recargar.
         await Promise.all([
             refreshUser(),
+            refreshKyb(),
             refreshBalance(),
             listRef.current?.refresh() ?? Promise.resolve(),
         ]);
         setRefreshing(false);
-    }, [refreshUser, refreshBalance]);
+    }, [refreshUser, refreshKyb, refreshBalance]);
 
     if (isDesktop) {
         return (

@@ -107,8 +107,8 @@ export default function VerificacionScreen() {
   const onRefreshStatus = async () => {
     setRefreshing(true);
     try {
-      await refreshUser();          // si ya fue aprobado, el gate lo lleva a la app
-      await load();                 // si fue rechazado, muestra el motivo
+      await Promise.all([refreshUser(), refreshKyb()]); // actualiza verificación + kybStatus del contexto
+      await load();                                      // refleja aprobado/rechazado localmente
     } finally {
       setRefreshing(false);
     }
@@ -147,6 +147,41 @@ export default function VerificacionScreen() {
           </Button>
           <TouchableOpacity onPress={logout} style={{ marginTop: spacing.lg }}>
             <Text style={styles.link}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
+        <AlertDialog visible={alert.visible} title={alert.title} description={alert.description}
+          onConfirm={() => setAlert((p) => ({ ...p, visible: false }))} onClose={() => setAlert((p) => ({ ...p, visible: false }))} />
+      </SafeAreaView>
+    );
+  }
+
+  // Estado: APROBADO (falta el paso 2, verificación facial) --------------------
+  // El formulario aprobado YA NO activa la cuenta: habilita el paso 2. No se debe
+  // mostrar el formulario de nuevo.
+  if (submission?.status === 'approved') {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <TouchableOpacity
+          onPress={volverAlInicio}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.lg }}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+          <Text style={{ color: colors.foreground, fontWeight: '600' }}>Inicio</Text>
+        </TouchableOpacity>
+        <View style={styles.statusWrap}>
+          <View style={[styles.statusIcon, { backgroundColor: colors.successAlpha[20] }]}>
+            <Ionicons name="checkmark-circle-outline" size={44} color={colors.success} />
+          </View>
+          <Text style={styles.statusTitle}>Formulario aprobado</Text>
+          <Text style={styles.statusText}>
+            El último paso es la verificación facial. Completala para activar tu cuenta y poder operar.
+          </Text>
+          <Button onPress={() => router.replace('/verificacion-facial')} style={{ width: '100%', marginTop: spacing.lg }}>
+            Hacer verificación facial
+          </Button>
+          <TouchableOpacity onPress={volverAlInicio} style={{ marginTop: spacing.lg }}>
+            <Text style={styles.link}>Volver al inicio</Text>
           </TouchableOpacity>
         </View>
         <AlertDialog visible={alert.visible} title={alert.title} description={alert.description}

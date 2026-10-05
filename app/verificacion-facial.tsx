@@ -18,7 +18,7 @@ import { submitFacialVerification } from '../services/kyc.service';
 export default function VerificacionFacialScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user, kybStatus, refreshUser, refreshKyb } = useAuth();
+  const { user, kybStatus, refreshUser, refreshKyb, refreshAccount } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [procesando, setProcesando] = useState(false);
@@ -37,7 +37,7 @@ export default function VerificacionFacialScreen() {
     setProcesando(true);
     try {
       const estado = await submitFacialVerification();
-      await Promise.all([refreshUser(), refreshKyb()]);
+      await Promise.all([refreshUser(), refreshKyb(), refreshAccount()]);
       if (estado === 'approved') {
         showAlert('¡Verificación completa!', 'Tu identidad fue validada. Ya podés operar en Burxia.');
       } else {

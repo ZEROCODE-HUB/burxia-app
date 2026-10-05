@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -38,7 +38,9 @@ const StepCard: React.FC<StepCardProps> = ({ numero, titulo, estado, textoEstado
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const tint = estadoColor(estado, colors);
-  const accionable = !!onPress && (estado === 'pending' || estado === 'rejected');
+  // Accionable = quien decide es el padre (pasa onPress o no). 'done'/'locked'
+  // nunca navegan.
+  const accionable = !!onPress && estado !== 'done' && estado !== 'locked';
 
   const body = (
     <View style={[styles.card, estado === 'locked' && styles.cardLocked]}>
@@ -72,10 +74,20 @@ const StepCard: React.FC<StepCardProps> = ({ numero, titulo, estado, textoEstado
 export const VerificationSteps: React.FC<{ flush?: boolean }> = ({ flush }) => {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user, kybStatus } = useAuth();
+  const { user, kybStatus, refreshKyb } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const verificado = (user as any)?.verification_status === 'verified';
+
+  // Al montar el Inicio, re-consultar el estado del formulario (KYB). Sin esto, si
+  // el operador aprueba el formulario estando el usuario en la app, el Paso 2 no se
+  // desbloqueaba: aprobar el KYB ya NO cambia verification_status (que es lo único
+  // que dispara el refresh automático del contexto), así que lo forzamos acá.
+  useEffect(() => {
+    if (user && !verificado) { void refreshKyb(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   if (!user || verificado) return null;
 
   const facial = ((user as any)?.facial_status as string) || 'none';
@@ -107,7 +119,7 @@ export const VerificationSteps: React.FC<{ flush?: boolean }> = ({ flush }) => {
           icon="document-text-outline"
           estado={paso1.estado}
           textoEstado={paso1.texto}
-          onPress={() => router.push('/verificacion')}
+          onPress={paso1.estado === 'pending' || paso1.estado === 'rejected' ? () => router.push('/verificacion') : undefined}
         />
         <StepCard
           numero={2}
@@ -115,7 +127,7 @@ export const VerificationSteps: React.FC<{ flush?: boolean }> = ({ flush }) => {
           icon="scan-outline"
           estado={paso2.estado}
           textoEstado={paso2.texto}
-          onPress={paso2.estado === 'pending' || paso2.estado === 'rejected' ? () => router.push('/verificacion-facial') : undefined}
+          onPress={kybAprobado && facial !== 'approved' ? () => router.push('/verificacion-facial') : undefined}
         />
       </View>
     </View>
