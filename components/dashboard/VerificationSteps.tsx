@@ -141,6 +141,9 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   containerFlush: {
     marginHorizontal: 0,
+    // En escritorio el siguiente bloque (hero del saldo) no trae marginTop, así
+    // que separamos el Paso 2 de esa card desde acá.
+    marginBottom: spacing.lg,
   },
   heading: { fontSize: 16, fontWeight: '700', color: colors.foreground },
   sub: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
