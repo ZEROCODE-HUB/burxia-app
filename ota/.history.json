@@ -106,5 +106,23 @@
       "android",
       "ios"
     ]
+  },
+  {
+    "runtimeVersion": "1.0.12",
+    "updateId": "8fe09c0f-1418-4437-9c65-144ca950276e",
+    "createdAt": "2026-10-07T02:58:37.979Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  {
+    "runtimeVersion": "1.0.12",
+    "updateId": "1e5cb895-1526-456e-a8cf-085a24b1128e",
+    "createdAt": "2026-10-07T07:57:25.167Z",
+    "platforms": [
+      "android",
+      "ios"
+    ]
   }
 ]
