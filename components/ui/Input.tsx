@@ -6,6 +6,7 @@ import {
     StyleSheet,
     TextInputProps,
     ViewStyle,
+    Platform,
 } from 'react-native';
 import { typography, borderRadius, spacing } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -73,6 +74,9 @@ const createStyles = (colors: any) => StyleSheet.create({
         paddingHorizontal: spacing.base,
         fontSize: typography.sizes.base,
         color: colors.foreground,
+        // Web: RNW pinta un focus ring oscuro por defecto; lo quitamos (igual que
+        // SearchBar y verificacion.tsx). El foco se indica con el borde del input.
+        ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null),
     },
     inputWithIcon: {
         paddingLeft: 40,

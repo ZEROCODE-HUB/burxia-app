@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TextInputProps, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius, typography } from '../../theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -96,6 +96,9 @@ const createStyles = (colors: any) => StyleSheet.create({
         flex: 1,
         fontSize: typography.sizes.base,
         color: colors.foreground,
+        // Web: quita el focus ring oscuro por defecto de RNW; el foco se ve por
+        // el borde del contenedor.
+        ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null),
     },
     errorText: {
         fontSize: 12,
