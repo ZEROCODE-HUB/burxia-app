@@ -15,6 +15,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { BRAND_NAME } from "../../constants/brand";
 import { validateEmail, validatePhone, validateName } from "../../utils/validators";
 import { AlertDialog } from "../ui/AlertDialog";
+import { openExternal } from "../../utils/openExternal";
+import { TERMS_PDF_URL } from "../../constants/legal";
 
 interface FormData {
   nombres: string;
@@ -148,8 +150,10 @@ export const StepFormData: React.FC<StepFormDataProps> = ({
 
         <Text style={styles.termsText}>
           Al continuar, aceptas los{" "}
-          <Text style={styles.link}>Términos de Servicio</Text> y la{" "}
-          <Text style={styles.link}>Política de Privacidad</Text> de {BRAND_NAME}.
+          <Text style={styles.link} onPress={() => openExternal(TERMS_PDF_URL)}>
+            Términos y Condiciones
+          </Text>{" "}
+          de {BRAND_NAME}.
         </Text>
 
         <Button onPress={handlePressContinue} disabled={false} style={styles.button}>

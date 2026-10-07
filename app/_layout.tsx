@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase';
 import { InactivityWrapper } from '../components/InactivityWrapper';
 import { AppLock } from '../components/AppLock';
 import { UpdateModal } from '../components/UpdateModal';
+import { TermsGate } from '../components/TermsGate';
 import { WebFrame } from '../components/WebFrame';
 
 function RootLayoutNav() {
@@ -125,6 +126,7 @@ export default function RootLayout() {
                             <AppLock>
                                 <RootLayoutNav />
                                 <UpdateModal />
+                                <TermsGate />
                             </AppLock>
                         </WebFrame>
                     </InactivityWrapper>
