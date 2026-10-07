@@ -15,6 +15,9 @@ import { submitFacialVerification } from '../services/kyc.service';
 // formulario (KYB) ya fue aprobado. Reutiliza el BiometricCard del registro; al
 // completar, reporta al backend (submit_facial_verification) y, si se confirma,
 // vuelve al Inicio ya verificado. Ver 00061_verificacion_dos_pasos.sql.
+//
+// Layout: una sola columna centrada y acotada (maxWidth) para que en web/escritorio
+// no se estire a todo el ancho; en móvil ocupa el 100%.
 export default function VerificacionFacialScreen() {
   const { colors } = useTheme();
   const router = useRouter();
@@ -53,29 +56,34 @@ export default function VerificacionFacialScreen() {
     }
   };
 
-  const Header = () => (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={volverAlInicio} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Ionicons name="arrow-back" size={24} color={colors.foreground} />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Verificación facial</Text>
-      <View style={{ width: 24 }} />
-    </View>
+  const BackLink = () => (
+    <TouchableOpacity
+      onPress={volverAlInicio}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      style={styles.backRow}
+    >
+      <Ionicons name="arrow-back" size={22} color={colors.foreground} />
+      <Text style={styles.backText}>Inicio</Text>
+    </TouchableOpacity>
   );
 
   // Facial ya aprobada ---------------------------------------------------------
   if (facialStatus === 'approved') {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <Header />
-        <View style={styles.statusWrap}>
-          <View style={[styles.statusIcon, { backgroundColor: colors.successAlpha[20] }]}>
-            <Ionicons name="checkmark-circle-outline" size={44} color={colors.success} />
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.inner}>
+            <BackLink />
+            <View style={styles.statusCard}>
+              <View style={[styles.statusIcon, { backgroundColor: colors.successAlpha[20] }]}>
+                <Ionicons name="checkmark-circle-outline" size={44} color={colors.success} />
+              </View>
+              <Text style={styles.statusTitle}>Verificación facial completada</Text>
+              <Text style={styles.statusText}>Tu identidad ya fue validada. No necesitás hacer nada más.</Text>
+              <Button onPress={volverAlInicio} style={styles.statusBtn}>Volver al inicio</Button>
+            </View>
           </View>
-          <Text style={styles.statusTitle}>Verificación facial completada</Text>
-          <Text style={styles.statusText}>Tu identidad ya fue validada. No necesitás hacer nada más.</Text>
-          <Button onPress={volverAlInicio} style={{ width: '100%', marginTop: spacing.lg }}>Volver al inicio</Button>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -84,17 +92,21 @@ export default function VerificacionFacialScreen() {
   if (!kybAprobado) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <Header />
-        <View style={styles.statusWrap}>
-          <View style={[styles.statusIcon, { backgroundColor: colors.warningAlpha[20] }]}>
-            <Ionicons name="lock-closed-outline" size={40} color={colors.warning} />
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.inner}>
+            <BackLink />
+            <View style={styles.statusCard}>
+              <View style={[styles.statusIcon, { backgroundColor: colors.warningAlpha[20] }]}>
+                <Ionicons name="lock-closed-outline" size={40} color={colors.warning} />
+              </View>
+              <Text style={styles.statusTitle}>Primero el formulario</Text>
+              <Text style={styles.statusText}>
+                La verificación facial se habilita cuando aprobemos tu formulario de vinculación. Te avisaremos por notificación.
+              </Text>
+              <Button onPress={volverAlInicio} style={styles.statusBtn}>Volver al inicio</Button>
+            </View>
           </View>
-          <Text style={styles.statusTitle}>Primero el formulario</Text>
-          <Text style={styles.statusText}>
-            La verificación facial se habilita cuando aprobemos tu formulario de vinculación. Te avisaremos por notificación.
-          </Text>
-          <Button onPress={volverAlInicio} style={{ width: '100%', marginTop: spacing.lg }}>Volver al inicio</Button>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -102,24 +114,26 @@ export default function VerificacionFacialScreen() {
   // Facial disponible ----------------------------------------------------------
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <Header />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Validá tu identidad</Text>
-        <Text style={styles.subtitle}>
-          Último paso para activar tu cuenta. Vas a hacer una verificación de identidad (documento + selfie); es rápido y seguro.
-        </Text>
+        <View style={styles.inner}>
+          <BackLink />
+          <Text style={styles.title}>Validá tu identidad</Text>
+          <Text style={styles.subtitle}>
+            Último paso para activar tu cuenta. Vas a hacer una verificación de identidad (documento + selfie); es rápido y seguro.
+          </Text>
 
-        <View style={{ marginTop: spacing.lg }}>
-          <BiometricCard
-            userName={nombre}
-            userEmail={user?.email ?? ''}
-            onSignatureSuccess={() => { onFacialCompletada(); }}
-          />
+          <View style={{ marginTop: spacing.lg }}>
+            <BiometricCard
+              userName={nombre}
+              userEmail={user?.email ?? ''}
+              onSignatureSuccess={() => { onFacialCompletada(); }}
+            />
+          </View>
+
+          {procesando && (
+            <Text style={styles.procesando}>Confirmando tu verificación…</Text>
+          )}
         </View>
-
-        {procesando && (
-          <Text style={styles.procesando}>Confirmando tu verificación…</Text>
-        )}
       </ScrollView>
 
       <AlertDialog
@@ -141,23 +155,29 @@ export default function VerificacionFacialScreen() {
 
 const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.foreground },
-  scroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  title: { fontSize: 24, fontWeight: 'bold', color: colors.foreground, marginTop: spacing.sm },
+  scroll: { padding: spacing.lg, alignItems: 'center' },
+  inner: { width: '100%', maxWidth: 640 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md },
+  backText: { color: colors.foreground, fontWeight: '600' },
+  title: { fontSize: 24, fontWeight: 'bold', color: colors.foreground, marginTop: spacing.xs },
   subtitle: { fontSize: 14, color: colors.mutedForeground, lineHeight: 20, marginTop: spacing.xs },
   procesando: { fontSize: 13, color: colors.mutedForeground, textAlign: 'center', marginTop: spacing.md },
-  statusWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  statusCard: {
+    marginTop: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
   statusIcon: {
     width: 88, height: 88, borderRadius: 44,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm,
   },
-  statusTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center', marginBottom: spacing.sm },
-  statusText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', lineHeight: 20 },
+  statusTitle: { fontSize: 20, fontWeight: '700', color: colors.foreground, textAlign: 'center' },
+  statusText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center', lineHeight: 20, maxWidth: 460 },
+  statusBtn: { width: '100%', maxWidth: 360, marginTop: spacing.lg },
 });

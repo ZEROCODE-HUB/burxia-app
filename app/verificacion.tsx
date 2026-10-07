@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -16,7 +16,7 @@ import { getMyKyb, getMyKybDocs, uploadKybDoc, submitKyb, KybSubmission } from '
 export default function VerificacionScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user, refreshUser, refreshKyb, logout } = useAuth();
+  const { user, refreshKyb, logout } = useAuth();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const volverAlInicio = () => router.replace('/(tabs)');
@@ -26,10 +26,15 @@ export default function VerificacionScreen() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [docs, setDocs] = useState<Record<string, { fileName: string | null; uploading?: boolean }>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [goInicioOnClose, setGoInicioOnClose] = useState(false);
   const [alert, setAlert] = useState<{ visible: boolean; title: string; description: string }>({ visible: false, title: '', description: '' });
 
   const showAlert = (title: string, description: string) => setAlert({ visible: true, title, description });
+  // Cierra el modal y, si corresponde (tras enviar el formulario), vuelve al Inicio.
+  const closeAlert = () => {
+    setAlert((p) => ({ ...p, visible: false }));
+    if (goInicioOnClose) { setGoInicioOnClose(false); volverAlInicio(); }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -95,22 +100,18 @@ export default function VerificacionScreen() {
     setSubmitting(true);
     try {
       await submitKyb(answers);
-      await refreshKyb();   // pasa a 'submitted' → el portón lo deja explorar la app
-      await load();
+      await refreshKyb();   // pasa a 'submitted' → Inicio muestra el Paso 1 "En revisión"
+      // No recargamos la pantalla: mostramos un modal y volvemos al Inicio. El
+      // estado "en revisión" vive en el recuadro del Paso 1 del Inicio.
+      setGoInicioOnClose(true);
+      showAlert(
+        'Formulario enviado',
+        'Tu cuenta está en revisión. Te avisaremos por notificación cuando la aprobemos y se habilite la verificación facial.',
+      );
     } catch (e: any) {
       showAlert('Error', e?.message || 'No se pudo enviar el formulario.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const onRefreshStatus = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([refreshUser(), refreshKyb()]); // actualiza verificación + kybStatus del contexto
-      await load();                                      // refleja aprobado/rechazado localmente
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -123,36 +124,11 @@ export default function VerificacionScreen() {
   }
 
   // Estado: EN REVISIÓN --------------------------------------------------------
+  // Ya no mostramos una pantalla propia: el estado "en revisión" se ve en el
+  // recuadro del Paso 1 del Inicio. Si se llega acá con el formulario ya enviado
+  // (p. ej. recargando la ruta), volvemos directo al Inicio.
   if (submission?.status === 'submitted') {
-    return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <TouchableOpacity
-          onPress={volverAlInicio}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.lg }}
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.foreground} />
-          <Text style={{ color: colors.foreground, fontWeight: '600' }}>Inicio</Text>
-        </TouchableOpacity>
-        <View style={styles.statusWrap}>
-          <View style={[styles.statusIcon, { backgroundColor: colors.warningAlpha[20] }]}>
-            <Ionicons name="hourglass-outline" size={40} color={colors.warning} />
-          </View>
-          <Text style={styles.statusTitle}>Tu cuenta está en revisión</Text>
-          <Text style={styles.statusText}>
-            Recibimos tu formulario de vinculación. Nuestro equipo lo está revisando; te avisaremos por notificación cuando tu cuenta quede activa.
-          </Text>
-          <Button onPress={onRefreshStatus} loading={refreshing} style={{ width: '100%', marginTop: spacing.lg }}>
-            Actualizar estado
-          </Button>
-          <TouchableOpacity onPress={logout} style={{ marginTop: spacing.lg }}>
-            <Text style={styles.link}>Cerrar sesión</Text>
-          </TouchableOpacity>
-        </View>
-        <AlertDialog visible={alert.visible} title={alert.title} description={alert.description}
-          onConfirm={() => setAlert((p) => ({ ...p, visible: false }))} onClose={() => setAlert((p) => ({ ...p, visible: false }))} />
-      </SafeAreaView>
-    );
+    return <Redirect href="/(tabs)" />;
   }
 
   // Estado: APROBADO (falta el paso 2, verificación facial) --------------------
@@ -185,7 +161,7 @@ export default function VerificacionScreen() {
           </TouchableOpacity>
         </View>
         <AlertDialog visible={alert.visible} title={alert.title} description={alert.description}
-          onConfirm={() => setAlert((p) => ({ ...p, visible: false }))} onClose={() => setAlert((p) => ({ ...p, visible: false }))} />
+          onConfirm={closeAlert} onClose={closeAlert} />
       </SafeAreaView>
     );
   }
